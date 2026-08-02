@@ -1,93 +1,150 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import MessageBubble from "./MessageBubble";
 
 function ChatWindow() {
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const messagesEndRef = useRef(null);
+
+
+  useEffect(() => {
+
+    fetch(
+      "http://localhost:5050/api/conversations/e8eb16b3-90ae-4ffa-a7c1-b826c8b57ba0"
+    )
+      .then((res) => res.json())
+      .then((data) => {
+
+        const loadedMessages = [];
+
+        data.forEach((item) => {
+
+          loadedMessages.push({
+            text: item.message,
+            sender: "user"
+          });
+
+
+          if (item.response) {
+
+            loadedMessages.push({
+              text: item.response,
+              sender: "atlas"
+            });
+
+          }
+
+        });
+
+
+        setMessages(loadedMessages);
+
+      });
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+
+  }, [messages, isTyping]);
+
 
 
   const handleSend = async () => {
-
-  if (message.trim() === "") {
-    return;
-  }
-
-
-  const userMessage = message;
-
-
-  setMessages([
-    ...messages,
-    {
-      text: userMessage,
-      sender: "user"
-    }
-  ]);
-
-
-  setMessage("");
-
-
-  const response = await fetch(
-    "http://localhost:5050/api/chat",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-
-        business_id:
-          "ec5380e6-2f6e-4e33-a5be-5db735a89e83",
-
-        customer_id:
-          "e8eb16b3-90ae-4ffa-a7c1-b826c8b57ba0",
-
-        message: userMessage,
-
-      }),
-
-    }
-  );
-
-
-  const data = await response.json();
-
-
-  setMessages((previous) => [
-
-    ...previous,
-
-    {
-      text: data.reply,
-      sender: "atlas"
-    }
-
-  ]);
-
-};
 
     if (message.trim() === "") {
       return;
     }
 
 
-    setMessages([
-      ...messages,
+    const userMessage = message;
+
+
+    setMessages((previous) => [
+      ...previous,
       {
-        text: message,
+        text: userMessage,
         sender: "user"
       }
     ]);
 
 
-    console.log(message);
-
     setMessage("");
 
+    setIsTyping(true);
+
+
+
+    try {
+
+      const response = await fetch(
+        "http://localhost:5050/api/chat",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+
+            business_id:
+              "ec5380e6-2f6e-4e33-a5be-5db735a89e83",
+
+            customer_id:
+              "e8eb16b3-90ae-4ffa-a7c1-b826c8b57ba0",
+
+            message: userMessage,
+
+          }),
+
+        }
+      );
+
+
+      const data = await response.json();
+
+
+      setMessages((previous) => [
+
+        ...previous,
+
+        {
+          text: data.reply,
+          sender: "atlas"
+        }
+
+      ]);
+
+
+    } catch (error) {
+
+      setMessages((previous) => [
+
+        ...previous,
+
+        {
+          text: "I couldn't connect right now.",
+          sender: "atlas"
+        }
+
+      ]);
+
+    }
+
+
+    setIsTyping(false);
+
   };
+
 
 
   return (
@@ -99,7 +156,7 @@ function ChatWindow() {
 
       <div
         style={{
-          minHeight: "300px",
+          height: "400px",
           border: "1px solid #ccc",
           padding: "10px",
           marginBottom: "10px",
@@ -107,26 +164,33 @@ function ChatWindow() {
         }}
       >
 
-        <p>
-          <strong>Atlas:</strong> Hello! How can I help you today?
-        </p>
-
-
         {messages.map((msg, index) => (
 
-          <p key={index}>
-
-            <strong>
-  {msg.sender === "user" ? "You" : "Atlas"}:
-</strong>
-
-{" "}
-
-{msg.text}
-
-          </p>
+          <MessageBubble
+            key={index}
+            message={msg}
+          />
 
         ))}
+
+
+        {isTyping && (
+
+          <div
+            style={{
+              marginTop: "10px",
+              fontStyle: "italic",
+            }}
+          >
+
+            Atlas is typing...
+
+          </div>
+
+        )}
+
+
+        <div ref={messagesEndRef} />
 
 
       </div>
@@ -141,6 +205,14 @@ function ChatWindow() {
         value={message}
 
         onChange={(e) => setMessage(e.target.value)}
+
+        onKeyDown={(e) => {
+
+          if (e.key === "Enter") {
+            handleSend();
+          }
+
+        }}
 
         style={{
           width: "80%",
@@ -170,7 +242,7 @@ function ChatWindow() {
 
   );
 
-
+}
 
 
 export default ChatWindow;
