@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ChatWindow from "./components/ChatWindow";
 import "./App.css";
 
 
@@ -190,65 +191,22 @@ function App() {
             Add Knowledge
           </button>
 
-
           {knowledge.map((item) => (
-
             <div key={item.id}>
-
               <strong>
                 {item.title}
               </strong>
-
               <p>
                 {item.content}
               </p>
-
             </div>
-
           ))}
-
         </div>
 
-
-
-        <div className="card">
-
-  <h2>Memories</h2>
-
-  {
-    memories.length === 0 ? (
-
-      <p>No memories found</p>
-
-    ) : (
-
-      memories.map((item) => (
-
-        <div key={item.id}>
-
-          <p>
-            {item.memory}
-          </p>
-
-        </div>
-
-      ))
-
-    )
-
-  }
-
-</div>
-
-
+        <ChatWindow />
       </main>
-
-
     </div>
-
   );
-
 }
-
 
 export default App;
