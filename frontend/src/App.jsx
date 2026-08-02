@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ChatWindow from "./components/ChatWindow";
+import BusinessSelector from "./components/BusinessSelector";
 import "./App.css";
 
 
@@ -17,9 +18,8 @@ function App() {
 
   const [knowledgeContent, setKnowledgeContent] = useState("");
 
-  const [memories, setMemories] = useState([]);
-
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+
 
 
   useEffect(() => {
@@ -31,20 +31,11 @@ function App() {
         setBusinesses(data);
 
         if (data.length > 0) {
-
-          setSelectedBusiness(data[0].id);
-
-          fetch(
-            `http://localhost:5050/api/knowledge/${data[0].id}`
-          )
-            .then((res) => res.json())
-            .then((knowledgeData) => {
-              setKnowledge(knowledgeData);
-            });
-
+          setSelectedBusiness(data[0]);
         }
 
       });
+
 
 
     fetch("http://localhost:5050/api/customers")
@@ -52,49 +43,80 @@ function App() {
       .then((data) => setCustomers(data));
 
 
+
     fetch("http://localhost:5050/api/conversations")
       .then((res) => res.json())
       .then((data) => setConversations(data));
-
-      fetch("http://localhost:5050/api/memories")
-  .then((res) => res.json())
-  .then((data) => setMemories(data));
 
 
   }, []);
 
 
 
-  const addKnowledge = async () => {
 
-    await fetch("http://localhost:5050/api/knowledge", {
+  useEffect(() => {
 
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        business_id: selectedBusiness,
-        title: knowledgeTitle,
-        content: knowledgeContent,
-      }),
-
-    });
-
-
-    setKnowledgeTitle("");
-    setKnowledgeContent("");
+    if (!selectedBusiness) {
+      return;
+    }
 
 
     fetch(
-      `http://localhost:5050/api/knowledge/${selectedBusiness}`
+      `http://localhost:5050/api/knowledge/${selectedBusiness.id}`
     )
       .then((res) => res.json())
       .then((data) => setKnowledge(data));
 
+
+  }, [selectedBusiness]);
+
+
+
+
+  const addKnowledge = async () => {
+
+
+    await fetch(
+      "http://localhost:5050/api/knowledge",
+      {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+
+        body: JSON.stringify({
+
+          business_id: selectedBusiness.id,
+
+          title: knowledgeTitle,
+
+          content: knowledgeContent,
+
+        }),
+
+      }
+    );
+
+
+
+    setKnowledgeTitle("");
+
+    setKnowledgeContent("");
+
+
+
+    fetch(
+      `http://localhost:5050/api/knowledge/${selectedBusiness.id}`
+    )
+      .then((res) => res.json())
+      .then((data) => setKnowledge(data));
+
+
   };
+
 
 
 
@@ -102,29 +124,47 @@ function App() {
 
     <div className="dashboard">
 
+
       <header className="header">
 
         <h1>Atlas AI</h1>
-        <p>Business Intelligence Dashboard</p>
+
+        <p>
+          Business Intelligence Dashboard
+        </p>
 
       </header>
+
 
 
 
       <main className="cards">
 
 
+        <BusinessSelector
+          setBusiness={setSelectedBusiness}
+        />
+
+
+
         <div className="card">
 
           <h2>Businesses</h2>
 
+
           {businesses.map((business) => (
+
             <p key={business.id}>
+
               {business.name}
+
             </p>
+
           ))}
 
+
         </div>
+
 
 
 
@@ -132,21 +172,31 @@ function App() {
 
           <h2>Customers</h2>
 
+
           {customers.map((customer) => (
+
             <p key={customer.id}>
+
               {customer.name}
+
               <br />
+
               {customer.email}
+
             </p>
+
           ))}
 
+
         </div>
+
 
 
 
         <div className="card">
 
           <h2>Conversations</h2>
+
 
           {conversations.map((conversation) => (
 
@@ -160,11 +210,14 @@ function App() {
                 {conversation.response}
               </p>
 
+
             </div>
 
           ))}
 
+
         </div>
+
 
 
 
@@ -173,40 +226,79 @@ function App() {
           <h2>Knowledge Base</h2>
 
 
+
           <input
+
             placeholder="Title"
+
             value={knowledgeTitle}
-            onChange={(e) => setKnowledgeTitle(e.target.value)}
+
+            onChange={(e) =>
+              setKnowledgeTitle(e.target.value)
+            }
+
           />
+
 
 
           <textarea
+
             placeholder="Information"
+
             value={knowledgeContent}
-            onChange={(e) => setKnowledgeContent(e.target.value)}
+
+            onChange={(e) =>
+              setKnowledgeContent(e.target.value)
+            }
+
           />
 
 
+
           <button onClick={addKnowledge}>
+
             Add Knowledge
+
           </button>
 
+
+
           {knowledge.map((item) => (
+
             <div key={item.id}>
+
               <strong>
                 {item.title}
               </strong>
+
+
               <p>
                 {item.content}
               </p>
+
             </div>
+
           ))}
+
+
         </div>
 
-        <ChatWindow />
+
+
+
+        <ChatWindow
+          business={selectedBusiness}
+        />
+
+
       </main>
+
+
     </div>
+
   );
+
 }
+
 
 export default App;
