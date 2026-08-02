@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ChatWindow from "./components/ChatWindow";
 import BusinessSelector from "./components/BusinessSelector";
+import CustomerSelector from "./components/CustomerSelector";
 import "./App.css";
 
 
@@ -20,6 +21,8 @@ function App() {
 
   const [selectedBusiness, setSelectedBusiness] = useState(null);
 
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
 
 
   useEffect(() => {
@@ -31,7 +34,9 @@ function App() {
         setBusinesses(data);
 
         if (data.length > 0) {
+
           setSelectedBusiness(data[0]);
+
         }
 
       });
@@ -46,7 +51,7 @@ function App() {
 
     fetch("http://localhost:5050/api/conversations")
       .then((res) => res.json())
-      .then((data) => setConversations(data));
+      .then((data) => setConversations());
 
 
   }, []);
@@ -73,6 +78,7 @@ function App() {
 
 
 
+
   const addKnowledge = async () => {
 
 
@@ -86,7 +92,6 @@ function App() {
           "Content-Type": "application/json",
         },
 
-
         body: JSON.stringify({
 
           business_id: selectedBusiness.id,
@@ -99,7 +104,6 @@ function App() {
 
       }
     );
-
 
 
     setKnowledgeTitle("");
@@ -147,84 +151,19 @@ function App() {
 
 
 
-        <div className="card">
+        <CustomerSelector
 
-          <h2>Businesses</h2>
+          business={selectedBusiness}
 
+          setCustomer={setSelectedCustomer}
 
-          {businesses.map((business) => (
-
-            <p key={business.id}>
-
-              {business.name}
-
-            </p>
-
-          ))}
-
-
-        </div>
-
-
-
-
-        <div className="card">
-
-          <h2>Customers</h2>
-
-
-          {customers.map((customer) => (
-
-            <p key={customer.id}>
-
-              {customer.name}
-
-              <br />
-
-              {customer.email}
-
-            </p>
-
-          ))}
-
-
-        </div>
-
-
-
-
-        <div className="card">
-
-          <h2>Conversations</h2>
-
-
-          {conversations.map((conversation) => (
-
-            <div key={conversation.id}>
-
-              <p>
-                {conversation.message}
-              </p>
-
-              <p>
-                {conversation.response}
-              </p>
-
-
-            </div>
-
-          ))}
-
-
-        </div>
-
+        />
 
 
 
         <div className="card">
 
           <h2>Knowledge Base</h2>
-
 
 
           <input
@@ -240,7 +179,6 @@ function App() {
           />
 
 
-
           <textarea
 
             placeholder="Information"
@@ -254,13 +192,11 @@ function App() {
           />
 
 
-
           <button onClick={addKnowledge}>
 
             Add Knowledge
 
           </button>
-
 
 
           {knowledge.map((item) => (
@@ -270,7 +206,6 @@ function App() {
               <strong>
                 {item.title}
               </strong>
-
 
               <p>
                 {item.content}
@@ -287,8 +222,13 @@ function App() {
 
 
         <ChatWindow
+
           business={selectedBusiness}
+
+          customer={selectedCustomer}
+
         />
+
 
 
       </main>
@@ -297,6 +237,7 @@ function App() {
     </div>
 
   );
+
 
 }
 

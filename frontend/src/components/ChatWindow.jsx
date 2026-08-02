@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
 
 
-function ChatWindow({ business }) {
+function ChatWindow({ business, customer }) {
 
   const [message, setMessage] = useState("");
 
@@ -16,21 +16,29 @@ function ChatWindow({ business }) {
 
   useEffect(() => {
 
-    if (!business) {
+    if (!customer) {
+
+      setMessages([]);
+
       return;
+
     }
 
 
+
     fetch(
-      "http://localhost:5050/api/conversations/e8eb16b3-90ae-4ffa-a7c1-b826c8b57ba0"
+      `http://localhost:5050/api/conversations/${customer.id}`
     )
       .then((res) => res.json())
       .then((data) => {
 
+
         const loadedMessages = [];
 
 
+
         data.forEach((item) => {
+
 
           loadedMessages.push({
 
@@ -44,6 +52,7 @@ function ChatWindow({ business }) {
 
           if (item.response) {
 
+
             loadedMessages.push({
 
               text: item.response,
@@ -52,10 +61,12 @@ function ChatWindow({ business }) {
 
             });
 
+
           }
 
 
         });
+
 
 
         setMessages(loadedMessages);
@@ -64,12 +75,15 @@ function ChatWindow({ business }) {
       });
 
 
-  }, [business]);
+
+  }, [customer]);
+
 
 
 
 
   useEffect(() => {
+
 
     messagesEndRef.current?.scrollIntoView({
 
@@ -84,10 +98,11 @@ function ChatWindow({ business }) {
 
 
 
+
   const handleSend = async () => {
 
 
-    if (!message.trim() || !business) {
+    if (!message.trim() || !business || !customer) {
 
       return;
 
@@ -143,15 +158,15 @@ function ChatWindow({ business }) {
 
           body: JSON.stringify({
 
+
             business_id: business.id,
 
 
-            customer_id:
-
-              "e8eb16b3-90ae-4ffa-a7c1-b826c8b57ba0",
+            customer_id: customer.id,
 
 
             message: userMessage,
+
 
           }),
 
@@ -162,12 +177,14 @@ function ChatWindow({ business }) {
 
 
 
+
       const data = await response.json();
 
 
 
 
       setMessages((previous) => [
+
 
         ...previous,
 
@@ -185,10 +202,13 @@ function ChatWindow({ business }) {
 
 
 
+
     } catch (error) {
 
 
+
       setMessages((previous) => [
+
 
         ...previous,
 
@@ -210,10 +230,13 @@ function ChatWindow({ business }) {
 
 
 
+
     setIsTyping(false);
 
 
+
   };
+
 
 
 
@@ -228,6 +251,7 @@ function ChatWindow({ business }) {
 
         Atlas Chat
 
+
         {business && (
 
           <span>
@@ -238,7 +262,20 @@ function ChatWindow({ business }) {
 
         )}
 
+
+        {customer && (
+
+          <div>
+
+            Customer: {customer.name}
+
+          </div>
+
+        )}
+
+
       </h2>
+
 
 
 
@@ -247,15 +284,21 @@ function ChatWindow({ business }) {
 
         style={{
 
+
           height: "400px",
+
 
           border: "1px solid #ccc",
 
+
           padding: "10px",
+
 
           marginBottom: "10px",
 
+
           overflowY: "auto",
+
 
         }}
 
@@ -263,7 +306,9 @@ function ChatWindow({ business }) {
 
 
 
+
         {messages.map((msg, index) => (
+
 
           <MessageBubble
 
@@ -286,6 +331,7 @@ function ChatWindow({ business }) {
             Atlas is typing...
 
           </div>
+
 
         )}
 
@@ -314,12 +360,7 @@ function ChatWindow({ business }) {
         value={message}
 
 
-        onChange={(e) =>
-
-          setMessage(e.target.value)
-
-        }
-
+        onChange={(e) => setMessage(e.target.value)}
 
 
         onKeyDown={(e) => {
@@ -338,9 +379,12 @@ function ChatWindow({ business }) {
 
         style={{
 
+
           width: "80%",
 
+
           padding: "10px",
+
 
         }}
 
@@ -360,17 +404,20 @@ function ChatWindow({ business }) {
 
         style={{
 
+
           marginLeft: "10px",
+
 
           padding: "10px",
 
+
         }}
+
 
 
       >
 
         Send
-
 
       </button>
 
@@ -379,7 +426,6 @@ function ChatWindow({ business }) {
     </div>
 
   );
-
 
 }
 
