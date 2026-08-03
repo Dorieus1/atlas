@@ -5,13 +5,20 @@ const router = express.Router();
 
 const {
   createBusiness,
-  getBusinesses
+  getBusinesses,
+  updateBusiness
 } = require("../controllers/businessController");
+
 
 
 router.post("/", createBusiness);
 
+
 router.get("/", getBusinesses);
+
+
+router.put("/", updateBusiness);
+
 
 
 module.exports = router;

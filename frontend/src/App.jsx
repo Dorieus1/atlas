@@ -1,69 +1,31 @@
 import { useEffect, useState } from "react";
-import ChatWindow from "./components/ChatWindow";
-import BusinessSelector from "./components/BusinessSelector";
-import CustomerSelector from "./components/CustomerSelector";
-import CustomerForm from "./components/CustomerForm";
 import "./App.css";
 
+import BusinessSelector from "./components/BusinessSelector";
+import CustomerSelector from "./components/CustomerSelector";
+import ChatWindow from "./components/ChatWindow";
 
 function App() {
 
-  const [businesses, setBusinesses] = useState([]);
+  const [business, setBusiness] = useState(null);
 
   const [customers, setCustomers] = useState([]);
 
-  const [selectedBusiness, setSelectedBusiness] = useState(null);
-
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-
-
-
-  const loadCustomers = async () => {
-
-    const response = await fetch(
-      "http://localhost:5050/api/customers"
-    );
-
-
-    const data = await response.json();
-
-
-    setCustomers(data);
-
-
-  };
-
+  const [customer, setCustomer] = useState(null);
 
 
   useEffect(() => {
 
-
-    fetch("http://localhost:5050/api/business")
-
+    fetch("http://localhost:5050/api/customers")
       .then((res) => res.json())
-
       .then((data) => {
 
-        setBusinesses(data);
-
-
-        if (data.length > 0) {
-
-          setSelectedBusiness(data[0]);
-
-        }
+        setCustomers(data);
 
       });
 
 
-
-    loadCustomers();
-
-
-
   }, []);
-
-
 
 
 
@@ -84,56 +46,34 @@ function App() {
 
 
 
-
       <main className="cards">
 
 
-
         <BusinessSelector
-
-          setBusiness={setSelectedBusiness}
-
+          setBusiness={setBusiness}
         />
-
 
 
 
         <CustomerSelector
 
-          business={selectedBusiness}
+          business={business}
 
           customers={customers}
 
-          setCustomer={setSelectedCustomer}
+          setCustomer={setCustomer}
 
         />
-
-
-
-
-        <CustomerForm
-
-          business={selectedBusiness}
-
-          onCustomerCreated={() => {
-
-            loadCustomers();
-
-          }}
-
-        />
-
 
 
 
         <ChatWindow
 
-          business={selectedBusiness}
+          business={business}
 
-          customer={selectedCustomer}
+          customer={customer}
 
         />
-
 
 
       </main>
@@ -142,7 +82,6 @@ function App() {
     </div>
 
   );
-
 
 }
 
