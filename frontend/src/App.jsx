@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 import BusinessSelector from "./components/BusinessSelector";
+import BusinessProfile from "./components/BusinessProfile";
 import CustomerSelector from "./components/CustomerSelector";
 import ChatWindow from "./components/ChatWindow";
 
+
 function App() {
+
 
   const [business, setBusiness] = useState(null);
 
@@ -14,10 +17,14 @@ function App() {
   const [customer, setCustomer] = useState(null);
 
 
+
   useEffect(() => {
 
+
     fetch("http://localhost:5050/api/customers")
+
       .then((res) => res.json())
+
       .then((data) => {
 
         setCustomers(data);
@@ -29,6 +36,8 @@ function App() {
 
 
 
+
+
   return (
 
     <div className="dashboard">
@@ -36,22 +45,42 @@ function App() {
 
       <header className="header">
 
-        <h1>Atlas AI</h1>
+
+        <h1>
+          Atlas AI
+        </h1>
+
 
         <p>
           Business Intelligence Dashboard
         </p>
 
+
       </header>
+
+
 
 
 
       <main className="cards">
 
 
+
         <BusinessSelector
+
           setBusiness={setBusiness}
+
         />
+
+
+
+
+        <BusinessProfile
+
+          business={business}
+
+        />
+
 
 
 
@@ -67,6 +96,7 @@ function App() {
 
 
 
+
         <ChatWindow
 
           business={business}
@@ -76,12 +106,15 @@ function App() {
         />
 
 
+
       </main>
+
 
 
     </div>
 
   );
+
 
 }
 
