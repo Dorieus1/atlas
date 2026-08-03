@@ -1,46 +1,58 @@
 import { useEffect, useState } from "react";
 
 
-function CustomerSelector({ business, setCustomer }) {
+function CustomerSelector({
+  business,
+  customers,
+  setCustomer
+}) {
 
-  const [customers, setCustomers] = useState([]);
+
+  const [businessCustomers, setBusinessCustomers] = useState([]);
 
 
 
   useEffect(() => {
 
+
     if (!business) {
+
+      setBusinessCustomers([]);
+
       return;
+
     }
 
 
-    fetch("http://localhost:5050/api/customers")
-      .then((res) => res.json())
-      .then((data) => {
 
-        const businessCustomers = data.filter(
+    const filtered = customers.filter(
 
-          (customer) =>
+      (customer) =>
 
-            customer.business_id === business.id
+        customer.business_id === business.id
 
-        );
+    );
 
 
-        setCustomers(businessCustomers);
+
+    setBusinessCustomers(filtered);
 
 
-        if (businessCustomers.length > 0) {
 
-          setCustomer(businessCustomers[0]);
+    if (filtered.length > 0) {
 
-        }
+      setCustomer(filtered[0]);
+
+    } else {
+
+      setCustomer(null);
+
+    }
 
 
-      });
 
+  }, [business, customers, setCustomer]);
 
-  }, [business, setCustomer]);
 
 
 
@@ -49,14 +61,30 @@ function CustomerSelector({ business, setCustomer }) {
 
     <div className="card">
 
+
       <h2>Select Customer</h2>
+
 
 
       <select
 
+
+        value={
+
+          businessCustomers.length > 0
+
+          ? businessCustomers[0].id
+
+          : ""
+
+        }
+
+
+
         onChange={(e) => {
 
-          const selected = customers.find(
+
+          const selected = businessCustomers.find(
 
             (customer) =>
 
@@ -70,10 +98,13 @@ function CustomerSelector({ business, setCustomer }) {
 
         }}
 
+
       >
 
 
-        {customers.map((customer) => (
+
+        {businessCustomers.map((customer) => (
+
 
           <option
 
@@ -87,10 +118,13 @@ function CustomerSelector({ business, setCustomer }) {
 
           </option>
 
+
         ))}
 
 
+
       </select>
+
 
 
     </div>

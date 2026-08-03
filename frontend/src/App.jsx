@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ChatWindow from "./components/ChatWindow";
 import BusinessSelector from "./components/BusinessSelector";
 import CustomerSelector from "./components/CustomerSelector";
+import CustomerForm from "./components/CustomerForm";
 import "./App.css";
 
 
@@ -11,27 +12,40 @@ function App() {
 
   const [customers, setCustomers] = useState([]);
 
-  const [conversations, setConversations] = useState([]);
-
-  const [knowledge, setKnowledge] = useState([]);
-
-  const [knowledgeTitle, setKnowledgeTitle] = useState("");
-
-  const [knowledgeContent, setKnowledgeContent] = useState("");
-
   const [selectedBusiness, setSelectedBusiness] = useState(null);
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
 
 
+  const loadCustomers = async () => {
+
+    const response = await fetch(
+      "http://localhost:5050/api/customers"
+    );
+
+
+    const data = await response.json();
+
+
+    setCustomers(data);
+
+
+  };
+
+
+
   useEffect(() => {
 
+
     fetch("http://localhost:5050/api/business")
+
       .then((res) => res.json())
+
       .then((data) => {
 
         setBusinesses(data);
+
 
         if (data.length > 0) {
 
@@ -43,83 +57,12 @@ function App() {
 
 
 
-    fetch("http://localhost:5050/api/customers")
-      .then((res) => res.json())
-      .then((data) => setCustomers(data));
+    loadCustomers();
 
-
-
-    fetch("http://localhost:5050/api/conversations")
-      .then((res) => res.json())
-      .then((data) => setConversations());
 
 
   }, []);
 
-
-
-
-  useEffect(() => {
-
-    if (!selectedBusiness) {
-      return;
-    }
-
-
-    fetch(
-      `http://localhost:5050/api/knowledge/${selectedBusiness.id}`
-    )
-      .then((res) => res.json())
-      .then((data) => setKnowledge(data));
-
-
-  }, [selectedBusiness]);
-
-
-
-
-
-  const addKnowledge = async () => {
-
-
-    await fetch(
-      "http://localhost:5050/api/knowledge",
-      {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-
-          business_id: selectedBusiness.id,
-
-          title: knowledgeTitle,
-
-          content: knowledgeContent,
-
-        }),
-
-      }
-    );
-
-
-    setKnowledgeTitle("");
-
-    setKnowledgeContent("");
-
-
-
-    fetch(
-      `http://localhost:5050/api/knowledge/${selectedBusiness.id}`
-    )
-      .then((res) => res.json())
-      .then((data) => setKnowledge(data));
-
-
-  };
 
 
 
@@ -145,9 +88,13 @@ function App() {
       <main className="cards">
 
 
+
         <BusinessSelector
+
           setBusiness={setSelectedBusiness}
+
         />
+
 
 
 
@@ -155,68 +102,26 @@ function App() {
 
           business={selectedBusiness}
 
+          customers={customers}
+
           setCustomer={setSelectedCustomer}
 
         />
 
 
 
-        <div className="card">
 
-          <h2>Knowledge Base</h2>
+        <CustomerForm
 
+          business={selectedBusiness}
 
-          <input
+          onCustomerCreated={() => {
 
-            placeholder="Title"
+            loadCustomers();
 
-            value={knowledgeTitle}
+          }}
 
-            onChange={(e) =>
-              setKnowledgeTitle(e.target.value)
-            }
-
-          />
-
-
-          <textarea
-
-            placeholder="Information"
-
-            value={knowledgeContent}
-
-            onChange={(e) =>
-              setKnowledgeContent(e.target.value)
-            }
-
-          />
-
-
-          <button onClick={addKnowledge}>
-
-            Add Knowledge
-
-          </button>
-
-
-          {knowledge.map((item) => (
-
-            <div key={item.id}>
-
-              <strong>
-                {item.title}
-              </strong>
-
-              <p>
-                {item.content}
-              </p>
-
-            </div>
-
-          ))}
-
-
-        </div>
+        />
 
 
 
