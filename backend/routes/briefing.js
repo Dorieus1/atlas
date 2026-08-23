@@ -5,6 +5,7 @@ const router = express.Router();
 const OpenAI = require("openai");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const rateLimiter = require("../middleware/rateLimiter");
 
 const {
   getLeadsByBusiness
@@ -24,7 +25,7 @@ const client = new OpenAI({
 
 
 
-router.get("/", authMiddleware, async (req,res)=>{
+router.get("/", authMiddleware, rateLimiter(30, 60 * 1000), async (req,res)=>{
 
 
   try {

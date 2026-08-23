@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const rateLimiter = require("../middleware/rateLimiter");
 
 const {
   generateAIResponse
@@ -10,7 +11,7 @@ const {
 
 
 
-router.post("/", authMiddleware, async(req,res)=>{
+router.post("/", authMiddleware, rateLimiter(30, 60 * 1000), async(req,res)=>{
 
 
   try {
