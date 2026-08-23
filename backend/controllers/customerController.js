@@ -28,7 +28,7 @@ const createCustomer = async (req, res) => {
 
 
 
-    if (!name) {
+    if (!name || !name.trim()) {
 
 
       return res.status(400).json({
@@ -48,9 +48,9 @@ const createCustomer = async (req, res) => {
 
         business_id,
 
-        name,
+        name.trim(),
 
-        email
+        email ? email.trim() : email
 
       );
 

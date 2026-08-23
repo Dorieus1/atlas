@@ -9,16 +9,22 @@ function CustomerForm({ onCustomerCreated }) {
 
   const [email, setEmail] = useState("");
 
+  const [error, setError] = useState("");
+
 
 
   const submit = async () => {
 
 
-    if (!name) {
+    if (!name.trim()) {
+
+      setError("Customer name is required.");
 
       return;
 
     }
+
+    setError("");
 
 
     try {
@@ -26,9 +32,9 @@ function CustomerForm({ onCustomerCreated }) {
 
       const data = await createCustomer(
 
-        name,
+        name.trim(),
 
-        email
+        email.trim()
 
       );
 
@@ -45,10 +51,12 @@ function CustomerForm({ onCustomerCreated }) {
       }
 
 
-    } catch(error) {
+    } catch(err) {
 
 
-      console.error(error);
+      console.error(err);
+
+      setError("Failed to create customer. Please try again.");
 
 
     }
@@ -75,6 +83,16 @@ function CustomerForm({ onCustomerCreated }) {
 
       </h2>
 
+
+      {error && (
+
+        <p className="text-red-400 mb-3">
+
+          {error}
+
+        </p>
+
+      )}
 
 
      <input
