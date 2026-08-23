@@ -1,4 +1,7 @@
-const API = "http://localhost:5050/api";
+export const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:5050";
+
+const API = `${API_BASE}/api`;
 
 
 async function request(path, options = {}) {

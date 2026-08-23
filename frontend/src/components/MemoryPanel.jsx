@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../api/atlasApi";
 
 
 function MemoryPanel({ customer }) {
@@ -31,7 +32,7 @@ function MemoryPanel({ customer }) {
 
       const response = await fetch(
 
-        `http://localhost:5050/api/memories/${customer.id}`,
+        `${API_BASE}/api/memories/${customer.id}`,
 
         {
           headers: {
@@ -102,7 +103,7 @@ function MemoryPanel({ customer }) {
 
       const res = await fetch(
 
-        "http://localhost:5050/api/memories",
+        `${API_BASE}/api/memories`,
 
         {
 

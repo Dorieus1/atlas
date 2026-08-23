@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE } from "../api/atlasApi";
 
 
 function Login() {
@@ -35,7 +36,7 @@ function Login() {
 
       const res = await fetch(
 
-        "http://localhost:5050/api/auth/login",
+        `${API_BASE}/api/auth/login`,
 
         {
 

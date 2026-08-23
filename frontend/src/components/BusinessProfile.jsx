@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../api/atlasApi";
 
 function BusinessProfile({ business }) {
 
@@ -62,7 +63,7 @@ function BusinessProfile({ business }) {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "http://localhost:5050/api/business",
+        `${API_BASE}/api/business`,
         {
 
           method: "PUT",

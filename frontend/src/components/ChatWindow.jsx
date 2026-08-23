@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
+import { API_BASE } from "../api/atlasApi";
 
 function ChatWindow({ business, customer }) {
   const [message, setMessage] = useState("");
@@ -17,7 +18,7 @@ function ChatWindow({ business, customer }) {
     const token = localStorage.getItem("token");
 
     fetch(
-      `http://localhost:5050/api/conversations/${customer.id}`,
+      `${API_BASE}/api/conversations/${customer.id}`,
       {
         headers: {
           ...(token
@@ -101,7 +102,7 @@ function ChatWindow({ business, customer }) {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5050/api/chat",
+        `${API_BASE}/api/chat`,
         {
           method: "POST",
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE } from "../api/atlasApi";
 
 
 function KnowledgeSetup() {
@@ -100,7 +101,7 @@ function KnowledgeSetup() {
 
         const res = await fetch(
 
-          "http://localhost:5050/api/knowledge",
+          `${API_BASE}/api/knowledge`,
 
           {
 

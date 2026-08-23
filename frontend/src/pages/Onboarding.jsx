@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE } from "../api/atlasApi";
 
 
 function Onboarding() {
@@ -76,7 +77,7 @@ function Onboarding() {
       const businessRes =
         await fetch(
 
-          "http://localhost:5050/api/business",
+          `${API_BASE}/api/business`,
 
           {
 
@@ -116,7 +117,7 @@ function Onboarding() {
       const registerRes =
         await fetch(
 
-          "http://localhost:5050/api/auth/register",
+          `${API_BASE}/api/auth/register`,
 
           {
 
@@ -153,7 +154,7 @@ function Onboarding() {
       const loginRes =
         await fetch(
 
-          "http://localhost:5050/api/auth/login",
+          `${API_BASE}/api/auth/login`,
 
           {
 

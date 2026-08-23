@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../api/atlasApi";
 
 function LeadPipeline() {
 
@@ -13,7 +14,7 @@ function LeadPipeline() {
     try {
 
       const res = await fetch(
-        "http://localhost:5050/api/leads",
+        `${API_BASE}/api/leads`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -64,7 +65,7 @@ function LeadPipeline() {
     try {
 
       const res = await fetch(
-        `http://localhost:5050/api/leads/${id}`,
+        `${API_BASE}/api/leads/${id}`,
         {
           method: "PATCH",
 

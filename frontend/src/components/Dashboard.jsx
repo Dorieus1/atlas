@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "../api/atlasApi";
 
 import StatCard from "./dashboard/StatCard";
 
@@ -25,7 +26,7 @@ function Dashboard(){
     const token = localStorage.getItem("token");
 
     fetch(
-      "http://localhost:5050/api/analytics",
+      `${API_BASE}/api/analytics`,
       {
         headers: {
           ...(token
