@@ -15,8 +15,10 @@ function KnowledgeEditor() {
 
     try {
 
+      const business_id = localStorage.getItem("business_id");
+
       await createKnowledge(
-  "1",
+  business_id,
   title,
   content
 );
