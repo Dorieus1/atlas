@@ -120,22 +120,25 @@ function BusinessProfile({ business }) {
 
 
 
+  const inputClass =
+    "w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3";
+
   return (
 
-    <div className="card">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
 
-      <h2>
+      <h2 className="text-xl font-bold mb-4">
         Business Profile
       </h2>
 
       {error && (
-        <p style={{ color: "#f87171" }}>
+        <p className="text-red-400 mb-3">
           {error}
         </p>
       )}
 
       {success && (
-        <p style={{ color: "#4ade80" }}>
+        <p className="text-green-400 mb-3">
           {success}
         </p>
       )}
@@ -145,6 +148,8 @@ function BusinessProfile({ business }) {
         value={form.name}
 
         placeholder="Business name"
+
+        className={inputClass}
 
         onChange={(e) =>
           setForm({
@@ -162,6 +167,8 @@ function BusinessProfile({ business }) {
 
         placeholder="Phone"
 
+        className={inputClass}
+
         onChange={(e) =>
           setForm({
             ...form,
@@ -177,6 +184,8 @@ function BusinessProfile({ business }) {
         value={form.email}
 
         placeholder="Email"
+
+        className={inputClass}
 
         onChange={(e) =>
           setForm({
@@ -194,6 +203,8 @@ function BusinessProfile({ business }) {
 
         placeholder="Address"
 
+        className={inputClass}
+
         onChange={(e) =>
           setForm({
             ...form,
@@ -209,6 +220,8 @@ function BusinessProfile({ business }) {
         value={form.industry}
 
         placeholder="Industry"
+
+        className={inputClass}
 
         onChange={(e) =>
           setForm({
@@ -226,6 +239,8 @@ function BusinessProfile({ business }) {
 
         placeholder="Services"
 
+        className={`${inputClass} h-24`}
+
         onChange={(e) =>
           setForm({
             ...form,
@@ -236,8 +251,18 @@ function BusinessProfile({ business }) {
       />
 
 
-      <button onClick={updateBusiness} disabled={saving}>
+      <button
+
+        onClick={updateBusiness}
+
+        disabled={saving}
+
+        className="mt-2 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg disabled:opacity-50"
+
+      >
+
         {saving ? "Saving..." : "Save Business"}
+
       </button>
 
 
