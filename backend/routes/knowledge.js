@@ -2,6 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
+const authMiddleware = require("../middleware/authMiddleware");
 
 const {
   createKnowledge,
@@ -9,9 +10,9 @@ const {
 } = require("../controllers/knowledgeController");
 
 
-router.post("/", createKnowledge);
+router.post("/", authMiddleware, createKnowledge);
 
-router.get("/:business_id", getKnowledge);
+router.get("/:business_id", authMiddleware, getKnowledge);
 
 
 module.exports = router;

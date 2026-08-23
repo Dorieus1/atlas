@@ -6,42 +6,77 @@ const cors = require("cors");
 const app = express();
 
 
-// Middleware
 app.use(cors());
+
 app.use(express.json());
 
 
-// Database connection
 require("../database/db");
 
 
-// Routes
+
 const businessRoutes = require("./routes/business");
 const customerRoutes = require("./routes/customer");
 const chatRoutes = require("./routes/chat");
+const activityRoutes = require("./routes/activity");
+const leadRoutes = require("./routes/leads");
 const conversationRoutes = require("./routes/conversation");
 const memoryRoutes = require("./routes/memory");
 const knowledgeRoutes = require("./routes/knowledge");
+const noteRoutes = require("./routes/notes");
+const customerSummaryRoutes = require("./routes/customerSummary");
+const followUpRoutes = require("./routes/followUp");
+const analyticsRoutes = require("./routes/analytics");
+const followUpMessageRoutes = require("./routes/followUpMessage");
+const intelligenceRoutes = require("./routes/intelligence");
+const briefingRoutes = require("./routes/briefing");
+const messageRoutes = require("./routes/messages");
+const taskRoutes = require("./routes/tasks");
+const authRoutes = require("./routes/auth"); 
+const testAuthRoutes = require("./routes/testAuth");
 
-
-// API routes
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/activities", activityRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/follow-up-message", followUpMessageRoutes);
+app.use("/api/test-auth", testAuthRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/intelligence", intelligenceRoutes);
+app.use("/api/briefing", briefingRoutes);
+app.use("/api/leads", leadRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/memories", memoryRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
+app.use("/api/notes", noteRoutes);
+app.use("/api/customer-summary", customerSummaryRoutes);
+app.use("/api/follow-up", followUpRoutes);
 
+app.get("/test-activity", (req,res)=>{
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("Atlas API running");
+  res.send("activity route test works");
+
 });
 
 
-// Start server
+app.get("/", (req,res)=>{
+
+  res.send("Atlas API running");
+
+});
+
+
+
 const PORT = process.env.PORT || 5050;
 
-app.listen(PORT, () => {
-  console.log(`Atlas server running on port ${PORT}`);
+
+app.listen(PORT,()=>{
+
+  console.log(
+    `Atlas server running on port ${PORT}`
+  );
+
 });

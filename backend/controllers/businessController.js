@@ -91,10 +91,11 @@ const getBusinesses = (req, res) => {
     `
     SELECT *
     FROM businesses
+    WHERE id = ?
     ORDER BY created_at DESC
     `,
 
-    [],
+    [req.user.business_id],
 
     (err, rows) => {
 
@@ -128,8 +129,6 @@ const updateBusiness = (req, res) => {
 
   const {
 
-    id,
-
     name,
     phone,
     email,
@@ -140,14 +139,7 @@ const updateBusiness = (req, res) => {
   } = req.body;
 
 
-
-  if (!id) {
-
-    return res.status(400).json({
-      error: "Business id required"
-    });
-
-  }
+  const id = req.user.business_id;
 
 
 

@@ -1,8 +1,10 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
+const { getCustomerById } = require("../services/customerService");
 
-const createMemory = (req, res) => {
+
+const createMemory = async (req, res) => {
   const {
     customer_id,
     memory
@@ -12,6 +14,15 @@ const createMemory = (req, res) => {
   if (!customer_id || !memory) {
     return res.status(400).json({
       error: "customer_id and memory are required"
+    });
+  }
+
+
+  const customer = await getCustomerById(customer_id, req.user.business_id);
+
+  if (!customer) {
+    return res.status(404).json({
+      error: "Customer not found"
     });
   }
 
@@ -48,11 +59,20 @@ const createMemory = (req, res) => {
 
 
 
-const getMemories = (req, res) => {
+const getMemories = async (req, res) => {
 
   const {
     customer_id
   } = req.params;
+
+
+  const customer = await getCustomerById(customer_id, req.user.business_id);
+
+  if (!customer) {
+    return res.status(404).json({
+      error: "Customer not found"
+    });
+  }
 
 
   db.all(
@@ -82,10 +102,12 @@ const getMemories = (req, res) => {
 const getAllMemories = (req, res) => {
 
   db.all(
-    `SELECT *
+    `SELECT memories.*
      FROM memories
-     ORDER BY created_at ASC`,
-    [],
+     JOIN customers ON customers.id = memories.customer_id
+     WHERE customers.business_id = ?
+     ORDER BY memories.created_at ASC`,
+    [req.user.business_id],
     (err, rows) => {
 
       if (err) {

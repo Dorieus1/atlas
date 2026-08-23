@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { createCustomer } from "../api/atlasApi";
 
 
-function CustomerForm({ business, onCustomerCreated }) {
+function CustomerForm({ onCustomerCreated }) {
+
 
   const [name, setName] = useState("");
 
@@ -9,62 +11,45 @@ function CustomerForm({ business, onCustomerCreated }) {
 
 
 
-  const createCustomer = async () => {
+  const submit = async () => {
 
 
-    if (!business || !name) {
+    if (!name) {
 
       return;
 
     }
 
 
-
-    const response = await fetch(
-
-      "http://localhost:5050/api/customers",
-
-      {
-
-        method: "POST",
-
-        headers: {
-
-          "Content-Type": "application/json",
-
-        },
+    try {
 
 
-        body: JSON.stringify({
+      const data = await createCustomer(
 
-          business_id: business.id,
+        name,
 
-          name,
+        email
 
-          email,
+      );
 
-        }),
 
+      setName("");
+
+      setEmail("");
+
+
+      if(onCustomerCreated){
+
+        onCustomerCreated(data);
 
       }
 
-    );
+
+    } catch(error) {
 
 
+      console.error(error);
 
-    const data = await response.json();
-
-
-
-    setName("");
-
-    setEmail("");
-
-
-
-    if (onCustomerCreated) {
-
-      onCustomerCreated(data);
 
     }
 
@@ -76,38 +61,54 @@ function CustomerForm({ business, onCustomerCreated }) {
 
   return (
 
-    <div className="card">
-
-      <h2>Add Customer</h2>
-
-
-      <input
-
-        placeholder="Customer name"
-
-        value={name}
-
-        onChange={(e) => setName(e.target.value)}
-
-      />
+    <div className="
+      bg-slate-900
+      rounded-xl
+      p-6
+      mt-6
+    ">
 
 
-      <input
+      <h2 className="text-xl font-bold">
 
-        placeholder="Customer email"
+        Add Customer
 
-        value={email}
-
-        onChange={(e) => setEmail(e.target.value)}
-
-      />
+      </h2>
 
 
-      <button onClick={createCustomer}>
+
+     <input
+  placeholder="Customer name"
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3"
+/>
+
+<input
+  placeholder="Customer email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3"
+/>
+
+      <button
+
+        className="
+          mt-4
+          bg-blue-600
+          px-5
+          py-2
+          rounded-lg
+        "
+
+        onClick={submit}
+
+      >
 
         Create Customer
 
       </button>
+
 
 
     </div>

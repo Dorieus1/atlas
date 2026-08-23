@@ -2,30 +2,37 @@ const {
   generateAIResponse
 } = require("../services/aiService");
 
-
 const {
   getCustomerMemories
 } = require("../services/memoryService");
-
 
 const {
   saveConversation
 } = require("../services/conversationService");
 
-
 const {
   getBusinessKnowledge
 } = require("../services/knowledgeService");
-
 
 const {
   createMemory
 } = require("../services/memoryCreationService");
 
+const {
+  createActivity
+} = require("../services/activityService");
 
 const {
-  getBusinessProfile
-} = require("../services/businessService");
+  createLead
+} = require("../services/leadService");
+
+const {
+  createTask
+} = require("../services/taskService");
+
+
+const db = require("../../database/db");
+
 
 
 
@@ -37,22 +44,22 @@ const chatResponse = async (req, res) => {
 
     const {
 
-      business_id,
-
       customer_id,
 
       message
 
     } = req.body;
 
+    const business_id = req.user.business_id;
 
 
-    if (!business_id || !customer_id || !message) {
+
+    if (!customer_id || !message) {
 
       return res.status(400).json({
 
         error:
-        "business_id, customer_id, and message are required"
+        "customer_id and message are required"
 
       });
 
@@ -60,76 +67,205 @@ const chatResponse = async (req, res) => {
 
 
 
-    const memories =
-      await getCustomerMemories(customer_id);
+    db.get(
+
+      `
+      SELECT *
+      FROM customers
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [customer_id, business_id],
+
+      async (err, customer) => {
+
+
+        if (err) {
+
+          return res.status(500).json({
+
+            error: err.message
+
+          });
+
+        }
 
 
 
-    const knowledge =
-      await getBusinessKnowledge(business_id);
+        if (!customer) {
+
+          return res.status(404).json({
+
+            error: "Customer not found"
+
+          });
+
+        }
 
 
 
-    const business =
-      await getBusinessProfile(business_id);
+        const memories =
+          await getCustomerMemories(customer_id);
+
+
+
+        const knowledge =
+          await getBusinessKnowledge(business_id);
 
 
 
 
-    const reply =
-      await generateAIResponse(
+    db.get(
 
-        message,
+      `
+      SELECT *
+      FROM businesses
+      WHERE id = ?
+      `,
 
-        memories,
+      [business_id],
 
-        knowledge,
-
-        business
-
-      );
-
+      async (err, business) => {
 
 
-    await saveConversation(
+        if (err) {
 
-      customer_id,
+          return res.status(500).json({
 
-      message,
+            error: err.message
 
-      reply
+          });
+
+        }
+
+
+
+        const reply =
+          await generateAIResponse(
+
+            message,
+
+            memories,
+
+            knowledge,
+
+            business
+
+          );
+
+
+
+
+        await saveConversation(
+
+          customer_id,
+
+          message,
+
+          reply
+
+        );
+
+        await createActivity(
+
+  customer_id,
+
+  "message",
+
+  message
+
+);
+
+
+await createActivity(
+
+  customer_id,
+
+  "ai_response",
+
+  reply
+
+);
+
+if (
+
+  message.toLowerCase().includes("need") ||
+
+  message.toLowerCase().includes("repair") ||
+
+  message.toLowerCase().includes("estimate") ||
+
+  message.toLowerCase().includes("price")
+
+) {
+
+
+  await createLead(
+
+    customer_id,
+
+    business_id,
+
+    message
+
+  );
+
+await createTask(
+
+  customer_id,
+
+  business_id,
+
+  "Follow up with customer",
+
+  "Customer showed buying intent: " + message,
+
+  new Date().toISOString()
+
+);
+
+}
+
+        if (
+
+          message
+          .toLowerCase()
+          .includes("my name is")
+
+        ) {
+
+
+          await createMemory(
+
+            customer_id,
+
+            message
+
+          );
+
+
+        }
+
+
+
+        res.json({
+
+          reply,
+
+          memories_used: memories
+
+        });
+
+
+
+      }
 
     );
 
+      }
 
-
-
-    if (message.toLowerCase().includes("my name is")) {
-
-
-      await createMemory(
-
-        customer_id,
-
-        message
-
-      );
-
-
-    }
-
-
-
-
-    res.json({
-
-      reply,
-
-      memories_used: memories,
-
-      business_used: business
-
-    });
+    );
 
 
 
@@ -139,10 +275,10 @@ const chatResponse = async (req, res) => {
     console.error(error);
 
 
-
     res.status(500).json({
 
-      error:"AI response failed"
+      error:
+      "AI response failed"
 
     });
 
@@ -156,6 +292,6 @@ const chatResponse = async (req, res) => {
 
 module.exports = {
 
-  chatResponse
+  chatResponse,
 
 };

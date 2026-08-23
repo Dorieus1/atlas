@@ -1,122 +1,114 @@
-import { useEffect, useState } from "react";
-import "./App.css";
+import {
+  BrowserRouter,
+  Routes,
+  Route
+} from "react-router-dom";
 
-import BusinessSelector from "./components/BusinessSelector";
-import BusinessProfile from "./components/BusinessProfile";
-import CustomerSelector from "./components/CustomerSelector";
-import ChatWindow from "./components/ChatWindow";
+import Layout from "./layout/Layout";
+import DashboardPage from "./pages/Dashboard";
 
+import Customers from "./pages/Customers";
+import Leads from "./pages/Leads";
+import Knowledge from "./pages/Knowledge";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
+import CustomerProfile from "./pages/CustomerProfile";
+import IntelligencePanel from "./components/dashboard/IntelligencePanel";
+import Onboarding from "./pages/Onboarding"; 
+import KnowledgeSetup from "./pages/KnowledgeSetup";
+import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
 
-
-  const [business, setBusiness] = useState(null);
-
-  const [customers, setCustomers] = useState([]);
-
-  const [customer, setCustomer] = useState(null);
-
-
-
-  useEffect(() => {
-
-
-    fetch("http://localhost:5050/api/customers")
-
-      .then((res) => res.json())
-
-      .then((data) => {
-
-        setCustomers(data);
-
-      });
-
-
-  }, []);
-
-
-
-
-
   return (
 
-    <div className="dashboard">
+    <BrowserRouter>
 
+      <Layout>
 
-      <header className="header">
+        <Routes>
 
+          <Route
+  path="/"
+  element={
+    <ProtectedRoute>
+      <DashboardPage />
+    </ProtectedRoute>
+  }
+/>
 
-        <h1>
-          Atlas AI
-        </h1>
+          <Route
+            path="/login"
+            element={<Login />}
+          />
 
+          <Route
+            path="/onboarding"
+            element={<Onboarding />}
+          />
 
-        <p>
-          Business Intelligence Dashboard
-        </p>
+          <Route
+            path="/knowledge-setup"
+            element={
+              <ProtectedRoute>
+                <KnowledgeSetup />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+  path="/customers"
+  element={
+    <ProtectedRoute>
+      <Customers />
+    </ProtectedRoute>
+  }
+/>
+          <Route
+  path="/customers/:id"
+  element={
+    <ProtectedRoute>
+      <CustomerProfile />
+    </ProtectedRoute>
+  }
+/>
+          <Route
+  path="/leads"
+  element={
+    <ProtectedRoute>
+      <Leads />
+    </ProtectedRoute>
+  }
+/>
 
-      </header>
+          <Route
+            path="/knowledge"
+            element={
+              <ProtectedRoute>
+                <Knowledge />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/analytics"
+            element={<Analytics />}
+          />
 
+          <Route
+            path="/settings"
+            element={<Settings />}
+          />
+      
+        </Routes>
 
+      </Layout>
 
-
-      <main className="cards">
-
-
-
-        <BusinessSelector
-
-          setBusiness={setBusiness}
-
-        />
-
-
-
-
-        <BusinessProfile
-
-          business={business}
-
-        />
-
-
-
-
-        <CustomerSelector
-
-          business={business}
-
-          customers={customers}
-
-          setCustomer={setCustomer}
-
-        />
-
-
-
-
-        <ChatWindow
-
-          business={business}
-
-          customer={customer}
-
-        />
-
-
-
-      </main>
-
-
-
-    </div>
+    </BrowserRouter>
 
   );
 
-
 }
-
 
 export default App;

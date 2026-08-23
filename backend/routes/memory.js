@@ -2,6 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
+const authMiddleware = require("../middleware/authMiddleware");
 
 const {
   createMemory,
@@ -10,11 +11,11 @@ const {
 } = require("../controllers/memoryController");
 
 
-router.post("/", createMemory);
+router.post("/", authMiddleware, createMemory);
 
-router.get("/", getAllMemories);
+router.get("/", authMiddleware, getAllMemories);
 
-router.get("/:customer_id", getMemories);
+router.get("/:customer_id", authMiddleware, getMemories);
 
 
 module.exports = router;

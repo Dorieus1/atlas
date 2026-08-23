@@ -1,7 +1,9 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
-const saveConversation = (req, res) => {
+const { getCustomerById } = require("../services/customerService");
+
+const saveConversation = async (req, res) => {
   const {
     customer_id,
     message,
@@ -11,6 +13,14 @@ const saveConversation = (req, res) => {
   if (!customer_id || !message) {
     return res.status(400).json({
       error: "customer_id and message are required"
+    });
+  }
+
+  const customer = await getCustomerById(customer_id, req.user.business_id);
+
+  if (!customer) {
+    return res.status(404).json({
+      error: "Customer not found"
     });
   }
 
@@ -42,8 +52,16 @@ const saveConversation = (req, res) => {
 };
 
 
-const getConversationHistory = (req, res) => {
+const getConversationHistory = async (req, res) => {
   const { customer_id } = req.params;
+
+  const customer = await getCustomerById(customer_id, req.user.business_id);
+
+  if (!customer) {
+    return res.status(404).json({
+      error: "Customer not found"
+    });
+  }
 
   db.all(
     `SELECT *
@@ -67,10 +85,12 @@ const getConversationHistory = (req, res) => {
 const getAllConversations = (req, res) => {
 
   db.all(
-    `SELECT *
+    `SELECT conversations.*
      FROM conversations
-     ORDER BY created_at ASC`,
-    [],
+     JOIN customers ON customers.id = conversations.customer_id
+     WHERE customers.business_id = ?
+     ORDER BY conversations.created_at ASC`,
+    [req.user.business_id],
     (err, rows) => {
 
       if (err) {

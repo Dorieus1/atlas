@@ -2,6 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
+const authMiddleware = require("../middleware/authMiddleware");
 
 const {
   createBusiness,
@@ -14,10 +15,10 @@ const {
 router.post("/", createBusiness);
 
 
-router.get("/", getBusinesses);
+router.get("/", authMiddleware, getBusinesses);
 
 
-router.put("/", updateBusiness);
+router.put("/", authMiddleware, updateBusiness);
 
 
 

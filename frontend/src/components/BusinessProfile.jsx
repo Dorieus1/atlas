@@ -1,10 +1,74 @@
+import { useEffect, useState } from "react";
+
 function BusinessProfile({ business }) {
+
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    industry: "",
+    services: "",
+  });
+
+
+  useEffect(() => {
+
+    if (business) {
+
+      setForm({
+
+        name: business.name || "",
+        phone: business.phone || "",
+        email: business.email || "",
+        address: business.address || "",
+        industry: business.industry || "",
+        services: business.services || "",
+
+      });
+
+    }
+
+  }, [business]);
+
+
+
+  const updateBusiness = async () => {
+
+    await fetch(
+      "http://localhost:5050/api/business",
+      {
+
+        method: "PUT",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+
+          id: business.id,
+
+          ...form
+
+        }),
+
+      }
+    );
+
+
+    alert("Business updated");
+
+  };
+
+
 
   if (!business) {
 
     return null;
 
   }
+
 
 
   return (
@@ -16,34 +80,105 @@ function BusinessProfile({ business }) {
       </h2>
 
 
-      <p>
-        <strong>Name:</strong> {business.name}
-      </p>
+      <input
+
+        value={form.name}
+
+        placeholder="Business name"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            name: e.target.value
+          })
+        }
+
+      />
 
 
-      <p>
-        <strong>Industry:</strong> {business.industry || "Not set"}
-      </p>
+      <input
+
+        value={form.phone}
+
+        placeholder="Phone"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            phone: e.target.value
+          })
+        }
+
+      />
 
 
-      <p>
-        <strong>Services:</strong> {business.services || "Not set"}
-      </p>
+      <input
+
+        value={form.email}
+
+        placeholder="Email"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            email: e.target.value
+          })
+        }
+
+      />
 
 
-      <p>
-        <strong>Phone:</strong> {business.phone || "Not set"}
-      </p>
+      <input
+
+        value={form.address}
+
+        placeholder="Address"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            address: e.target.value
+          })
+        }
+
+      />
 
 
-      <p>
-        <strong>Email:</strong> {business.email || "Not set"}
-      </p>
+      <input
+
+        value={form.industry}
+
+        placeholder="Industry"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            industry: e.target.value
+          })
+        }
+
+      />
 
 
-      <p>
-        <strong>Address:</strong> {business.address || "Not set"}
-      </p>
+      <textarea
+
+        value={form.services}
+
+        placeholder="Services"
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            services: e.target.value
+          })
+        }
+
+      />
+
+
+      <button onClick={updateBusiness}>
+        Save Business
+      </button>
 
 
     </div>

@@ -47,4 +47,38 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id TEXT PRIMARY KEY,
+      customer_id TEXT NOT NULL,
+      business_id TEXT NOT NULL,
+      name TEXT,
+      phone TEXT,
+      email TEXT,
+      interest TEXT,
+      status TEXT DEFAULT 'new',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+
+CREATE TABLE IF NOT EXISTS users (
+
+  id TEXT PRIMARY KEY,
+
+  business_id TEXT NOT NULL,
+
+  name TEXT,
+
+  email TEXT UNIQUE NOT NULL,
+
+  password TEXT NOT NULL,
+
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+
+)
+
+`);
+
 });

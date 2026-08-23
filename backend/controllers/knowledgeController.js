@@ -5,15 +5,16 @@ const { v4: uuidv4 } = require("uuid");
 const createKnowledge = (req, res) => {
 
   const {
-    business_id,
     title,
     content
   } = req.body;
 
+  const business_id = req.user.business_id;
 
-  if (!business_id || !title || !content) {
+
+  if (!title || !content) {
     return res.status(400).json({
-      error: "business_id, title, and content are required"
+      error: "title and content are required"
     });
   }
 
@@ -57,6 +58,13 @@ const getKnowledge = (req, res) => {
   const {
     business_id
   } = req.params;
+
+
+  if (business_id !== req.user.business_id) {
+    return res.status(403).json({
+      error: "Forbidden"
+    });
+  }
 
 
   db.all(

@@ -2,6 +2,8 @@ const express = require("express");
 
 const router = express.Router();
 
+const authMiddleware = require("../middleware/authMiddleware");
+
 const {
   saveConversation,
   getConversationHistory,
@@ -9,12 +11,10 @@ const {
 } = require("../controllers/conversationController");
 
 
-router.post("/", saveConversation);
+router.post("/", authMiddleware, saveConversation);
 
-router.get("/", getAllConversations);
+router.get("/", authMiddleware, getAllConversations);
 
-router.get("/:customer_id", getConversationHistory);
-
-router.get("/", getAllConversations);
+router.get("/:customer_id", authMiddleware, getConversationHistory);
 
 module.exports = router;

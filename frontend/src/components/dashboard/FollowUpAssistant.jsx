@@ -1,0 +1,246 @@
+import { useEffect, useState } from "react";
+import {
+  getLeads,
+  generateFollowUpMessage
+} from "../../api/atlasApi";
+
+
+function FollowUpAssistant() {
+
+
+  const [lead, setLead] = useState(null);
+
+  const [message, setMessage] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+
+
+  useEffect(()=>{
+
+
+    const loadLead = async()=>{
+
+
+      try {
+
+
+        const data = await getLeads();
+
+
+        if(data.length){
+
+          setLead(data[0]);
+
+        }
+
+
+      } catch(error) {
+
+
+        console.error(
+          "LEAD FETCH ERROR:",
+          error
+        );
+
+
+      }
+
+
+    };
+
+
+    loadLead();
+
+
+  },[]);
+
+
+
+
+  const generateMessage = async()=>{
+
+
+    try {
+
+
+      setLoading(true);
+
+
+
+      const data =
+        await generateFollowUpMessage(
+
+          lead.name,
+
+          lead.interest
+
+        );
+
+
+
+      setMessage(
+        data.message || ""
+      );
+
+
+
+    } catch(error) {
+
+
+      console.error(
+        "FOLLOW UP ERROR:",
+        error
+      );
+
+
+    } finally {
+
+
+      setLoading(false);
+
+
+    }
+
+
+  };
+
+
+
+
+
+  if(!lead){
+
+    return null;
+
+  }
+
+
+
+
+
+  return (
+
+    <div className="
+      bg-slate-900
+      border
+      border-slate-800
+      rounded-2xl
+      p-6
+      mt-8
+    ">
+
+
+      <h2 className="
+        text-xl
+        font-bold
+      ">
+
+        🧠 AI Follow-Up Assistant
+
+      </h2>
+
+
+
+
+      <div className="mt-5">
+
+
+        <h3 className="text-lg font-bold">
+
+          {lead.name || "Unknown Customer"}
+
+        </h3>
+
+
+
+        <p className="text-slate-400">
+
+          {lead.email}
+
+        </p>
+
+
+
+        <p className="mt-4">
+
+          Status: {lead.status}
+
+        </p>
+
+
+        <p>
+
+          Priority: {lead.priority}
+
+        </p>
+
+
+        <p>
+
+          Request: {lead.interest}
+
+        </p>
+
+
+
+
+
+        <button
+
+          onClick={generateMessage}
+
+          disabled={loading}
+
+          className="
+            mt-5
+            bg-blue-600
+            px-5
+            py-2
+            rounded-xl
+          "
+
+        >
+
+          {loading
+            ? "Generating..."
+            : "Generate Follow-Up Message"
+          }
+
+
+        </button>
+
+
+
+
+
+        {message && (
+
+          <div className="
+            mt-5
+            bg-slate-800
+            rounded-xl
+            p-4
+            whitespace-pre-wrap
+          ">
+
+            {message}
+
+          </div>
+
+        )}
+
+
+
+      </div>
+
+
+    </div>
+
+  );
+
+
+}
+
+
+export default FollowUpAssistant;
