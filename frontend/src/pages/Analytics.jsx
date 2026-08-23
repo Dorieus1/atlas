@@ -1,4 +1,51 @@
+import { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
+
+import { getAnalytics } from "../api/atlasApi";
+import StatCard from "../components/dashboard/StatCard";
+
+const COLORS = ["#f97316", "#334155"];
+
 function Analytics() {
+
+  const [stats, setStats] = useState({
+    customers: 0,
+    leads: 0,
+    hotLeads: 0
+  });
+
+  useEffect(() => {
+
+    getAnalytics()
+      .then(setStats)
+      .catch(console.error);
+
+  }, []);
+
+  const conversion = stats.leads
+    ? Math.round((stats.hotLeads / stats.leads) * 100)
+    : 0;
+
+  const barData = [
+    { name: "Customers", value: stats.customers },
+    { name: "Total Leads", value: stats.leads },
+    { name: "Hot Leads", value: stats.hotLeads }
+  ];
+
+  const pieData = [
+    { name: "Hot Leads", value: stats.hotLeads },
+    { name: "Other Leads", value: Math.max(stats.leads - stats.hotLeads, 0) }
+  ];
 
   return (
 
@@ -8,9 +55,116 @@ function Analytics() {
         📊 Analytics
       </h1>
 
-      <p className="mt-4 text-slate-400">
-        Business insights and AI analytics will appear here.
-      </p>
+      <div className="mt-6 grid gap-5 md:grid-cols-4">
+
+        <StatCard
+          title="Customers"
+          value={stats.customers}
+          icon="👥"
+          description="Total customers"
+        />
+
+        <StatCard
+          title="Total Leads"
+          value={stats.leads}
+          icon="📈"
+          description="Captured opportunities"
+        />
+
+        <StatCard
+          title="Hot Leads"
+          value={stats.hotLeads}
+          icon="🔥"
+          description="Needs attention"
+        />
+
+        <StatCard
+          title="Conversion"
+          value={`${conversion}%`}
+          icon="🎯"
+          description="Lead quality score"
+        />
+
+      </div>
+
+      <div className="mt-8 grid gap-5 md:grid-cols-2">
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+          <h2 className="text-xl font-bold mb-4">
+            Pipeline Overview
+          </h2>
+
+          {stats.customers === 0 && stats.leads === 0 ? (
+
+            <p className="text-slate-400">
+              No data yet.
+            </p>
+
+          ) : (
+
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={barData}>
+                <XAxis dataKey="name" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#0f172a",
+                    border: "1px solid #334155",
+                    borderRadius: 8
+                  }}
+                />
+                <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+
+          )}
+
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+          <h2 className="text-xl font-bold mb-4">
+            Lead Priority Mix
+          </h2>
+
+          {stats.leads === 0 ? (
+
+            <p className="text-slate-400">
+              No leads yet.
+            </p>
+
+          ) : (
+
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#0f172a",
+                    border: "1px solid #334155",
+                    borderRadius: 8
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+
+          )}
+
+        </div>
+
+      </div>
 
     </div>
 

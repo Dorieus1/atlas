@@ -297,6 +297,12 @@ export const getIntelligence = () =>
 
 
 
+export const getAnalytics = () =>
+
+  request("/analytics");
+
+
+
 
 
 /* ---------- Messages ---------- */

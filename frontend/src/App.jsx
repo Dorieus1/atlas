@@ -93,7 +93,11 @@ function App() {
 
           <Route
             path="/analytics"
-            element={<Analytics />}
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
           />
 
           <Route
