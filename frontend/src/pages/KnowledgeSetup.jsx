@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 
 function KnowledgeSetup() {
@@ -21,6 +21,10 @@ function KnowledgeSetup() {
     faq:""
 
   });
+
+  const [error, setError] = useState("");
+
+  const [saving, setSaving] = useState(false);
 
 
 
@@ -52,77 +56,105 @@ function KnowledgeSetup() {
 
       {
         title:"Hours",
-        content:knowledge.hours
+        content:knowledge.hours.trim()
       },
 
       {
         title:"Services",
-        content:knowledge.services
+        content:knowledge.services.trim()
       },
 
       {
         title:"Service Area",
-        content:knowledge.serviceArea
+        content:knowledge.serviceArea.trim()
       },
 
       {
         title:"FAQ",
-        content:knowledge.faq
+        content:knowledge.faq.trim()
       }
 
-    ];
+    ].filter((item)=>item.content);
 
 
+    if (entries.length === 0) {
+
+      setError("Fill in at least one field before saving.");
+
+      return;
+
+    }
+
+    setError("");
+
+    setSaving(true);
 
 
-    for (const item of entries){
-
-
-      if(!item.content.trim()) continue;
-
+    try {
 
 
       const token = localStorage.getItem("token");
 
-      await fetch(
+      for (const item of entries){
 
-        "http://localhost:5050/api/knowledge",
 
-        {
+        const res = await fetch(
 
-          method:"POST",
+          "http://localhost:5050/api/knowledge",
 
-          headers:{
+          {
 
-            "Content-Type":
-            "application/json",
+            method:"POST",
 
-            ...(token
-              ? { Authorization: `Bearer ${token}` }
-              : {})
+            headers:{
 
-          },
+              "Content-Type":
+              "application/json",
 
-          body:JSON.stringify({
+              ...(token
+                ? { Authorization: `Bearer ${token}` }
+                : {})
 
-            business_id,
+            },
 
-            title:item.title,
+            body:JSON.stringify({
 
-            content:item.content
+              business_id,
 
-          })
+              title:item.title,
+
+              content:item.content
+
+            })
+
+          }
+
+        );
+
+
+        if (!res.ok) {
+
+          throw new Error("Failed to save " + item.title);
 
         }
 
-      );
 
+      }
+
+
+
+      navigate("/");
+
+
+    } catch (err) {
+
+      setError(err.message);
+
+    } finally {
+
+      setSaving(false);
 
     }
-
-
-
-    navigate("/");
 
 
   };
@@ -152,6 +184,15 @@ function KnowledgeSetup() {
       </h1>
 
 
+      {error && (
+
+        <p className="text-red-400 mb-4">
+
+          {error}
+
+        </p>
+
+      )}
 
 
       <textarea
@@ -242,19 +283,32 @@ function KnowledgeSetup() {
 
         onClick={saveKnowledge}
 
+        disabled={saving}
+
         className="
           bg-blue-600
           px-6
           py-3
           rounded-lg
           cursor-pointer
+          disabled:opacity-50
         "
 
       >
 
-        Train Atlas
+        {saving ? "Saving..." : "Train Atlas"}
 
       </button>
+
+
+      <p className="mt-6 text-slate-400">
+
+        <Link to="/" className="text-blue-400 hover:underline">
+
+          Skip for now
+        </Link>
+
+      </p>
 
 
 

@@ -191,7 +191,7 @@ function Onboarding() {
 
       localStorage.setItem("user", JSON.stringify(loginData.user));
 
-      navigate("/");
+      navigate("/knowledge-setup");
 
     } catch (err) {
 
