@@ -14,7 +14,9 @@ function KnowledgePanel() {
 
     try {
 
-      const data = await getKnowledge("1");
+      const business_id = localStorage.getItem("business_id");
+
+      const data = await getKnowledge(business_id);
 
       setKnowledge(data);
 
