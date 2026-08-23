@@ -26,6 +26,17 @@ router.post("/", authMiddleware, rateLimiter(30, 60 * 1000), async(req,res)=>{
     } = req.body;
 
 
+    if (!customer || !interest) {
+
+      return res.status(400).json({
+
+        error: "customer and interest required"
+
+      });
+
+    }
+
+
 
     const message = await generateAIResponse(
 
