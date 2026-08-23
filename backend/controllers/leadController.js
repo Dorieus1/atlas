@@ -41,6 +41,10 @@ const getAllLeads = async (req,res)=>{
 
 
 
+const VALID_LEAD_STATUSES = ["new", "contacted", "qualified", "closed"];
+
+
+
 const changeLeadStatus = async (req,res)=>{
 
   try {
@@ -56,6 +60,17 @@ const changeLeadStatus = async (req,res)=>{
       status
 
     } = req.body;
+
+    if (!VALID_LEAD_STATUSES.includes(status)) {
+
+      return res.status(400).json({
+
+        error:
+        "status must be one of: " + VALID_LEAD_STATUSES.join(", ")
+
+      });
+
+    }
 
     const updated = await updateLead(
 

@@ -4,6 +4,8 @@ function LeadPipeline() {
 
   const [leads, setLeads] = useState([]);
 
+  const [error, setError] = useState("");
+
   const token = localStorage.getItem("token");
 
   const loadLeads = async () => {
@@ -59,23 +61,41 @@ function LeadPipeline() {
 
   const updateStatus = async (id, status) => {
 
-    await fetch(
-      `http://localhost:5050/api/leads/${id}`,
-      {
-        method: "PATCH",
+    try {
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+      const res = await fetch(
+        `http://localhost:5050/api/leads/${id}`,
+        {
+          method: "PATCH",
 
-        body: JSON.stringify({
-          status
-        })
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+
+          body: JSON.stringify({
+            status
+          })
+        }
+      );
+
+      if (!res.ok) {
+
+        const data = await res.json().catch(() => ({}));
+
+        throw new Error(data.error || "Failed to update lead status");
+
       }
-    );
 
-    loadLeads();
+      setError("");
+
+      loadLeads();
+
+    } catch (err) {
+
+      setError(err.message);
+
+    }
 
   };
 
@@ -86,6 +106,12 @@ function LeadPipeline() {
       <h2 className="text-2xl font-bold">
         🔥 Lead Pipeline
       </h2>
+
+      {error && (
+        <p className="text-red-400 mt-3">
+          {error}
+        </p>
+      )}
 
       <div className="mt-5 space-y-4">
 
