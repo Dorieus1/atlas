@@ -6,10 +6,19 @@ function KnowledgeEditor() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const saveKnowledge = async () => {
 
-    if (!title || !content) return;
+    if (!title.trim() || !content.trim()) {
+
+      setError("Title and content are both required.");
+
+      return;
+
+    }
+
+    setError("");
 
     setSaving(true);
 
@@ -19,8 +28,8 @@ function KnowledgeEditor() {
 
       await createKnowledge(
   business_id,
-  title,
-  content
+  title.trim(),
+  content.trim()
 );
 
       setTitle("");
@@ -30,9 +39,11 @@ function KnowledgeEditor() {
 
       window.location.reload();
 
-    } catch (error) {
+    } catch (err) {
 
-      console.error(error);
+      console.error(err);
+
+      setError("Failed to save knowledge. Please try again.");
 
     } finally {
 
@@ -49,6 +60,12 @@ function KnowledgeEditor() {
       <h2 className="text-2xl font-bold">
         ➕ Add Business Knowledge
       </h2>
+
+      {error && (
+        <p className="text-red-400 mt-3">
+          {error}
+        </p>
+      )}
 
       <input
         className="w-full mt-5 bg-slate-800 rounded-xl p-3"

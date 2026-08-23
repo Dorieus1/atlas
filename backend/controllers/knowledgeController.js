@@ -12,7 +12,7 @@ const createKnowledge = (req, res) => {
   const business_id = req.user.business_id;
 
 
-  if (!title || !content) {
+  if (!title || !title.trim() || !content || !content.trim()) {
     return res.status(400).json({
       error: "title and content are required"
     });
@@ -29,8 +29,8 @@ const createKnowledge = (req, res) => {
     [
       id,
       business_id,
-      title,
-      content
+      title.trim(),
+      content.trim()
     ],
     function(err) {
 
