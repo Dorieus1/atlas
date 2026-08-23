@@ -86,6 +86,17 @@ const register = async (req,res)=>{
     console.error(error);
 
 
+    if (error.message && error.message.includes("UNIQUE constraint failed: users.email")) {
+
+      return res.status(409).json({
+
+        error: "That email is already registered"
+
+      });
+
+    }
+
+
     res.status(500).json({
 
       error:error.message

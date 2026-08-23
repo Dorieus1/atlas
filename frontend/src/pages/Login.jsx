@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 
 function Login() {
@@ -223,6 +223,19 @@ function Login() {
         Login
 
       </button>
+
+
+      <p className="mt-6 text-slate-400">
+
+        New business?{" "}
+
+        <Link to="/onboarding" className="text-blue-400 hover:underline">
+
+          Set up Atlas
+
+        </Link>
+
+      </p>
 
 
 
