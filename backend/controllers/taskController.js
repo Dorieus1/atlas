@@ -4,6 +4,8 @@ const {
   completeTask: completeTaskService
 } = require("../services/taskService");
 
+const { getCustomerById } = require("../services/customerService");
+
 
 
 const createTask = async (req, res) => {
@@ -25,13 +27,27 @@ const business_id = req.user.business_id;
 
     if (
   !customer_id ||
-  !title
+  !title || !title.trim()
 ) {
 
       return res.status(400).json({
 
         error:
-        "customer_id, business_id, and title required"
+        "customer_id and title required"
+
+      });
+
+    }
+
+
+    const customer = await getCustomerById(customer_id, business_id);
+
+    if (!customer) {
+
+      return res.status(404).json({
+
+        error:
+        "Customer not found"
 
       });
 
@@ -44,7 +60,7 @@ const business_id = req.user.business_id;
 
         customer_id,
         business_id,
-        title,
+        title.trim(),
         description,
         due_date
 

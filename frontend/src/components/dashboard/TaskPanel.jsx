@@ -10,6 +10,8 @@ function TaskPanel() {
 
   const [tasks, setTasks] = useState([]);
 
+  const [error, setError] = useState("");
+
 
 
   const loadTasks = async () => {
@@ -50,11 +52,15 @@ function TaskPanel() {
 
       await completeTask(id);
 
+      setError("");
+
       loadTasks();
 
-    } catch(error){
+    } catch(err){
 
-      console.error(error);
+      console.error(err);
+
+      setError("Failed to complete task. Please try again.");
 
     }
 
@@ -81,6 +87,12 @@ function TaskPanel() {
         📅 Follow-Up Tasks
 
       </h2>
+
+      {error && (
+        <p className="text-red-400 mb-4">
+          {error}
+        </p>
+      )}
 
 
       {tasks.length === 0 ? (
