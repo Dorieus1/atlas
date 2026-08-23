@@ -13,6 +13,8 @@ const createUser = async (
 
   const id = uuidv4();
 
+  const normalizedEmail = email.trim().toLowerCase();
+
 
   const hashedPassword =
     await bcrypt.hash(password, 10);
@@ -46,7 +48,7 @@ const createUser = async (
 
         name,
 
-        email,
+        normalizedEmail,
 
         hashedPassword
 
@@ -93,11 +95,11 @@ const findUserByEmail = (email)=>{
       `
       SELECT *
       FROM users
-      WHERE email = ?
+      WHERE LOWER(email) = LOWER(?)
 
       `,
 
-      [email],
+      [email.trim()],
 
       (err,row)=>{
 

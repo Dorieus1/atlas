@@ -21,6 +21,15 @@ function Login() {
   const login = async()=>{
 
 
+    if (!email.trim() || !password.trim()) {
+
+      setError("Email and password are required.");
+
+      return;
+
+    }
+
+
     try {
 
 
@@ -41,7 +50,7 @@ function Login() {
 
           body:JSON.stringify({
 
-            email,
+            email: email.trim(),
 
             password
 
