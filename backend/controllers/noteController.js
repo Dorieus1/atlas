@@ -17,7 +17,7 @@ const addNote = async (req, res) => {
     } = req.body;
 
 
-    if (!customer_id || !note) {
+    if (!customer_id || !note || !note.trim()) {
 
       return res.status(400).json({
         error: "customer_id and note required"
@@ -39,7 +39,7 @@ const addNote = async (req, res) => {
 
     await createNote(
       customer_id,
-      note
+      note.trim()
     );
 
 

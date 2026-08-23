@@ -26,6 +26,7 @@ function CustomerProfile() {
   const [lead, setLead] = useState(null);
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
+  const [noteError, setNoteError] = useState("");
 
 
   useEffect(() => {
@@ -176,6 +177,8 @@ function CustomerProfile() {
 
     if (!newNote.trim()) {
 
+      setNoteError("Note cannot be empty.");
+
       return;
 
     }
@@ -184,10 +187,12 @@ function CustomerProfile() {
 
       await createNote(
         id,
-        newNote
+        newNote.trim()
       );
 
       setNewNote("");
+
+      setNoteError("");
 
       await loadNotes();
 
@@ -197,6 +202,8 @@ function CustomerProfile() {
         "NOTE CREATE ERROR:",
         err
       );
+
+      setNoteError("Failed to add note. Please try again.");
 
     }
 
@@ -475,6 +482,16 @@ function CustomerProfile() {
           📝 Notes
 
         </h2>
+
+        {noteError && (
+
+          <p className="text-red-400 mt-3">
+
+            {noteError}
+
+          </p>
+
+        )}
 
 
         <div className="
