@@ -1,3 +1,5 @@
+import LeadPipeline from "../components/LeadPipeline";
+
 function Leads() {
 
   return (
@@ -8,9 +10,7 @@ function Leads() {
         🔥 Leads
       </h1>
 
-      <p className="mt-4 text-slate-400">
-        Lead pipeline management will appear here.
-      </p>
+      <LeadPipeline />
 
     </div>
 
