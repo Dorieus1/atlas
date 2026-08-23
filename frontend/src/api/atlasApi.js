@@ -155,6 +155,16 @@ export const getCustomer = (id) =>
 
 
 
+export const deleteCustomer = (id) =>
+
+  request(`/customers/${id}`, {
+
+    method: "DELETE"
+
+  });
+
+
+
 
 
 /* ---------- Leads ---------- */

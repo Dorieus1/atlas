@@ -1,7 +1,8 @@
 const {
   createCustomer: createCustomerService,
   getCustomerById: getCustomerByIdService,
-  getCustomersByBusiness: getCustomersByBusinessService
+  getCustomersByBusiness: getCustomersByBusinessService,
+  deleteCustomer: deleteCustomerService
 } = require("../services/customerService");
 
 
@@ -192,6 +193,64 @@ const getCustomerById = async (req,res)=>{
 
 
 
+const deleteCustomer = async (req, res) => {
+
+
+  try {
+
+
+    const deleted = await deleteCustomerService(
+
+      req.params.id,
+
+      req.user.business_id
+
+    );
+
+
+    if (!deleted) {
+
+
+      return res.status(404).json({
+
+        error:
+        "Customer not found"
+
+      });
+
+
+    }
+
+
+    res.json({
+
+      message:
+      "Customer deleted"
+
+    });
+
+
+
+  } catch(error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error:error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
 module.exports = {
 
 
@@ -199,7 +258,9 @@ module.exports = {
 
   getCustomers,
 
-  getCustomerById
+  getCustomerById,
+
+  deleteCustomer
 
 
 };

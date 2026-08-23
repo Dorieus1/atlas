@@ -13,7 +13,8 @@ const {
   getCustomers,
 
   getCustomerById,
-  getCustomersByBusiness
+  getCustomersByBusiness,
+  deleteCustomer
 
 } = require("../controllers/customerController");
 
@@ -40,6 +41,14 @@ router.get(
   "/:id",
   authMiddleware,
   getCustomerById
+);
+
+
+
+router.delete(
+  "/:id",
+  authMiddleware,
+  deleteCustomer
 );
 
 

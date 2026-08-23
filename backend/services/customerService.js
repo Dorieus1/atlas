@@ -216,10 +216,80 @@ const getCustomersByBusiness = (business_id)=>{
 
 
 
+const deleteCustomer = async (
+
+  id,
+  business_id
+
+) => {
+
+
+  const customer = await getCustomerById(id, business_id);
+
+  if (!customer) {
+
+    return false;
+
+  }
+
+
+  return new Promise((resolve, reject) => {
+
+
+    db.serialize(() => {
+
+      db.run(`DELETE FROM notes WHERE customer_id = ?`, [id]);
+
+      db.run(`DELETE FROM conversations WHERE customer_id = ?`, [id]);
+
+      db.run(`DELETE FROM memories WHERE customer_id = ?`, [id]);
+
+      db.run(`DELETE FROM activities WHERE customer_id = ?`, [id]);
+
+      db.run(`DELETE FROM leads WHERE customer_id = ?`, [id]);
+
+      db.run(`DELETE FROM tasks WHERE customer_id = ?`, [id]);
+
+      db.run(
+
+        `
+        DELETE FROM customers
+        WHERE id = ?
+        AND business_id = ?
+        `,
+
+        [id, business_id],
+
+        function(err) {
+
+          if (err) {
+
+            reject(err);
+
+          } else {
+
+            resolve(this.changes > 0);
+
+          }
+
+        }
+
+      );
+
+    });
+
+  });
+
+
+};
+
+
+
 module.exports = {
 
   createCustomer,
   getCustomers,
   getCustomerById,
-  getCustomersByBusiness
+  getCustomersByBusiness,
+  deleteCustomer
 };

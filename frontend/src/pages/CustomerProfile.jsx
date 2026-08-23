@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import {
   getCustomer,
@@ -9,7 +9,8 @@ import {
   getNotes,
   createNote,
   updateLeadStatus,
-  getBusinesses
+  getBusinesses,
+  deleteCustomer
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
@@ -18,6 +19,7 @@ import ChatWindow from "../components/ChatWindow";
 function CustomerProfile() {
 
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [customer, setCustomer] = useState(null);
   const [business, setBusiness] = useState(null);
@@ -27,6 +29,9 @@ function CustomerProfile() {
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
   const [noteError, setNoteError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
 
   useEffect(() => {
@@ -249,6 +254,35 @@ function CustomerProfile() {
 
 
 
+  const handleDeleteCustomer = async () => {
+
+    setDeleting(true);
+
+    setDeleteError("");
+
+    try {
+
+      await deleteCustomer(id);
+
+      navigate("/customers");
+
+    } catch (err) {
+
+      console.error(
+        "CUSTOMER DELETE ERROR:",
+        err
+      );
+
+      setDeleteError("Failed to delete customer. Please try again.");
+
+      setDeleting(false);
+
+    }
+
+  };
+
+
+
   if (!customer) {
 
     return (
@@ -272,19 +306,93 @@ function CustomerProfile() {
 
       {/* CUSTOMER HEADER */}
 
-      <div>
+      <div className="flex items-start justify-between">
 
-        <h1 className="text-3xl font-bold">
+        <div>
 
-          👤 {customer.name}
+          <h1 className="text-3xl font-bold">
 
-        </h1>
+            👤 {customer.name}
 
-        <p className="text-slate-400">
+          </h1>
 
-          {customer.email}
+          <p className="text-slate-400">
 
-        </p>
+            {customer.email}
+
+          </p>
+
+        </div>
+
+        <div>
+
+          {confirmingDelete ? (
+
+            <div className="flex items-center gap-3">
+
+              <span className="text-slate-300 text-sm">
+
+                Delete this customer and all their notes, conversations, and history?
+
+              </span>
+
+              <button
+
+                onClick={handleDeleteCustomer}
+
+                disabled={deleting}
+
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg disabled:opacity-50"
+
+              >
+
+                {deleting ? "Deleting..." : "Confirm Delete"}
+
+              </button>
+
+              <button
+
+                onClick={() => setConfirmingDelete(false)}
+
+                disabled={deleting}
+
+                className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
+
+              >
+
+                Cancel
+
+              </button>
+
+            </div>
+
+          ) : (
+
+            <button
+
+              onClick={() => setConfirmingDelete(true)}
+
+              className="bg-red-600/20 text-red-400 hover:bg-red-600/30 px-4 py-2 rounded-lg"
+
+            >
+
+              Delete Customer
+
+            </button>
+
+          )}
+
+          {deleteError && (
+
+            <p className="text-red-400 text-sm mt-2">
+
+              {deleteError}
+
+            </p>
+
+          )}
+
+        </div>
 
       </div>
 
