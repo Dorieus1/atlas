@@ -142,6 +142,15 @@ const updateBusiness = (req, res) => {
   const id = req.user.business_id;
 
 
+  if (!name || !name.trim()) {
+
+    return res.status(400).json({
+      error: "Business name is required"
+    });
+
+  }
+
+
 
   db.run(
 
@@ -162,7 +171,7 @@ const updateBusiness = (req, res) => {
 
     [
 
-      name,
+      name.trim(),
       phone,
       email,
       address,

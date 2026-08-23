@@ -11,6 +11,12 @@ function BusinessProfile({ business }) {
     services: "",
   });
 
+  const [error, setError] = useState("");
+
+  const [success, setSuccess] = useState("");
+
+  const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
 
@@ -35,34 +41,71 @@ function BusinessProfile({ business }) {
 
   const updateBusiness = async () => {
 
-    const token = localStorage.getItem("token");
+    if (!form.name.trim()) {
 
-    await fetch(
-      "http://localhost:5050/api/business",
-      {
+      setError("Business name is required.");
 
-        method: "PUT",
+      setSuccess("");
 
-        headers: {
-          "Content-Type": "application/json",
-          ...(token
-            ? { Authorization: `Bearer ${token}` }
-            : {})
-        },
+      return;
 
-        body: JSON.stringify({
+    }
 
-          id: business.id,
+    setError("");
 
-          ...form
+    setSuccess("");
 
-        }),
+    setSaving(true);
+
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        "http://localhost:5050/api/business",
+        {
+
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+            ...(token
+              ? { Authorization: `Bearer ${token}` }
+              : {})
+          },
+
+          body: JSON.stringify({
+
+            id: business.id,
+
+            ...form,
+
+            name: form.name.trim()
+
+          }),
+
+        }
+      );
+
+      if (!res.ok) {
+
+        const data = await res.json().catch(() => ({}));
+
+        throw new Error(data.error || "Failed to update business");
 
       }
-    );
 
+      setSuccess("Business updated");
 
-    alert("Business updated");
+    } catch (err) {
+
+      setError(err.message);
+
+    } finally {
+
+      setSaving(false);
+
+    }
 
   };
 
@@ -84,6 +127,17 @@ function BusinessProfile({ business }) {
         Business Profile
       </h2>
 
+      {error && (
+        <p style={{ color: "#f87171" }}>
+          {error}
+        </p>
+      )}
+
+      {success && (
+        <p style={{ color: "#4ade80" }}>
+          {success}
+        </p>
+      )}
 
       <input
 
@@ -181,8 +235,8 @@ function BusinessProfile({ business }) {
       />
 
 
-      <button onClick={updateBusiness}>
-        Save Business
+      <button onClick={updateBusiness} disabled={saving}>
+        {saving ? "Saving..." : "Save Business"}
       </button>
 
 
