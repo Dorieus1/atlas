@@ -35,6 +35,8 @@ function BusinessProfile({ business }) {
 
   const updateBusiness = async () => {
 
+    const token = localStorage.getItem("token");
+
     await fetch(
       "http://localhost:5050/api/business",
       {
@@ -43,6 +45,9 @@ function BusinessProfile({ business }) {
 
         headers: {
           "Content-Type": "application/json",
+          ...(token
+            ? { Authorization: `Bearer ${token}` }
+            : {})
         },
 
         body: JSON.stringify({

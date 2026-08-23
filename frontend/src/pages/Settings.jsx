@@ -1,4 +1,32 @@
+import { useEffect, useState } from "react";
+import { getBusinesses } from "../api/atlasApi";
+import BusinessProfile from "../components/BusinessProfile";
+
 function Settings() {
+
+  const [business, setBusiness] = useState(null);
+
+  useEffect(() => {
+
+    async function loadBusiness() {
+
+      try {
+
+        const businesses = await getBusinesses();
+
+        setBusiness(businesses[0] || null);
+
+      } catch (error) {
+
+        console.error("Failed to load business:", error);
+
+      }
+
+    }
+
+    loadBusiness();
+
+  }, []);
 
   return (
 
@@ -8,9 +36,7 @@ function Settings() {
         ⚙️ Settings
       </h1>
 
-      <p className="mt-4 text-slate-400">
-        Business configuration will appear here.
-      </p>
+      <BusinessProfile business={business} />
 
     </div>
 
