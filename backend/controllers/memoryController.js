@@ -11,7 +11,7 @@ const createMemory = async (req, res) => {
   } = req.body;
 
 
-  if (!customer_id || !memory) {
+  if (!customer_id || !memory || !memory.trim()) {
     return res.status(400).json({
       error: "customer_id and memory are required"
     });
@@ -37,7 +37,7 @@ const createMemory = async (req, res) => {
     [
       id,
       customer_id,
-      memory
+      memory.trim()
     ],
     function(err) {
 

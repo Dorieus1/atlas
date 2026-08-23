@@ -8,6 +8,8 @@ function MemoryPanel({ customer }) {
 
   const [memory, setMemory] = useState("");
 
+  const [error, setError] = useState("");
+
 
 
 
@@ -23,18 +25,41 @@ function MemoryPanel({ customer }) {
     }
 
 
+    try {
 
-    const response = await fetch(
+      const token = localStorage.getItem("token");
 
-      `http://localhost:5050/api/memories/${customer.id}`
+      const response = await fetch(
 
-    );
+        `http://localhost:5050/api/memories/${customer.id}`,
 
+        {
+          headers: {
+            ...(token
+              ? { Authorization: `Bearer ${token}` }
+              : {})
+          }
+        }
 
-    const data = await response.json();
+      );
 
+      if (!response.ok) {
 
-    setMemories(data);
+        throw new Error("Failed to load memories");
+
+      }
+
+      const data = await response.json();
+
+      setMemories(data);
+
+    } catch (err) {
+
+      console.error(err);
+
+      setMemories([]);
+
+    }
 
 
   };
@@ -56,49 +81,80 @@ function MemoryPanel({ customer }) {
   const addMemory = async () => {
 
 
-    if (!customer || !memory.trim()) {
+    if (!customer) {
+
+      return;
+
+    }
+
+    if (!memory.trim()) {
+
+      setError("Memory cannot be empty.");
 
       return;
 
     }
 
 
+    try {
 
-    await fetch(
+      const token = localStorage.getItem("token");
 
-      "http://localhost:5050/api/memories",
+      const res = await fetch(
 
-      {
+        "http://localhost:5050/api/memories",
 
-
-        method: "POST",
-
-
-        headers: {
-
-          "Content-Type": "application/json",
-
-        },
+        {
 
 
-        body: JSON.stringify({
+          method: "POST",
 
-          customer_id: customer.id,
 
-          memory,
+          headers: {
 
-        }),
+            "Content-Type": "application/json",
 
+            ...(token
+              ? { Authorization: `Bearer ${token}` }
+              : {})
+
+          },
+
+
+          body: JSON.stringify({
+
+            customer_id: customer.id,
+
+            memory: memory.trim(),
+
+          }),
+
+
+        }
+
+      );
+
+      if (!res.ok) {
+
+        const data = await res.json().catch(() => ({}));
+
+        throw new Error(data.error || "Failed to save memory");
 
       }
 
-    );
 
 
+      setMemory("");
 
-    setMemory("");
+      setError("");
 
-    loadMemories();
+      loadMemories();
+
+    } catch (err) {
+
+      setError(err.message);
+
+    }
 
 
   };
@@ -130,6 +186,12 @@ function MemoryPanel({ customer }) {
             Customer: {customer.name}
 
           </p>
+
+          {error && (
+            <p style={{ color: "#f87171" }}>
+              {error}
+            </p>
+          )}
 
 
 
