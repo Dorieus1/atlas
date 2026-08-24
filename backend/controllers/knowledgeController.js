@@ -18,6 +18,12 @@ const createKnowledge = (req, res) => {
     });
   }
 
+  if (title.length > 200 || content.length > 5000) {
+    return res.status(400).json({
+      error: "Title or content is too long"
+    });
+  }
+
 
   const id = uuidv4();
 
@@ -110,6 +116,12 @@ const updateKnowledge = (req, res) => {
   if (!title || !title.trim() || !content || !content.trim()) {
     return res.status(400).json({
       error: "title and content are required"
+    });
+  }
+
+  if (title.length > 200 || content.length > 5000) {
+    return res.status(400).json({
+      error: "Title or content is too long"
     });
   }
 

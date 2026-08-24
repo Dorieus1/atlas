@@ -65,6 +65,17 @@ const chatResponse = async (req, res) => {
 
     }
 
+    if (message.length > 4000) {
+
+      return res.status(400).json({
+
+        error:
+        "Message is too long"
+
+      });
+
+    }
+
 
 
     db.get(

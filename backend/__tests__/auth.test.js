@@ -151,9 +151,19 @@ describe("Auth: register and login", () => {
 
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ email: "someone@test.com" });
+      .send({ email: "someone@test.com", password: "somepassword" });
 
     expect(res.status).toBe(404);
+
+  });
+
+  test("login with a missing email or password returns 400", async () => {
+
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "someone@test.com" });
+
+    expect(res.status).toBe(400);
 
   });
 

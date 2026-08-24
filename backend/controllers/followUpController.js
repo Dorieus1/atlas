@@ -20,6 +20,26 @@ const createFollowUp = async (req,res)=>{
 
 
 
+  if (!customer_id || !summary || !summary.trim()) {
+
+    return res.status(400).json({
+
+      error: "customer_id and summary are required"
+
+    });
+
+  }
+
+  if (summary.length > 4000) {
+
+    return res.status(400).json({
+
+      error: "Summary is too long"
+
+    });
+
+  }
+
 
   db.get(
 

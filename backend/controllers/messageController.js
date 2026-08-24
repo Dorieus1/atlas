@@ -32,6 +32,17 @@ const generateMessage = async (req,res)=>{
 
     }
 
+    if (customer.length > 500 || interest.length > 2000) {
+
+      return res.status(400).json({
+
+        error:
+        "customer or interest is too long"
+
+      });
+
+    }
+
 
 
     const message =
