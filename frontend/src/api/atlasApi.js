@@ -38,9 +38,13 @@ async function request(path, options = {}) {
     const text = await response.text();
 
 
-    throw new Error(
+    const error = new Error(
       text || "API request failed"
     );
+
+    error.status = response.status;
+
+    throw error;
 
 
   }
