@@ -4,14 +4,27 @@ import {
   Flame,
   BookOpen,
   BarChart3,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
 
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 
 function Sidebar() {
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("business_id");
+    localStorage.removeItem("user");
+
+    navigate("/login");
+
+  };
 
 
   const links = [
@@ -60,11 +73,16 @@ function Sidebar() {
 
     <aside className="
       w-64
-      min-h-screen
+      h-screen
+      sticky
+      top-0
+      overflow-y-auto
       bg-slate-950
       border-r
       border-slate-800
       p-6
+      flex
+      flex-col
     ">
 
 
@@ -80,7 +98,7 @@ function Sidebar() {
 
 
 
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
 
         {links.map((link)=>{
 
@@ -127,6 +145,30 @@ function Sidebar() {
         })}
 
       </nav>
+
+
+      <button
+
+        onClick={handleLogout}
+
+        className="
+          flex
+          items-center
+          gap-3
+          p-3
+          rounded-xl
+          text-slate-400
+          hover:bg-slate-800
+          hover:text-white
+        "
+
+      >
+
+        <LogOut size={20}/>
+
+        Log Out
+
+      </button>
 
 
     </aside>
