@@ -17,6 +17,7 @@ import {
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
+import MemoryPanel from "../components/MemoryPanel";
 
 
 function CustomerProfile() {
@@ -655,6 +656,9 @@ function CustomerProfile() {
         </div>
 
       )}
+
+
+      <MemoryPanel customer={customer} />
 
 
 

@@ -165,83 +165,81 @@ function MemoryPanel({ customer }) {
 
 
 
+  if (!customer) {
+
+    return null;
+
+  }
+
+
   return (
 
-    <div className="card">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
 
 
-      <h2>
-
-        Customer Memories
-
+      <h2 className="text-xl font-bold mb-4">
+        🧠 What Atlas Remembers
       </h2>
 
+      <p className="text-slate-400 text-sm mb-4">
+        Details Atlas has picked up about {customer.name} from past conversations.
+      </p>
 
+      {error && (
+        <p className="text-red-400 text-sm mb-3">
+          {error}
+        </p>
+      )}
 
-      {customer ? (
+      {memories.length > 0 && (
 
-        <>
-
-          <p>
-
-            Customer: {customer.name}
-
-          </p>
-
-          {error && (
-            <p style={{ color: "#f87171" }}>
-              {error}
-            </p>
-          )}
-
-
-
-          <input
-
-            placeholder="Add memory..."
-
-            value={memory}
-
-            onChange={(e) =>
-
-              setMemory(e.target.value)
-
-            }
-
-          />
-
-
-
-          <button onClick={addMemory}>
-
-            Save Memory
-
-          </button>
-
-
-
+        <div className="space-y-2 mb-4">
 
           {memories.map((item) => (
 
-            <p key={item.id}>
-
-              🧠 {item.memory}
-
+            <p key={item.id} className="bg-slate-800 rounded-lg p-3">
+              {item.memory}
             </p>
 
           ))}
 
-
-
-        </>
-
-
-      ) : (
-
-        <p>Select a customer</p>
+        </div>
 
       )}
 
+      {memories.length === 0 && (
+
+        <p className="text-slate-400 text-sm mb-4">
+          Nothing remembered yet.
+        </p>
+
+      )}
+
+      <div className="flex flex-wrap gap-3">
+
+        <input
+
+          placeholder="Add something to remember"
+
+          value={memory}
+
+          onChange={(e) => setMemory(e.target.value)}
+
+          className="flex-1 bg-slate-800 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3"
+
+        />
+
+        <button
+
+          onClick={addMemory}
+
+          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+
+        >
+          Save
+        </button>
+
+      </div>
 
 
     </div>

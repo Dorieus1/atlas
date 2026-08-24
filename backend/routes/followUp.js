@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const rateLimiter = require("../middleware/rateLimiter");
 
 const {
   createFollowUp
@@ -13,6 +14,7 @@ const {
 router.post(
   "/",
   authMiddleware,
+  rateLimiter(30, 60 * 1000),
   createFollowUp
 );
 
