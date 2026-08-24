@@ -1,7 +1,14 @@
 const {
   createUser,
-  findUserByEmail
+  findUserByEmail,
+  setResetToken,
+  findUserByResetToken,
+  resetPasswordByUserId
 } = require("../services/authService");
+
+const {
+  sendPasswordResetEmail
+} = require("../services/emailService");
 
 
 const bcrypt = require("bcrypt");
@@ -254,10 +261,164 @@ const login = async (req,res)=>{
 
 
 
+const forgotPassword = async (req, res) => {
+
+
+  try {
+
+
+    const {
+
+      email
+
+    } = req.body;
+
+
+    if (!email || !email.trim()) {
+
+      return res.status(400).json({
+
+        error:
+        "Email is required"
+
+      });
+
+    }
+
+
+    const token = await setResetToken(email);
+
+
+    if (token) {
+
+      const resetUrl =
+        `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${token}`;
+
+      try {
+
+        await sendPasswordResetEmail(email.trim(), resetUrl);
+
+      } catch (emailError) {
+
+        console.error(
+          "PASSWORD RESET EMAIL ERROR:",
+          emailError
+        );
+
+      }
+
+    }
+
+
+    res.json({
+
+      message:
+      "If that email exists, a reset link has been sent."
+
+    });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error:error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const resetPassword = async (req, res) => {
+
+
+  try {
+
+
+    const {
+
+      token,
+
+      password
+
+    } = req.body;
+
+
+    if (!token || !password || password.length < 6) {
+
+      return res.status(400).json({
+
+        error:
+        "A valid token and a password of at least 6 characters are required"
+
+      });
+
+    }
+
+
+    const user = await findUserByResetToken(token);
+
+
+    if (!user) {
+
+      return res.status(400).json({
+
+        error:
+        "Invalid or expired reset link"
+
+      });
+
+    }
+
+
+    await resetPasswordByUserId(user.id, password);
+
+
+    res.json({
+
+      message:
+      "Password updated. You can now log in with your new password."
+
+    });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error:error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
 module.exports = {
 
   register,
 
-  login
+  login,
+
+  forgotPassword,
+
+  resetPassword
 
 };

@@ -2,12 +2,18 @@ const express = require("express");
 
 const router = express.Router();
 
+const rateLimiter = require("../middleware/rateLimiter");
+
 
 const {
 
   register,
 
-  login
+  login,
+
+  forgotPassword,
+
+  resetPassword
 
 } = require("../controllers/authController");
 
@@ -22,6 +28,19 @@ router.post(
 router.post(
   "/login",
   login
+);
+
+
+router.post(
+  "/forgot-password",
+  rateLimiter(5, 60 * 60 * 1000),
+  forgotPassword
+);
+
+
+router.post(
+  "/reset-password",
+  resetPassword
 );
 
 

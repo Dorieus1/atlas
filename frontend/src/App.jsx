@@ -17,6 +17,8 @@ import IntelligencePanel from "./components/dashboard/IntelligencePanel";
 import Onboarding from "./pages/Onboarding"; 
 import KnowledgeSetup from "./pages/KnowledgeSetup";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -41,6 +43,16 @@ function App() {
           <Route
             path="/login"
             element={<Login />}
+          />
+
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
           />
 
           <Route

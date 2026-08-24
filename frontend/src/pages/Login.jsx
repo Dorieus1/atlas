@@ -235,6 +235,17 @@ function Login() {
       </button>
 
 
+      <p className="mt-4 text-slate-400">
+
+        <Link to="/forgot-password" className="text-blue-400 hover:underline">
+
+          Forgot your password?
+
+        </Link>
+
+      </p>
+
+
       <p className="mt-6 text-slate-400">
 
         New business?{" "}
