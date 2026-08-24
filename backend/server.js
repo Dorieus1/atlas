@@ -73,10 +73,17 @@ app.get("/", (req,res)=>{
 const PORT = process.env.PORT || 5050;
 
 
-app.listen(PORT,()=>{
+if (require.main === module) {
 
-  console.log(
-    `Atlas server running on port ${PORT}`
-  );
+  app.listen(PORT,()=>{
 
-});
+    console.log(
+      `Atlas server running on port ${PORT}`
+    );
+
+  });
+
+}
+
+
+module.exports = app;

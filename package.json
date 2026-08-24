@@ -8,21 +8,26 @@
   },
   "scripts": {
     "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "dev": "nodemon backend/server.js",
+    "test": "DB_PATH=./backend/__tests__/test.db JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
     "openai": "^7.3.0",
     "sqlite3": "^6.0.1",
     "uuid": "^14.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }
