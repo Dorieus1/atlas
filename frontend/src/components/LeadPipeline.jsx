@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../api/atlasApi";
+import { downloadCSV } from "../utils/csv";
 
 function LeadPipeline() {
 
@@ -8,6 +9,41 @@ function LeadPipeline() {
   const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
+
+  const formatDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric"
+    });
+
+  const isFollowUpOverdue = (lead) =>
+    lead.status !== "closed" &&
+    lead.next_follow_up &&
+    new Date(lead.next_follow_up) < new Date();
+
+  const exportCSV = () => {
+
+    downloadCSV(
+
+      "leads.csv",
+
+      [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "phone", label: "Phone" },
+        { key: "interest", label: "Interest" },
+        { key: "status", label: "Status" },
+        { key: "priority", label: "Priority" },
+        { key: "last_contacted", label: "Last Contacted" },
+        { key: "next_follow_up", label: "Next Follow-Up" },
+        { key: "created_at", label: "Created At" }
+      ],
+
+      leads
+
+    );
+
+  };
 
   const loadLeads = async () => {
 
@@ -104,9 +140,29 @@ function LeadPipeline() {
 
     <div className="mt-8 bg-slate-900 border border-slate-800 rounded-2xl p-6">
 
-      <h2 className="text-2xl font-bold">
-        🔥 Lead Pipeline
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+
+        <h2 className="text-2xl font-bold">
+          🔥 Lead Pipeline
+        </h2>
+
+        {leads.length > 0 && (
+
+          <button
+
+            onClick={exportCSV}
+
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-lg text-sm"
+
+          >
+
+            ⬇️ Export CSV
+
+          </button>
+
+        )}
+
+      </div>
 
       {error && (
         <p className="text-red-400 mt-3">
@@ -130,7 +186,7 @@ function LeadPipeline() {
 
             <div
               key={lead.id}
-              className="bg-slate-800 rounded-xl p-5"
+              className={`bg-slate-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
             >
 
               <div className="flex justify-between">
@@ -148,6 +204,16 @@ function LeadPipeline() {
                     {lead.email}
 
                   </p>
+
+                  {lead.phone && (
+
+                    <p className="text-slate-400">
+
+                      {lead.phone}
+
+                    </p>
+
+                  )}
 
                 </div>
 
@@ -170,6 +236,27 @@ function LeadPipeline() {
                 Status: {lead.status || "new"}
 
               </p>
+
+              {lead.last_contacted && (
+
+                <p className="mt-1 text-slate-400 text-sm">
+
+                  Last contacted: {formatDate(lead.last_contacted)}
+
+                </p>
+
+              )}
+
+              {lead.next_follow_up && (
+
+                <p className={`mt-1 text-sm ${isFollowUpOverdue(lead) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+
+                  {isFollowUpOverdue(lead) ? "Follow-up overdue since " : "Next follow-up: "}
+                  {formatDate(lead.next_follow_up)}
+
+                </p>
+
+              )}
 
               <div className="flex flex-wrap gap-3 mt-4">
 

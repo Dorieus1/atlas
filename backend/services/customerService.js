@@ -7,7 +7,8 @@ const createCustomer = (
 
   business_id,
   name,
-  email
+  email,
+  phone
 
 ) => {
 
@@ -27,16 +28,18 @@ const createCustomer = (
         id,
         business_id,
         name,
-        email
+        email,
+        phone
       )
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
       `,
 
       [
         id,
         business_id,
         name,
-        email || null
+        email || null,
+        phone || null
       ],
 
 
@@ -50,52 +53,6 @@ const createCustomer = (
         } else {
 
           resolve(id);
-
-        }
-
-
-      }
-
-
-    );
-
-
-  });
-
-
-};
-
-
-
-
-
-const getCustomers = () => {
-
-
-  return new Promise((resolve, reject) => {
-
-
-    db.all(
-
-      `
-      SELECT *
-      FROM customers
-      ORDER BY created_at DESC
-      `,
-
-      [],
-
-
-      (err, rows) => {
-
-
-        if (err) {
-
-          reject(err);
-
-        } else {
-
-          resolve(rows);
 
         }
 
@@ -290,7 +247,8 @@ const updateCustomer = (
   id,
   business_id,
   name,
-  email
+  email,
+  phone
 
 ) => {
 
@@ -302,7 +260,7 @@ const updateCustomer = (
 
       `
       UPDATE customers
-      SET name = ?, email = ?
+      SET name = ?, email = ?, phone = ?
       WHERE id = ?
       AND business_id = ?
       `,
@@ -310,6 +268,7 @@ const updateCustomer = (
       [
         name,
         email || null,
+        phone || null,
         id,
         business_id
       ],
@@ -341,7 +300,6 @@ const updateCustomer = (
 module.exports = {
 
   createCustomer,
-  getCustomers,
   getCustomerById,
   getCustomersByBusiness,
   deleteCustomer,

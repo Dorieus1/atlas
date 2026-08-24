@@ -41,6 +41,7 @@ function CustomerProfile() {
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [editCustomerName, setEditCustomerName] = useState("");
   const [editCustomerEmail, setEditCustomerEmail] = useState("");
+  const [editCustomerPhone, setEditCustomerPhone] = useState("");
   const [customerEditError, setCustomerEditError] = useState("");
   const [savingCustomerEdit, setSavingCustomerEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -359,6 +360,7 @@ function CustomerProfile() {
 
     setEditCustomerName(customer.name || "");
     setEditCustomerEmail(customer.email || "");
+    setEditCustomerPhone(customer.phone || "");
     setCustomerEditError("");
     setEditingCustomer(true);
 
@@ -386,14 +388,16 @@ function CustomerProfile() {
       await updateCustomerInfo(
         id,
         editCustomerName.trim(),
-        editCustomerEmail.trim()
+        editCustomerEmail.trim(),
+        editCustomerPhone.trim()
       );
 
       setCustomer({
 
         ...customer,
         name: editCustomerName.trim(),
-        email: editCustomerEmail.trim()
+        email: editCustomerEmail.trim(),
+        phone: editCustomerPhone.trim()
 
       });
 
@@ -476,6 +480,18 @@ function CustomerProfile() {
 
               />
 
+              <input
+
+                value={editCustomerPhone}
+
+                onChange={(e) => setEditCustomerPhone(e.target.value)}
+
+                placeholder="Customer phone"
+
+                className="bg-slate-800 text-white border border-slate-700 rounded-lg p-2 ml-2"
+
+              />
+
               <div className="flex gap-2">
 
                 <button
@@ -537,6 +553,16 @@ function CustomerProfile() {
                 {customer.email}
 
               </p>
+
+              {customer.phone && (
+
+                <p className="text-slate-400">
+
+                  {customer.phone}
+
+                </p>
+
+              )}
 
             </>
 

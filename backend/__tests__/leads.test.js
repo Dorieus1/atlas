@@ -2,12 +2,12 @@ const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
 
-const createCustomerWithLead = async (app, authHeader, customerName) => {
+const createCustomerWithLead = async (app, authHeader, customerName, phone) => {
 
   const customer = await request(app)
     .post("/api/customers")
     .set("Authorization", authHeader)
-    .send({ name: customerName });
+    .send({ name: customerName, phone });
 
   await request(app)
     .post("/api/chat")
@@ -35,6 +35,16 @@ describe("Leads", () => {
 
     expect(lead).toBeTruthy();
     expect(lead.status).toBe("new");
+
+  });
+
+  test("a lead created from chat inherits the customer's phone number", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "LeadPhone");
+
+    const { lead } = await createCustomerWithLead(app, authHeader, "Phone Lead Customer", "555-0142");
+
+    expect(lead.phone).toBe("555-0142");
 
   });
 

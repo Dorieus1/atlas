@@ -68,6 +68,31 @@ function TaskPanel() {
   };
 
 
+  const sortedTasks = [...tasks].sort((a, b) => {
+
+    if (a.status === "completed" && b.status !== "completed") return 1;
+    if (a.status !== "completed" && b.status === "completed") return -1;
+
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+
+    return new Date(a.due_date) - new Date(b.due_date);
+
+  });
+
+
+  const isOverdue = (task) =>
+    task.status !== "completed" &&
+    task.due_date &&
+    new Date(task.due_date) < new Date();
+
+
+  const formatDueDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric"
+    });
 
 
   return (
@@ -105,18 +130,19 @@ function TaskPanel() {
 
       ) : (
 
-        tasks.map((task)=>(
+        sortedTasks.map((task)=>(
 
           <div
 
             key={task.id}
 
-            className="
+            className={`
               bg-slate-900
               rounded-xl
               p-5
               mb-4
-            "
+              ${isOverdue(task) ? "border border-red-600/50" : ""}
+            `}
 
           >
 
@@ -140,6 +166,17 @@ function TaskPanel() {
               Status: {task.status}
 
             </p>
+
+            {task.due_date && (
+
+              <p className={`mt-1 ${isOverdue(task) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+
+                {isOverdue(task) ? "Overdue since " : "Due "}
+                {formatDueDate(task.due_date)}
+
+              </p>
+
+            )}
 
             {task.status !== "completed" && (
 

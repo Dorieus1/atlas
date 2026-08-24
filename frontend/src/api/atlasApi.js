@@ -231,7 +231,9 @@ export const createCustomer = (
 
   name,
 
-  email
+  email,
+
+  phone
 
 ) =>
 
@@ -243,7 +245,9 @@ export const createCustomer = (
 
       name,
 
-      email
+      email,
+
+      phone
 
     })
 
@@ -273,7 +277,9 @@ export const updateCustomerInfo = (
 
   name,
 
-  email
+  email,
+
+  phone
 
 ) =>
 
@@ -285,7 +291,9 @@ export const updateCustomerInfo = (
 
       name,
 
-      email
+      email,
+
+      phone
 
     })
 

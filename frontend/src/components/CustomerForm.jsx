@@ -9,6 +9,8 @@ function CustomerForm({ onCustomerCreated }) {
 
   const [email, setEmail] = useState("");
 
+  const [phone, setPhone] = useState("");
+
   const [error, setError] = useState("");
 
 
@@ -34,7 +36,9 @@ function CustomerForm({ onCustomerCreated }) {
 
         name.trim(),
 
-        email.trim()
+        email.trim(),
+
+        phone.trim()
 
       );
 
@@ -42,6 +46,8 @@ function CustomerForm({ onCustomerCreated }) {
       setName("");
 
       setEmail("");
+
+      setPhone("");
 
 
       if(onCustomerCreated){
@@ -106,6 +112,13 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer email"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
+  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3"
+/>
+
+<input
+  placeholder="Customer phone"
+  value={phone}
+  onChange={(e) => setPhone(e.target.value)}
   className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3"
 />
 

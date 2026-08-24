@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCustomers } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
+import { downloadCSV } from "../utils/csv";
 
 
 function Customers() {
@@ -62,11 +63,30 @@ function Customers() {
   const filteredCustomers = query
     ? customers.filter((customer) =>
         (customer.name || "").toLowerCase().includes(query) ||
-        (customer.email || "").toLowerCase().includes(query)
+        (customer.email || "").toLowerCase().includes(query) ||
+        (customer.phone || "").toLowerCase().includes(query)
       )
     : customers;
 
 
+  const exportCSV = () => {
+
+    downloadCSV(
+
+      "customers.csv",
+
+      [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "phone", label: "Phone" },
+        { key: "created_at", label: "Created At" }
+      ],
+
+      filteredCustomers
+
+    );
+
+  };
 
 
   return (
@@ -74,14 +94,34 @@ function Customers() {
     <div className="p-8">
 
 
-      <h1 className="
-        text-3xl
-        font-bold
-      ">
+      <div className="flex flex-wrap items-center justify-between gap-3">
 
-        👥 Customers
+        <h1 className="
+          text-3xl
+          font-bold
+        ">
 
-      </h1>
+          👥 Customers
+
+        </h1>
+
+        {customers.length > 0 && (
+
+          <button
+
+            onClick={exportCSV}
+
+            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-lg text-sm"
+
+          >
+
+            ⬇️ Export CSV
+
+          </button>
+
+        )}
+
+      </div>
 
 
 
@@ -184,6 +224,16 @@ function Customers() {
               {customer.email}
 
             </p>
+
+            {customer.phone && (
+
+              <p className="text-slate-400">
+
+                {customer.phone}
+
+              </p>
+
+            )}
 
 
           </button>

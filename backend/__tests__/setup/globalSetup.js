@@ -42,6 +42,7 @@ module.exports = async () => {
           business_id TEXT NOT NULL,
           name TEXT,
           email TEXT,
+          phone TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

@@ -28,7 +28,7 @@ const createLead = (
       db.get(
 
         `
-        SELECT name, email
+        SELECT name, email, phone
         FROM customers
         WHERE id = ?
         `,
@@ -57,11 +57,12 @@ const createLead = (
               business_id,
               name,
               email,
+              phone,
               interest,
               priority
             )
 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `,
 
             [
@@ -75,6 +76,8 @@ const createLead = (
               customer?.name || null,
 
               customer?.email || null,
+
+              customer?.phone || null,
 
               interest,
 
