@@ -140,6 +140,29 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE quotes (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT NOT NULL,
+          type TEXT NOT NULL DEFAULT 'quote',
+          status TEXT NOT NULL DEFAULT 'draft',
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE quote_items (
+          id TEXT PRIMARY KEY,
+          quote_id TEXT NOT NULL,
+          description TEXT NOT NULL,
+          quantity REAL NOT NULL DEFAULT 1,
+          unit_price REAL NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
         CREATE TABLE users (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

@@ -3,6 +3,7 @@ import {
   Users,
   Flame,
   CalendarDays,
+  FileText,
   BookOpen,
   BarChart3,
   Settings,
@@ -64,6 +65,12 @@ function Sidebar({ open, onClose }) {
       name: "Schedule",
       path: "/schedule",
       icon: CalendarDays
+    },
+
+    {
+      name: "Quotes",
+      path: "/quotes",
+      icon: FileText
     },
 
     {

@@ -233,6 +233,15 @@ const deleteCustomer = async (
 
     await runAsync(`DELETE FROM tasks WHERE customer_id = ?`, [id]);
 
+    await runAsync(`DELETE FROM appointments WHERE customer_id = ?`, [id]);
+
+    await runAsync(
+      `DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE customer_id = ?)`,
+      [id]
+    );
+
+    await runAsync(`DELETE FROM quotes WHERE customer_id = ?`, [id]);
+
     const result = await runAsync(
 
       `

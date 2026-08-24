@@ -740,3 +740,68 @@ export const deleteAppointment = (id) =>
     method:"DELETE"
 
   });
+
+
+
+/* ---------- Quotes & Invoices ---------- */
+
+
+export const getQuotes = () =>
+
+  request("/quotes");
+
+
+
+export const getCustomerQuotes = (customerId) =>
+
+  request(`/quotes/customer/${customerId}`);
+
+
+
+export const getQuote = (id) =>
+
+  request(`/quotes/${id}`);
+
+
+
+export const createQuote = (customer_id, type, notes, items) =>
+
+  request("/quotes", {
+
+    method:"POST",
+
+    body: JSON.stringify({
+
+      customer_id,
+
+      type,
+
+      notes,
+
+      items
+
+    })
+
+  });
+
+
+
+export const updateQuote = (id, fields) =>
+
+  request(`/quotes/${id}`, {
+
+    method:"PATCH",
+
+    body: JSON.stringify(fields)
+
+  });
+
+
+
+export const deleteQuote = (id) =>
+
+  request(`/quotes/${id}`, {
+
+    method:"DELETE"
+
+  });

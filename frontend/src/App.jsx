@@ -11,6 +11,7 @@ import DashboardPage from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Leads from "./pages/Leads";
 import Schedule from "./pages/Schedule";
+import Quotes from "./pages/Quotes";
 import Knowledge from "./pages/Knowledge";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -107,6 +108,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Schedule />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/quotes"
+            element={
+              <ProtectedRoute>
+                <Quotes />
               </ProtectedRoute>
             }
           />
