@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createKnowledge } from "../../api/atlasApi";
 
 function KnowledgeEditor() {
@@ -7,6 +7,7 @@ function KnowledgeEditor() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const savingRef = useRef(false);
 
   const saveKnowledge = async () => {
 
@@ -17,6 +18,14 @@ function KnowledgeEditor() {
       return;
 
     }
+
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
 
     setError("");
 
@@ -44,6 +53,8 @@ function KnowledgeEditor() {
       setError("Failed to save knowledge. Please try again.");
 
     } finally {
+
+      savingRef.current = false;
 
       setSaving(false);
 

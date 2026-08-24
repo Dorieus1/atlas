@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
 
@@ -7,6 +7,8 @@ function KnowledgeSetup() {
 
 
   const navigate = useNavigate();
+
+  const savingRef = useRef(false);
 
 
   const business_id =
@@ -86,6 +88,14 @@ function KnowledgeSetup() {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
     setError("");
 
     setSaving(true);
@@ -152,6 +162,8 @@ function KnowledgeSetup() {
       setError(err.message);
 
     } finally {
+
+      savingRef.current = false;
 
       setSaving(false);
 

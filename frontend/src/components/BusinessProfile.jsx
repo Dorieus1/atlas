@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { API_BASE } from "../api/atlasApi";
 
 function BusinessProfile({ business }) {
@@ -17,6 +17,8 @@ function BusinessProfile({ business }) {
   const [success, setSuccess] = useState("");
 
   const [saving, setSaving] = useState(false);
+
+  const savingRef = useRef(false);
 
 
   useEffect(() => {
@@ -51,6 +53,14 @@ function BusinessProfile({ business }) {
       return;
 
     }
+
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
 
     setError("");
 
@@ -103,6 +113,8 @@ function BusinessProfile({ business }) {
       setError(err.message);
 
     } finally {
+
+      savingRef.current = false;
 
       setSaving(false);
 

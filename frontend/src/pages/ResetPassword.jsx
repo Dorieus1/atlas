@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { resetPassword } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
@@ -20,6 +20,8 @@ function ResetPassword() {
   const [error, setError] = useState("");
 
   const [saving, setSaving] = useState(false);
+
+  const savingRef = useRef(false);
 
 
 
@@ -49,6 +51,14 @@ function ResetPassword() {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
     setError("");
 
     setSaving(true);
@@ -62,6 +72,8 @@ function ResetPassword() {
     } catch (err) {
 
       setError(err.message || "Something went wrong. Please try again.");
+
+      savingRef.current = false;
 
       setSaving(false);
 

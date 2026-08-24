@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
@@ -8,6 +8,8 @@ function Onboarding() {
 
 
   const navigate = useNavigate();
+
+  const submittingRef = useRef(false);
 
 
   const [form,setForm] = useState({
@@ -68,6 +70,14 @@ function Onboarding() {
       return;
 
     }
+
+    if (submittingRef.current) {
+
+      return;
+
+    }
+
+    submittingRef.current = true;
 
     setError("");
 
@@ -200,6 +210,8 @@ function Onboarding() {
       setError(err.message);
 
     } finally {
+
+      submittingRef.current = false;
 
       setSubmitting(false);
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { forgotPassword } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
@@ -15,6 +15,8 @@ function ForgotPassword() {
 
   const [sending, setSending] = useState(false);
 
+  const sendingRef = useRef(false);
+
 
 
   const submit = async () => {
@@ -26,6 +28,14 @@ function ForgotPassword() {
       return;
 
     }
+
+    if (sendingRef.current) {
+
+      return;
+
+    }
+
+    sendingRef.current = true;
 
     setError("");
 
@@ -42,6 +52,8 @@ function ForgotPassword() {
       setError(err.message || "Something went wrong. Please try again.");
 
     } finally {
+
+      sendingRef.current = false;
 
       setSending(false);
 
