@@ -32,9 +32,14 @@ function lastSixMonthKeys() {
   const months = [];
   const now = new Date();
 
+  // Built entirely in UTC to match how paid_at is stored (new
+  // Date().toISOString(), UTC) and read (SQLite's strftime, which reads
+  // that UTC string as-is). Mixing in local-time arithmetic here would
+  // shift every key by a day in any positive-UTC-offset timezone,
+  // silently misaligning the whole chart against the SQL-computed data.
   for (let i = 5; i >= 0; i--) {
 
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
     months.push(d.toISOString().slice(0, 7));
 
   }
@@ -162,6 +167,13 @@ const getAnalytics = async (business_id) => {
 
 module.exports = {
 
-  getAnalytics
+  getAnalytics,
+
+  // Exported for a direct, deterministic unit test - mutating
+  // process.env.TZ mid-process to emulate a different timezone isn't
+  // reliably respected by Node's Date internals, so the real way to
+  // pin this down is to fix "now" with fake timers and assert the UTC
+  // keys directly, independent of the host's actual timezone.
+  lastSixMonthKeys
 
 };

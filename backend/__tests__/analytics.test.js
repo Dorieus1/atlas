@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
+const { lastSixMonthKeys } = require("../services/analyticsService");
 
 
 const createInvoice = async (authHeader, customerId, amount) => {
@@ -106,6 +107,54 @@ describe("Analytics", () => {
       .set("Authorization", authHeader);
 
     expect(res.body.revenuePaid).toBe(0);
+
+  });
+
+
+  describe("lastSixMonthKeys", () => {
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    // paid_at is stored and read entirely in UTC (new Date().toISOString(),
+    // then SQLite's strftime on that string), so the generated keys must
+    // be computed in UTC too - mixing in local-time arithmetic previously
+    // shifted every key back by one in any positive-UTC-offset timezone.
+    // Fake timers pin "now" to an exact instant so this is deterministic
+    // regardless of the machine actually running the test; mutating
+    // process.env.TZ mid-process is NOT a reliable way to test this, since
+    // Node's Date internals don't consistently pick up a TZ change made
+    // after the process has already started.
+    test("returns the last 6 UTC year-months, ending with the current one", () => {
+
+      jest.useFakeTimers().setSystemTime(new Date("2026-08-24T21:06:57.445Z"));
+
+      expect(lastSixMonthKeys()).toEqual([
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08"
+      ]);
+
+    });
+
+    test("rolls over the year boundary correctly", () => {
+
+      jest.useFakeTimers().setSystemTime(new Date("2026-02-10T03:00:00.000Z"));
+
+      expect(lastSixMonthKeys()).toEqual([
+        "2025-09",
+        "2025-10",
+        "2025-11",
+        "2025-12",
+        "2026-01",
+        "2026-02"
+      ]);
+
+    });
 
   });
 
