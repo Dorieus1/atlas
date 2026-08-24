@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
+import { Flame } from "lucide-react";
 import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
+import EmptyState from "./EmptyState";
 
 function LeadPipeline() {
 
@@ -172,7 +174,7 @@ function LeadPipeline() {
 
   return (
 
-    <div className="mt-8 rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="h-full rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
@@ -208,11 +210,11 @@ function LeadPipeline() {
 
         {leads.length === 0 ? (
 
-          <div className="text-slate-400">
-
-            No leads found.
-
-          </div>
+          <EmptyState
+            icon={Flame}
+            title="No leads yet"
+            description="Leads are created automatically as Atlas chats with your customers."
+          />
 
         ) : (
 

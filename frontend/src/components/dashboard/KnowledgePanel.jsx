@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+import { BookOpen } from "lucide-react";
 import { getKnowledge, updateKnowledge, deleteKnowledge } from "../../api/atlasApi";
+import EmptyState from "../EmptyState";
 
 function KnowledgePanel() {
 
@@ -154,7 +156,7 @@ function KnowledgePanel() {
   return (
 
     <div className="
-      mt-8
+      h-full
       bg-ink-900/60
       border
       border-ink-700
@@ -182,11 +184,11 @@ function KnowledgePanel() {
 
       {knowledge.length === 0 && !error ? (
 
-        <p className="mt-4 text-slate-400">
-
-          No business knowledge added yet.
-
-        </p>
+        <EmptyState
+          icon={BookOpen}
+          title="No knowledge added yet"
+          description="Teach Atlas about your business below so it can answer customers accurately."
+        />
 
 
       ) : knowledge.length === 0 ? null : (

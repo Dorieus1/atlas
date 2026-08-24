@@ -138,7 +138,6 @@ function FollowUpAssistant() {
           border-ink-700
           rounded-2xl
           p-6
-          mt-8
         ">
 
           <h2 className="text-xl font-bold">
@@ -171,7 +170,6 @@ function FollowUpAssistant() {
       border-ink-700
       rounded-2xl
       p-6
-      mt-8
     ">
 
 

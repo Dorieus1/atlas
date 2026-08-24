@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
+import { CalendarCheck } from "lucide-react";
 import {
   getTasks,
   completeTask
 } from "../../api/atlasApi";
+import EmptyState from "../EmptyState";
 
 
 function TaskPanel() {
@@ -119,6 +121,7 @@ function TaskPanel() {
   return (
 
     <div className="
+      h-full
       bg-ink-900/60
       border
       border-ink-700
@@ -145,11 +148,11 @@ function TaskPanel() {
 
       {tasks.length === 0 ? (
 
-        <p className="text-slate-400">
-
-          No tasks yet.
-
-        </p>
+        <EmptyState
+          icon={CalendarCheck}
+          title="No tasks yet"
+          description="Follow-up tasks you create will show up here."
+        />
 
       ) : (
 

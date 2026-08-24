@@ -77,6 +77,7 @@ function DailyBriefing() {
   return (
 
     <div className="
+      h-full
       rounded-2xl
       border
       border-ink-700

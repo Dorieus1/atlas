@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users } from "lucide-react";
 import { getCustomers } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
+import EmptyState from "../components/EmptyState";
 import { downloadCSV } from "../utils/csv";
 
 
@@ -191,11 +193,11 @@ function Customers() {
 
       ) : customers.length === 0 ? (
 
-        <p className="text-slate-400">
-
-          No customers yet.
-
-        </p>
+        <EmptyState
+          icon={Users}
+          title="No customers yet"
+          description="Add your first customer above to start tracking conversations and leads."
+        />
 
 
       ) : filteredCustomers.length === 0 ? (

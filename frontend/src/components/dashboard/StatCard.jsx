@@ -1,3 +1,5 @@
+import AnimatedNumber from "../AnimatedNumber";
+
 function StatCard({
 
   title,
@@ -59,7 +61,7 @@ function StatCard({
             mt-2
           ">
 
-            {value}
+            <AnimatedNumber value={value} />
 
           </h2>
 

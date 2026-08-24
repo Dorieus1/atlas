@@ -64,7 +64,7 @@ function KnowledgeEditor() {
 
   return (
 
-    <div className="mt-8 bg-ink-900/60 border border-ink-700 rounded-2xl p-6">
+    <div className="h-full bg-ink-900/60 border border-ink-700 rounded-2xl p-6">
 
       <h2 className="text-2xl font-bold">
         ➕ Add Business Knowledge
