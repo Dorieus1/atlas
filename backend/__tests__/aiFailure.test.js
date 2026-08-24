@@ -44,6 +44,36 @@ describe("AI failures don't take down the server", () => {
 
   });
 
+  test("a chat reply still succeeds even if the follow-on lead-classification AI call fails", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AIFailLeadClassify");
+    const customerId = await createCustomer(app, authHeader, "Lead Classify Customer");
+
+    // First call: the actual chat reply - succeeds.
+    global.__mockOpenAICreate.mockResolvedValueOnce({ output_text: "Sure, I can help with that." });
+
+    // Second call: lead classification, triggered by the buying-intent
+    // keyword below - fails. This must not make the reply above look
+    // like it failed, since it already succeeded and was already saved.
+    global.__mockOpenAICreate.mockRejectedValueOnce(new Error("Request timed out"));
+
+    const res = await request(app)
+      .post("/api/chat")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, message: "I need an estimate for a repair" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toBe("Sure, I can help with that.");
+
+    const conversations = await request(app)
+      .get(`/api/conversations/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(conversations.body).toHaveLength(1);
+    expect(conversations.body[0].response).toBe("Sure, I can help with that.");
+
+  });
+
   test("the daily briefing fails gracefully if OpenAI errors", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "AIFailBriefing");

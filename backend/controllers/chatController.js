@@ -173,6 +173,14 @@ const chatResponse = async (req, res) => {
 
         );
 
+        // Everything below here is a best-effort side effect (activity
+        // log, auto-detecting a lead, remembering the customer's name).
+        // The real reply is already generated and saved above - a
+        // hiccup in any of these (e.g. the lead-classification AI call
+        // failing) must never make a successful, already-saved reply
+        // come back to the customer looking like it failed.
+        try {
+
         await createActivity(
 
   customer_id,
@@ -250,6 +258,18 @@ await createTask(
 
           );
 
+
+        }
+
+        } catch (sideEffectError) {
+
+          console.error(
+
+            "Chat side-effect failed (activity/lead/memory):",
+
+            sideEffectError
+
+          );
 
         }
 
