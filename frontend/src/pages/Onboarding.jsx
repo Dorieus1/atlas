@@ -158,6 +158,14 @@ function Onboarding() {
 
       if (!registerRes.ok) {
 
+        // The business row was already created above. Since no account
+        // exists to use it, clean it up rather than leaving it behind
+        // permanently - if this fails too, that's fine, the original
+        // error below is still what the user needs to see.
+        fetch(`${API_BASE}/api/business/${business.id}/incomplete`, {
+          method: "DELETE"
+        }).catch(() => {});
+
         throw new Error(registerData.error || "Failed to create your account");
 
       }

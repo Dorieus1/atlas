@@ -7,7 +7,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   createBusiness,
   getBusinesses,
-  updateBusiness
+  updateBusiness,
+  deleteIncompleteBusiness
 } = require("../controllers/businessController");
 
 
@@ -19,6 +20,9 @@ router.get("/", authMiddleware, getBusinesses);
 
 
 router.put("/", authMiddleware, updateBusiness);
+
+
+router.delete("/:id/incomplete", deleteIncompleteBusiness);
 
 
 

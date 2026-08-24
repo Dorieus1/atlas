@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const db = require("../../database/db");
+const { createBusinessAndUser } = require("./setup/helpers");
 
 describe("Auth: register and login", () => {
 
@@ -318,6 +319,85 @@ describe("Auth: forgot password / reset password", () => {
       .send({ token: "anything", password: "abc" });
 
     expect(res.status).toBe(400);
+
+  });
+
+  test("a business with zero logins can be cleaned up (the leftover-from-a-failed-signup case)", async () => {
+
+    const biz = await request(app)
+      .post("/api/business")
+      .send({ name: "Orphaned By Failed Signup" });
+
+    const del = await request(app)
+      .delete(`/api/business/${biz.body.id}/incomplete`);
+
+    expect(del.status).toBe(200);
+
+    const rows = await new Promise((resolve, reject) => {
+      db.all(
+        "SELECT id FROM businesses WHERE id = ?",
+        [biz.body.id],
+        (err, r) => err ? reject(err) : resolve(r)
+      );
+    });
+
+    expect(rows).toHaveLength(0);
+
+  });
+
+  test("a business that already has a real account can't be removed this way", async () => {
+
+    const { business_id } = await createBusinessAndUser(app, "NotOrphaned");
+
+    const del = await request(app)
+      .delete(`/api/business/${business_id}/incomplete`);
+
+    expect(del.status).toBe(400);
+
+    const rows = await new Promise((resolve, reject) => {
+      db.all(
+        "SELECT id FROM businesses WHERE id = ?",
+        [business_id],
+        (err, r) => err ? reject(err) : resolve(r)
+      );
+    });
+
+    expect(rows).toHaveLength(1);
+
+  });
+
+  test("failing to sign up (duplicate email) doesn't leave the business behind permanently", async () => {
+
+    const first = await createBusinessAndUser(app, "SimulatedFailedSignup");
+
+    const secondBiz = await request(app)
+      .post("/api/business")
+      .send({ name: "Second Attempt Business" });
+
+    const failedRegister = await request(app)
+      .post("/api/auth/register")
+      .send({
+        business_id: secondBiz.body.id,
+        name: "Second Owner",
+        email: "simulatedfailedsignup@test.com",
+        password: "testpass123"
+      });
+
+    expect(failedRegister.status).toBe(409);
+
+    // This is the cleanup Onboarding.jsx performs when registration fails
+    await request(app)
+      .delete(`/api/business/${secondBiz.body.id}/incomplete`);
+
+    const rows = await new Promise((resolve, reject) => {
+      db.all(
+        "SELECT id FROM businesses WHERE id = ?",
+        [secondBiz.body.id],
+        (err, r) => err ? reject(err) : resolve(r)
+      );
+    });
+
+    expect(rows).toHaveLength(0);
 
   });
 
