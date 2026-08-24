@@ -10,7 +10,8 @@ const createAppointment = (
   title,
   notes,
   start_time,
-  end_time
+  end_time,
+  status = "scheduled"
 
 ) => {
 
@@ -32,10 +33,11 @@ const createAppointment = (
         title,
         notes,
         start_time,
-        end_time
+        end_time,
+        status
       )
 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -46,7 +48,8 @@ const createAppointment = (
         title,
         notes || null,
         start_time,
-        end_time || null
+        end_time || null,
+        status
 
       ],
 

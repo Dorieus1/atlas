@@ -26,6 +26,23 @@ const extractToken = () => {
 };
 
 
+const loginAsCustomer = async (slug, email) => {
+
+  await request(app)
+    .post(`/api/portal/${slug}/login`)
+    .send({ email });
+
+  const token = extractToken();
+
+  const verify = await request(app)
+    .post(`/api/portal/${slug}/verify`)
+    .send({ token });
+
+  return `Bearer ${verify.body.token}`;
+
+};
+
+
 describe("Customer portal", () => {
 
   beforeEach(() => {
@@ -246,6 +263,111 @@ describe("Customer portal", () => {
 
     expect(photos.status).toBe(200);
     expect(photos.body.length).toBe(0);
+
+  });
+
+
+  test("a customer can request an appointment, which shows up as 'requested' for both sides, and notifies the owner", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalRequest");
+    const slug = await getSlug(authHeader);
+
+    await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Request Customer", email: "request@test.com" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "request@test.com");
+
+    const requested = await request(app)
+      .post("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader)
+      .send({ title: "Leak inspection", start_time: "2026-09-10T14:00:00.000Z" });
+
+    expect(requested.status).toBe(201);
+
+    const myList = await request(app)
+      .get("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader);
+
+    expect(myList.body.length).toBe(1);
+    expect(myList.body[0].status).toBe("requested");
+
+    const ownerList = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    expect(ownerList.body.length).toBe(1);
+    expect(ownerList.body[0].status).toBe("requested");
+    expect(ownerList.body[0].title).toBe("Leak inspection");
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    expect(notifications.body.some((n) => n.type === "appointment_requested")).toBe(true);
+
+  });
+
+
+  test("a request without a title or start_time is rejected", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalRequestInvalid");
+    const slug = await getSlug(authHeader);
+
+    await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Invalid Customer", email: "invalidrequest@test.com" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "invalidrequest@test.com");
+
+    const missingTitle = await request(app)
+      .post("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader)
+      .send({ start_time: "2026-09-10T14:00:00.000Z" });
+
+    expect(missingTitle.status).toBe(400);
+
+    const missingStart = await request(app)
+      .post("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader)
+      .send({ title: "No start time" });
+
+    expect(missingStart.status).toBe(400);
+
+  });
+
+
+  test("the owner can approve or decline a requested appointment through the normal status endpoint", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalRequestDecide");
+    const slug = await getSlug(authHeader);
+
+    await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Decide Customer", email: "decide@test.com" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "decide@test.com");
+
+    const requested = await request(app)
+      .post("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader)
+      .send({ title: "Gutter cleaning", start_time: "2026-09-12T14:00:00.000Z" });
+
+    const approve = await request(app)
+      .patch(`/api/appointments/${requested.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "scheduled" });
+
+    expect(approve.status).toBe(200);
+
+    const afterApprove = await request(app)
+      .get("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader);
+
+    expect(afterApprove.body[0].status).toBe("scheduled");
 
   });
 

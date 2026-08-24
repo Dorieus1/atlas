@@ -25,6 +25,7 @@ import EmptyState from "../components/EmptyState";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_STYLES = {
+  requested: "bg-amber-500/20 text-amber-400",
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
   cancelled: "bg-slate-500/20 text-slate-400"
@@ -200,7 +201,11 @@ function Schedule() {
       const result = await updateAppointmentStatus(id, status);
 
       if (result?.draft_invoice_id) {
-        setActionSuccess("Marked complete — a draft invoice was created for this job.");
+        setActionSuccess({ message: "Marked complete — a draft invoice was created for this job.", showQuotesLink: true });
+      } else if (status === "scheduled") {
+        setActionSuccess({ message: "Appointment confirmed." });
+      } else if (status === "cancelled") {
+        setActionSuccess({ message: "Appointment declined." });
       }
 
       await loadAppointments();
@@ -291,10 +296,12 @@ function Schedule() {
 
       {actionSuccess && (
         <p className="mt-4 text-green-400">
-          {actionSuccess}{" "}
-          <Link to="/quotes" className="underline hover:text-green-300">
-            View it in Quotes
-          </Link>
+          {actionSuccess.message}{" "}
+          {actionSuccess.showQuotesLink && (
+            <Link to="/quotes" className="underline hover:text-green-300">
+              View it in Quotes
+            </Link>
+          )}
         </p>
       )}
 
@@ -463,6 +470,25 @@ function Schedule() {
                   )}
 
                   <div className="mt-3 flex items-center gap-2">
+
+                    {appt.status === "requested" && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange(appt.id, "scheduled")}
+                          className="flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500"
+                        >
+                          <Check size={13} />
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() => handleStatusChange(appt.id, "cancelled")}
+                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                        >
+                          Decline
+                        </button>
+                      </>
+                    )}
 
                     {appt.status === "scheduled" && (
                       <>

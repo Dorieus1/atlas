@@ -1085,6 +1085,12 @@ export const getPortalMe = () =>
 export const getPortalAppointments = () =>
   portalRequest("/portal/account/appointments");
 
+export const requestPortalAppointment = (title, notes, start_time, end_time) =>
+  portalRequest("/portal/account/appointments", {
+    method:"POST",
+    body: JSON.stringify({ title, notes, start_time, end_time })
+  });
+
 export const getPortalQuotes = () =>
   portalRequest("/portal/account/quotes");
 

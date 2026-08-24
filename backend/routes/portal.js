@@ -10,6 +10,7 @@ const {
   requestLogin,
   verifyLogin,
   getMe,
+  requestAppointment,
   getMyAppointments,
   getMyQuotes,
   getMyPhotos
@@ -34,6 +35,12 @@ router.get(
   getMyAppointments
 );
 
+router.post(
+  "/account/appointments",
+  customerAuthMiddleware,
+  requestAppointment
+);
+
 router.get(
   "/account/quotes",
   customerAuthMiddleware,
@@ -56,9 +63,12 @@ router.get(
   getPortalBusinessHandler
 );
 
+// Keyed by IP, which can be shared by many customers of many businesses
+// behind the same NAT/office network - generous enough that one busy
+// shared connection can't lock everyone else out of requesting a link.
 router.post(
   "/:slug/login",
-  rateLimiter(5, 15 * 60 * 1000),
+  rateLimiter(20, 15 * 60 * 1000),
   requestLogin
 );
 

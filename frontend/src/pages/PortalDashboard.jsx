@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, FileText, Camera, LogOut } from "lucide-react";
+import { CalendarDays, FileText, Camera, LogOut, Plus, X } from "lucide-react";
 
 import {
   getPortalMe,
   getPortalAppointments,
+  requestPortalAppointment,
   getPortalQuotes,
   getPortalPhotos,
   getPortalBusiness,
@@ -17,6 +18,7 @@ import Skeleton from "../components/Skeleton";
 
 
 const STATUS_STYLES = {
+  requested: "bg-amber-500/20 text-amber-400",
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
   cancelled: "bg-slate-500/20 text-slate-400",
@@ -25,6 +27,10 @@ const STATUS_STYLES = {
   accepted: "bg-green-500/20 text-green-400",
   declined: "bg-red-500/20 text-red-400",
   paid: "bg-green-500/20 text-green-400"
+};
+
+const STATUS_LABELS = {
+  requested: "pending confirmation"
 };
 
 function formatMoney(amount) {
@@ -56,6 +62,16 @@ function PortalDashboard() {
   const [error, setError] = useState("");
 
   const [activePhoto, setActivePhoto] = useState(null);
+
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestTitle, setRequestTitle] = useState("");
+  const [requestDate, setRequestDate] = useState("");
+  const [requestTime, setRequestTime] = useState("09:00");
+  const [requestNotes, setRequestNotes] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [requesting, setRequesting] = useState(false);
+  const requestingRef = useRef(false);
+  const [requestSuccess, setRequestSuccess] = useState("");
 
 
   useEffect(() => {
@@ -110,6 +126,70 @@ function PortalDashboard() {
     localStorage.removeItem("portal_token");
     localStorage.removeItem("portal_customer");
     navigate(`/portal/${slug}`, { replace: true });
+
+  };
+
+
+  const openRequestForm = () => {
+
+    setRequestError("");
+    setRequestTitle("");
+    setRequestDate("");
+    setRequestTime("09:00");
+    setRequestNotes("");
+    setShowRequestForm(true);
+
+  };
+
+
+  const handleRequestAppointment = async () => {
+
+    if (!requestTitle.trim()) {
+      setRequestError("Tell us what you need.");
+      return;
+    }
+
+    if (!requestDate) {
+      setRequestError("Pick a date.");
+      return;
+    }
+
+    if (requestingRef.current) {
+      return;
+    }
+
+    requestingRef.current = true;
+    setRequesting(true);
+    setRequestError("");
+
+    try {
+
+      const startTime = new Date(`${requestDate}T${requestTime || "09:00"}:00`).toISOString();
+
+      await requestPortalAppointment(
+        requestTitle.trim(),
+        requestNotes.trim() || null,
+        startTime,
+        null
+      );
+
+      setShowRequestForm(false);
+      setRequestSuccess("Request sent — we'll confirm it with you soon.");
+
+      const myAppointments = await getPortalAppointments();
+      setAppointments(myAppointments);
+
+    } catch (error) {
+
+      console.error("REQUEST APPOINTMENT ERROR:", error);
+      setRequestError(error.message || "Couldn't send that request. Please try again.");
+
+    } finally {
+
+      requestingRef.current = false;
+      setRequesting(false);
+
+    }
 
   };
 
@@ -172,10 +252,28 @@ function PortalDashboard() {
 
           <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <CalendarDays size={18} className="text-brand-400" />
-              Appointments
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <CalendarDays size={18} className="text-brand-400" />
+                Appointments
+              </h2>
+
+              <button
+                onClick={openRequestForm}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+              >
+                <Plus size={15} />
+                Request
+              </button>
+
+            </div>
+
+            {requestSuccess && (
+              <p className="mt-3 text-sm text-green-400">
+                {requestSuccess}
+              </p>
+            )}
 
             {appointments.length === 0 ? (
 
@@ -202,7 +300,7 @@ function PortalDashboard() {
                     </div>
 
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-slate-300"}`}>
-                      {appt.status}
+                      {STATUS_LABELS[appt.status] || appt.status}
                     </span>
 
                   </div>
@@ -308,6 +406,94 @@ function PortalDashboard() {
         </p>
 
       </div>
+
+      {showRequestForm && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowRequestForm(false)}
+        >
+
+          <div
+            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Request an appointment
+              </h3>
+
+              <button
+                onClick={() => setShowRequestForm(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              We'll confirm the time with you before it's official.
+            </p>
+
+            {requestError && (
+              <p className="mt-3 text-sm text-red-400">
+                {requestError}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3">
+
+              <input
+                placeholder="What do you need? (e.g. Leak inspection)"
+                value={requestTitle}
+                onChange={(e) => setRequestTitle(e.target.value)}
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+              />
+
+              <div className="flex gap-3">
+
+                <input
+                  type="date"
+                  value={requestDate}
+                  onChange={(e) => setRequestDate(e.target.value)}
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                />
+
+                <input
+                  type="time"
+                  value={requestTime}
+                  onChange={(e) => setRequestTime(e.target.value)}
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                />
+
+              </div>
+
+              <textarea
+                placeholder="Anything else we should know? (optional)"
+                value={requestNotes}
+                onChange={(e) => setRequestNotes(e.target.value)}
+                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+              />
+
+              <button
+                onClick={handleRequestAppointment}
+                disabled={requesting}
+                className="mt-1 rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+              >
+                {requesting ? "Sending..." : "Send Request"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
       {activePhoto && (
 
