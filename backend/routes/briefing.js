@@ -99,48 +99,62 @@ Write a professional briefing based strictly on the data above.
 
 
 
-        const response =
-          await client.responses.create({
+        try {
 
-            model:"gpt-5-mini",
+          const response =
+            await client.responses.create({
 
-            input:prompt
+              model:"gpt-5-mini",
+
+              input:prompt
+
+            });
+
+
+
+
+
+          res.json({
+
+            briefing:
+            response.output_text,
+
+
+            stats:{
+
+              totalLeads:
+              leads.length,
+
+
+              pendingTasks:
+              tasks.filter(
+                task =>
+                task.status === "pending"
+              ).length,
+
+
+              hotLeads:
+              leads.filter(
+                lead =>
+                lead.priority === "hot"
+              ).length
+
+            }
+
 
           });
 
+        } catch (aiError) {
 
+          console.error(aiError);
 
+          res.status(500).json({
 
+            error: "Failed to generate briefing"
 
-        res.json({
+          });
 
-          briefing:
-          response.output_text,
-
-
-          stats:{
-
-            totalLeads:
-            leads.length,
-
-
-            pendingTasks:
-            tasks.filter(
-              task =>
-              task.status === "pending"
-            ).length,
-
-
-            hotLeads:
-            leads.filter(
-              lead =>
-              lead.priority === "hot"
-            ).length
-
-          }
-
-
-        });
+        }
 
 
 

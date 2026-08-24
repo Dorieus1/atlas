@@ -83,26 +83,40 @@ const getCustomerSummary = async (req, res) => {
               async (err, notes) => {
 
 
-                const summary =
-                  await generateCustomerSummary(
+                try {
 
-                    customer,
+                  const summary =
+                    await generateCustomerSummary(
 
-                    conversations,
+                      customer,
 
-                    notes,
+                      conversations,
 
-                    []
+                      notes,
 
-                  );
+                      []
+
+                    );
 
 
 
-                res.json({
+                  res.json({
 
-                  summary
+                    summary
 
-                });
+                  });
+
+                } catch (summaryError) {
+
+                  console.error(summaryError);
+
+                  res.status(500).json({
+
+                    error: "Summary failed"
+
+                  });
+
+                }
 
 
               }

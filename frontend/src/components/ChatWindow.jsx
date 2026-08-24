@@ -149,7 +149,7 @@ function ChatWindow({ business, customer }) {
         ...previous,
         {
           text:
-            "Atlas couldn't process that message. Check the backend terminal for the error.",
+            "Atlas couldn't send that message right now. Please try again in a moment.",
           sender: "atlas"
         }
       ]);
@@ -161,35 +161,27 @@ function ChatWindow({ business, customer }) {
 
 
   return (
-    <div className="card">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
 
-      <h2>
-        Atlas Chat
+      <h2 className="text-2xl font-bold">
+        💬 Atlas Chat
 
         {business && (
-          <span>
+          <span className="font-normal text-slate-400">
             {" "} - {business.name}
           </span>
         )}
-
-        {customer && (
-          <div>
-            Customer: {customer.name}
-          </div>
-        )}
       </h2>
 
+      {customer && (
+        <p className="text-slate-400 mt-1">
+          Customer: {customer.name}
+        </p>
+      )}
 
 
-      <div
-        style={{
-          height: "400px",
-          border: "1px solid #ccc",
-          padding: "10px",
-          marginBottom: "10px",
-          overflowY: "auto"
-        }}
-      >
+
+      <div className="mt-4 h-[400px] border border-slate-800 rounded-xl p-3 overflow-y-auto">
 
         {messages.map((msg, index) => (
           <MessageBubble
@@ -201,9 +193,9 @@ function ChatWindow({ business, customer }) {
 
 
         {isTyping && (
-          <div>
+          <p className="text-slate-400 text-sm">
             Atlas is typing...
-          </div>
+          </p>
         )}
 
 
@@ -214,36 +206,32 @@ function ChatWindow({ business, customer }) {
 
 
 
-      <input
-        type="text"
-        placeholder="Type a message..."
-        value={message}
-        onChange={(e) =>
-          setMessage(e.target.value)
-        }
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleSend();
+      <div className="flex gap-3 mt-4">
+
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) =>
+            setMessage(e.target.value)
           }
-        }}
-        style={{
-          width: "80%",
-          padding: "10px"
-        }}
-      />
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSend();
+            }
+          }}
+          className="flex-1 bg-slate-800 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3"
+        />
 
+        <button
+          onClick={handleSend}
+          disabled={isTyping}
+          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg disabled:opacity-50"
+        >
+          {isTyping ? "Sending..." : "Send"}
+        </button>
 
-
-      <button
-        onClick={handleSend}
-        disabled={isTyping}
-        style={{
-          marginLeft: "10px",
-          padding: "10px"
-        }}
-      >
-        {isTyping ? "Sending..." : "Send"}
-      </button>
+      </div>
 
     </div>
   );

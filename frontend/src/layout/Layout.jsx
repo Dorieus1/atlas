@@ -7,6 +7,26 @@ function Layout({children}) {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const isLoggedIn = !!localStorage.getItem("token");
+
+  if (!isLoggedIn) {
+
+    return (
+
+      <div className="
+        min-h-screen
+        bg-slate-900
+        text-white
+      ">
+
+        {children}
+
+      </div>
+
+    );
+
+  }
+
   return (
 
     <div className="

@@ -60,23 +60,37 @@ const createFollowUp = async (req,res)=>{
 
 
 
-      const message =
+      try {
 
-        await generateFollowUp(
+        const message =
 
-          customer,
+          await generateFollowUp(
 
-          summary
+            customer,
 
-        );
+            summary
+
+          );
 
 
 
-      res.json({
+        res.json({
 
-        message
+          message
 
-      });
+        });
+
+      } catch (aiError) {
+
+        console.error(aiError);
+
+        res.status(500).json({
+
+          error: "Failed to generate follow-up message"
+
+        });
+
+      }
 
 
 

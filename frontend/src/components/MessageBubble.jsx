@@ -4,29 +4,20 @@ function MessageBubble({ message }) {
 
   return (
 
-    <div
-      style={{
-        display: "flex",
-        justifyContent: isUser ? "flex-end" : "flex-start",
-        marginBottom: "10px",
-      }}
-    >
+    <div className={`flex mb-3 ${isUser ? "justify-end" : "justify-start"}`}>
 
-      <div
-        style={{
-          maxWidth: "70%",
-          padding: "10px",
-          borderRadius: "12px",
-          background: isUser ? "#007bff" : "#e5e5e5",
-          color: isUser ? "white" : "black",
-        }}
-      >
+      <div className={`
+        max-w-[80%]
+        p-3
+        rounded-xl
+        ${isUser ? "bg-blue-600 text-white" : "bg-slate-800 text-white"}
+      `}>
 
-        <strong>
+        <strong className="text-sm opacity-80">
           {isUser ? "You" : "Atlas"}
         </strong>
 
-        <p style={{ margin: "5px 0 0 0" }}>
+        <p className="mt-1 whitespace-pre-wrap">
           {message.text}
         </p>
 

@@ -140,6 +140,8 @@ const chatResponse = async (req, res) => {
         }
 
 
+        try {
+
 
         const reply =
           await generateAIResponse(
@@ -256,6 +258,18 @@ await createTask(
           memories_used: memories
 
         });
+
+        } catch (aiError) {
+
+          console.error(aiError);
+
+          res.status(500).json({
+
+            error: "AI response failed"
+
+          });
+
+        }
 
 
 
