@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { API_BASE } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 
 function LeadPipeline() {
@@ -63,6 +63,12 @@ function LeadPipeline() {
       );
 
       if (!res.ok) {
+
+        if (handleSessionExpired(res)) {
+
+          return;
+
+        }
 
         console.error("Failed to load leads");
 
@@ -131,6 +137,12 @@ function LeadPipeline() {
       );
 
       if (!res.ok) {
+
+        if (handleSessionExpired(res)) {
+
+          return;
+
+        }
 
         const data = await res.json().catch(() => ({}));
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { API_BASE } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 function BusinessProfile({ business }) {
 
@@ -99,6 +99,12 @@ function BusinessProfile({ business }) {
       );
 
       if (!res.ok) {
+
+        if (handleSessionExpired(res)) {
+
+          return;
+
+        }
 
         const data = await res.json().catch(() => ({}));
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
-import { API_BASE } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 function ChatWindow({ business, customer }) {
   const [message, setMessage] = useState("");
@@ -31,6 +31,10 @@ function ChatWindow({ business, customer }) {
     )
       .then((res) => {
         if (!res.ok) {
+          if (handleSessionExpired(res)) {
+            throw new Error("Session expired");
+          }
+
           throw new Error("Failed to load conversations");
         }
 
@@ -123,6 +127,10 @@ function ChatWindow({ business, customer }) {
           })
         }
       );
+
+      if (!response.ok && handleSessionExpired(response)) {
+        return;
+      }
 
       const data = await response.json();
 

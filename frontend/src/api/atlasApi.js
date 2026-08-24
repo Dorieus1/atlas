@@ -5,6 +5,37 @@ export const API_BASE =
 const API = `${API_BASE}/api`;
 
 
+// Shared by request() below and by the handful of components that still
+// make their own fetch() calls directly. A 401 on an authenticated
+// request means the session itself is invalid - reset auth state and
+// send the user back to a clean login instead of leaving them staring
+// at a broken screen. Returns true if it handled a session-expired
+// response, so callers know to stop processing.
+export function handleSessionExpired(response) {
+
+  const token = localStorage.getItem("token");
+
+  if (response.status === 401 && token) {
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("business_id");
+    localStorage.removeItem("user");
+
+    if (window.location.pathname !== "/login") {
+
+      window.location.href = "/login";
+
+    }
+
+    return true;
+
+  }
+
+  return false;
+
+}
+
+
 async function request(path, options = {}) {
 
 
@@ -34,6 +65,9 @@ async function request(path, options = {}) {
 
 
   if (!response.ok) {
+
+
+    handleSessionExpired(response);
 
 
     const text = await response.text();

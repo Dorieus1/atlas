@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { API_BASE } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 
 function MemoryPanel({ customer }) {
@@ -49,6 +49,12 @@ function MemoryPanel({ customer }) {
       );
 
       if (!response.ok) {
+
+        if (handleSessionExpired(response)) {
+
+          return;
+
+        }
 
         throw new Error("Failed to load memories");
 
@@ -150,6 +156,12 @@ function MemoryPanel({ customer }) {
       );
 
       if (!res.ok) {
+
+        if (handleSessionExpired(res)) {
+
+          return;
+
+        }
 
         const data = await res.json().catch(() => ({}));
 

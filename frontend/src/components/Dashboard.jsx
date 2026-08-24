@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_BASE } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 import StatCard from "./dashboard/StatCard";
 
@@ -39,6 +39,12 @@ function Dashboard(){
     .then(res=>{
 
       if (!res.ok) {
+
+        if (handleSessionExpired(res)) {
+
+          throw new Error("Session expired");
+
+        }
 
         throw new Error("Failed to load stats");
 

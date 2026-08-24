@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import TeamPanel from "../components/TeamPanel";
@@ -13,8 +12,6 @@ function Settings() {
 
   const [error, setError] = useState("");
 
-  const navigate = useNavigate();
-
   useEffect(() => {
 
     async function loadBusiness() {
@@ -27,21 +24,16 @@ function Settings() {
 
       } catch (err) {
 
-        console.error("Failed to load business:", err);
+        // A 401 here already triggers a redirect to login inside the
+        // shared request() helper, so there's nothing further to do -
+        // this branch only runs for genuine unexpected failures.
+        if (err.status !== 401) {
 
-        if (err.status === 401) {
+          console.error("Failed to load business:", err);
 
-          localStorage.removeItem("token");
-          localStorage.removeItem("business_id");
-          localStorage.removeItem("user");
-
-          navigate("/login");
-
-          return;
+          setError("Couldn't load your business settings. Please try again.");
 
         }
-
-        setError("Couldn't load your business settings. Please try again.");
 
       } finally {
 
@@ -53,7 +45,7 @@ function Settings() {
 
     loadBusiness();
 
-  }, [navigate]);
+  }, []);
 
   return (
 
