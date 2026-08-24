@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { API_BASE } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 
@@ -7,6 +7,10 @@ function LeadPipeline() {
   const [leads, setLeads] = useState([]);
 
   const [error, setError] = useState("");
+
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const updatingRef = useRef(null);
 
   const token = localStorage.getItem("token");
 
@@ -98,6 +102,16 @@ function LeadPipeline() {
 
   const updateStatus = async (id, status) => {
 
+    if (updatingRef.current) {
+
+      return;
+
+    }
+
+    updatingRef.current = id;
+
+    setUpdatingId(id);
+
     try {
 
       const res = await fetch(
@@ -131,6 +145,12 @@ function LeadPipeline() {
     } catch (err) {
 
       setError(err.message);
+
+    } finally {
+
+      updatingRef.current = null;
+
+      setUpdatingId(null);
 
     }
 
@@ -262,21 +282,24 @@ function LeadPipeline() {
 
                 <button
                   onClick={() => updateStatus(lead.id, "contacted")}
-                  className="bg-blue-600 px-4 py-2 rounded-lg"
+                  disabled={updatingId === lead.id}
+                  className="bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Contacted
                 </button>
 
                 <button
                   onClick={() => updateStatus(lead.id, "qualified")}
-                  className="bg-green-600 px-4 py-2 rounded-lg"
+                  disabled={updatingId === lead.id}
+                  className="bg-green-600 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Qualified
                 </button>
 
                 <button
                   onClick={() => updateStatus(lead.id, "closed")}
-                  className="bg-slate-600 px-4 py-2 rounded-lg"
+                  disabled={updatingId === lead.id}
+                  className="bg-slate-600 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Closed
                 </button>

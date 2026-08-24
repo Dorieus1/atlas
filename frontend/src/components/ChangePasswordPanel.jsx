@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { changePassword } from "../api/atlasApi";
 
 function ChangePasswordPanel() {
@@ -10,6 +10,7 @@ function ChangePasswordPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const handleSubmit = async () => {
 
@@ -37,6 +38,14 @@ function ChangePasswordPanel() {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
     setError("");
     setSuccess("");
     setSaving(true);
@@ -55,6 +64,8 @@ function ChangePasswordPanel() {
       setError(err.message || "Failed to update password.");
 
     } finally {
+
+      savingRef.current = false;
 
       setSaving(false);
 

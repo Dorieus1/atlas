@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
-const db = require("./db");
+const sqlite3 = require("sqlite3");
+
+const dbPath = process.env.DB_PATH || "./atlas.db";
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, "..", "backups");
 
@@ -23,13 +25,20 @@ const backupDatabase = () => {
 
     const backupPath = path.join(BACKUP_DIR, `atlas-${timestamp}.db`);
 
-    db.run(
+    // A dedicated connection, separate from the app's shared one, so a
+    // VACUUM INTO never conflicts with whatever the app happens to be
+    // doing on its own connection at the same moment.
+    const backupConn = new sqlite3.Database(dbPath);
+
+    backupConn.run(
 
       "VACUUM INTO ?",
 
       [backupPath],
 
       (err) => {
+
+        backupConn.close();
 
         if (err) {
 

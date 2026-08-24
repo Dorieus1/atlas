@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 .claude/
 backups/
+atlas.db-shm
+atlas.db-wal
+atlas.db-journal

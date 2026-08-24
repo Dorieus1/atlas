@@ -7,6 +7,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error("Database error:", err.message);
   } else {
     console.log("Atlas database connected");
+
+    db.run("PRAGMA journal_mode = WAL", (walErr) => {
+      if (walErr) {
+        console.error("Failed to enable WAL mode:", walErr.message);
+      }
+    });
+
+    db.run("PRAGMA busy_timeout = 5000");
   }
 });
 

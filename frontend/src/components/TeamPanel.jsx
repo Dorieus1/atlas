@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getTeammates,
   inviteTeammate,
@@ -15,9 +15,12 @@ function TeamPanel() {
 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [deleteError, setDeleteError] = useState("");
+  const [removingId, setRemovingId] = useState(null);
+  const removingRef = useRef(null);
 
   const currentUserId = (() => {
 
@@ -73,6 +76,14 @@ function TeamPanel() {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
     setError("");
 
     setSaving(true);
@@ -93,6 +104,8 @@ function TeamPanel() {
 
     } finally {
 
+      savingRef.current = false;
+
       setSaving(false);
 
     }
@@ -100,6 +113,16 @@ function TeamPanel() {
   };
 
   const handleRemove = async (id) => {
+
+    if (removingRef.current) {
+
+      return;
+
+    }
+
+    removingRef.current = id;
+
+    setRemovingId(id);
 
     setDeleteError("");
 
@@ -114,6 +137,12 @@ function TeamPanel() {
     } catch (err) {
 
       setDeleteError(err.message || "Failed to remove teammate.");
+
+    } finally {
+
+      removingRef.current = null;
+
+      setRemovingId(null);
 
     }
 
@@ -165,9 +194,10 @@ function TeamPanel() {
 
                     <button
                       onClick={() => handleRemove(teammate.id)}
-                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm"
+                      disabled={removingId === teammate.id}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm disabled:opacity-50"
                     >
-                      Confirm
+                      {removingId === teammate.id ? "Removing..." : "Confirm"}
                     </button>
 
                     <button
