@@ -20,6 +20,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NotFound from "./pages/NotFound";
 
 function App() {
 
@@ -120,7 +121,12 @@ function App() {
               </ProtectedRoute>
             }
           />
-      
+
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+
         </Routes>
 
       </Layout>
