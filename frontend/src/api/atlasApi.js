@@ -151,6 +151,42 @@ export const resetPassword = (
 
 
 
+export const getTeammates = () =>
+
+  request("/auth/teammates");
+
+
+
+export const inviteTeammate = (name, email, password) =>
+
+  request("/auth/teammates", {
+
+    method: "POST",
+
+    body: JSON.stringify({
+
+      name,
+
+      email,
+
+      password
+
+    })
+
+  });
+
+
+
+export const removeTeammate = (id) =>
+
+  request(`/auth/teammates/${id}`, {
+
+    method: "DELETE"
+
+  });
+
+
+
 
 
 /* ---------- Business ---------- */

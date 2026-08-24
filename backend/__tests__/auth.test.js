@@ -107,16 +107,16 @@ describe("Auth: register and login", () => {
 
   });
 
-  test("registering a duplicate email is rejected with 409", async () => {
+  test("registering a duplicate email is rejected with 409, even under a different business", async () => {
 
-    const biz = await request(app)
+    const bizA = await request(app)
       .post("/api/business")
-      .send({ name: "Duplicate Email Co" });
+      .send({ name: "Duplicate Email Co A" });
 
     const first = await request(app)
       .post("/api/auth/register")
       .send({
-        business_id: biz.body.id,
+        business_id: bizA.body.id,
         name: "First",
         email: "duplicate@test.com",
         password: "testpass123"
@@ -124,16 +124,48 @@ describe("Auth: register and login", () => {
 
     expect(first.status).toBe(200);
 
+    const bizB = await request(app)
+      .post("/api/business")
+      .send({ name: "Duplicate Email Co B" });
+
     const second = await request(app)
       .post("/api/auth/register")
       .send({
-        business_id: biz.body.id,
+        business_id: bizB.body.id,
         name: "Second",
         email: "duplicate@test.com",
         password: "anotherpass123"
       });
 
     expect(second.status).toBe(409);
+
+  });
+
+  test("registering a second account against a business that already has one is rejected", async () => {
+
+    const biz = await request(app)
+      .post("/api/business")
+      .send({ name: "Already Claimed Co" });
+
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        business_id: biz.body.id,
+        name: "First",
+        email: "already-claimed@test.com",
+        password: "testpass123"
+      });
+
+    const second = await request(app)
+      .post("/api/auth/register")
+      .send({
+        business_id: biz.body.id,
+        name: "Second",
+        email: "different-email@test.com",
+        password: "anotherpass123"
+      });
+
+    expect(second.status).toBe(403);
 
   });
 

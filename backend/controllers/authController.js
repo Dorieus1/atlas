@@ -3,7 +3,11 @@ const {
   findUserByEmail,
   setResetToken,
   findUserByResetToken,
-  resetPasswordByUserId
+  resetPasswordByUserId,
+  countUsersByBusiness,
+  getUsersByBusiness,
+  getUserById,
+  deleteUser
 } = require("../services/authService");
 
 const {
@@ -54,6 +58,18 @@ const register = async (req,res)=>{
     }
 
 
+    const existingUsers = await countUsersByBusiness(business_id);
+
+    if (existingUsers > 0) {
+
+      return res.status(403).json({
+
+        error:
+        "This business already has an account. Ask a teammate to add you from Settings instead."
+
+      });
+
+    }
 
 
 
@@ -411,6 +427,205 @@ const resetPassword = async (req, res) => {
 
 
 
+const listTeammates = async (req, res) => {
+
+
+  try {
+
+
+    const users = await getUsersByBusiness(req.user.business_id);
+
+    res.json(users);
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const inviteTeammate = async (req, res) => {
+
+
+  try {
+
+
+    const {
+
+      name,
+
+      email,
+
+      password
+
+    } = req.body;
+
+
+    if (!name || !name.trim() || !email || !email.trim() || !password) {
+
+      return res.status(400).json({
+
+        error: "Name, email, and password are required"
+
+      });
+
+    }
+
+
+    if (password.length < 6) {
+
+      return res.status(400).json({
+
+        error: "Password must be at least 6 characters"
+
+      });
+
+    }
+
+
+    const userId = await createUser(
+
+      req.user.business_id,
+
+      name.trim(),
+
+      email,
+
+      password
+
+    );
+
+
+    res.status(201).json({
+
+      id: userId,
+
+      message: "Teammate added"
+
+    });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    if (error.message && error.message.includes("UNIQUE constraint failed: users.email")) {
+
+      return res.status(409).json({
+
+        error: "That email is already registered"
+
+      });
+
+    }
+
+
+    res.status(500).json({
+
+      error: error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const removeTeammate = async (req, res) => {
+
+
+  try {
+
+
+    const { id } = req.params;
+
+
+    const target = await getUserById(id, req.user.business_id);
+
+    if (!target) {
+
+      return res.status(404).json({
+
+        error: "Teammate not found"
+
+      });
+
+    }
+
+
+    if (id === req.user.id) {
+
+      return res.status(400).json({
+
+        error: "You can't remove your own login"
+
+      });
+
+    }
+
+
+    const remaining = await countUsersByBusiness(req.user.business_id);
+
+    if (remaining <= 1) {
+
+      return res.status(400).json({
+
+        error: "A business must have at least one login"
+
+      });
+
+    }
+
+
+    await deleteUser(id, req.user.business_id);
+
+
+    res.json({
+
+      message: "Teammate removed"
+
+    });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
 module.exports = {
 
   register,
@@ -419,6 +634,12 @@ module.exports = {
 
   forgotPassword,
 
-  resetPassword
+  resetPassword,
+
+  listTeammates,
+
+  inviteTeammate,
+
+  removeTeammate
 
 };

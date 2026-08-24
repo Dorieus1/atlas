@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const rateLimiter = require("../middleware/rateLimiter");
+const authMiddleware = require("../middleware/authMiddleware");
 
 
 const {
@@ -13,7 +14,13 @@ const {
 
   forgotPassword,
 
-  resetPassword
+  resetPassword,
+
+  listTeammates,
+
+  inviteTeammate,
+
+  removeTeammate
 
 } = require("../controllers/authController");
 
@@ -41,6 +48,27 @@ router.post(
 router.post(
   "/reset-password",
   resetPassword
+);
+
+
+router.get(
+  "/teammates",
+  authMiddleware,
+  listTeammates
+);
+
+
+router.post(
+  "/teammates",
+  authMiddleware,
+  inviteTeammate
+);
+
+
+router.delete(
+  "/teammates/:id",
+  authMiddleware,
+  removeTeammate
 );
 
 

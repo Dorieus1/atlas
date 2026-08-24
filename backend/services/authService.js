@@ -249,6 +249,152 @@ const resetPasswordByUserId = async (userId, newPassword) => {
 
 
 
+const countUsersByBusiness = (business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT COUNT(*) AS count
+      FROM users
+      WHERE business_id = ?
+      `,
+
+      [business_id],
+
+      (err, row) => {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(row.count);
+
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
+const getUsersByBusiness = (business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.all(
+
+      `
+      SELECT id, name, email, created_at
+      FROM users
+      WHERE business_id = ?
+      ORDER BY created_at ASC
+      `,
+
+      [business_id],
+
+      (err, rows) => {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(rows);
+
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
+const getUserById = (userId, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT id, name, email, created_at
+      FROM users
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [userId, business_id],
+
+      (err, row) => {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(row);
+
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
+const deleteUser = (userId, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      DELETE FROM users
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [userId, business_id],
+
+      function(err) {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(this.changes > 0);
+
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
 module.exports = {
 
   createUser,
@@ -259,6 +405,14 @@ module.exports = {
 
   findUserByResetToken,
 
-  resetPasswordByUserId
+  resetPasswordByUserId,
+
+  countUsersByBusiness,
+
+  getUsersByBusiness,
+
+  getUserById,
+
+  deleteUser
 
 };

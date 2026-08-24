@@ -27,7 +27,8 @@ const createBusinessAndUser = async (app, prefix) => {
   return {
     business_id,
     token: loginRes.body.token,
-    authHeader: `Bearer ${loginRes.body.token}`
+    authHeader: `Bearer ${loginRes.body.token}`,
+    userId: loginRes.body.user.id
   };
 
 };
