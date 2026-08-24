@@ -4,9 +4,11 @@ node_modules/
 .claude/
 backups/
 uploads/
+atlas.db
 atlas.db-shm
 atlas.db-wal
 atlas.db-journal
+database/atlas.db
 backend/__tests__/test.db*
 backend/__tests__/test-backups/
 backend/__tests__/test-uploads/
