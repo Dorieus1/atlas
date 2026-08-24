@@ -59,6 +59,8 @@ function Quotes() {
   const [detailSuccess, setDetailSuccess] = useState("");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
 
   const loadQuotes = async () => {
@@ -193,6 +195,7 @@ function Quotes() {
     setDetailError("");
     setDetailSuccess("");
     setDetailLoading(true);
+    setConfirmingDelete(false);
     setActiveQuote({ id });
 
     try {
@@ -290,16 +293,23 @@ function Quotes() {
 
   const handleDelete = async (id) => {
 
+    setDeleting(true);
+
     try {
 
       await deleteQuote(id);
       setActiveQuote(null);
+      setConfirmingDelete(false);
       await loadQuotes();
 
     } catch (error) {
 
       console.error("DELETE QUOTE ERROR:", error);
       setDetailError("Couldn't delete this. Please try again.");
+
+    } finally {
+
+      setDeleting(false);
 
     }
 
@@ -663,13 +673,41 @@ function Quotes() {
                     </button>
                   )}
 
-                  <button
-                    onClick={() => handleDelete(activeQuote.id)}
-                    className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
-                  >
-                    <Trash2 size={14} />
-                    Delete
-                  </button>
+                  {confirmingDelete ? (
+
+                    <div className="ml-auto flex items-center gap-2">
+
+                      <span className="text-xs text-slate-400">Delete this?</span>
+
+                      <button
+                        onClick={() => handleDelete(activeQuote.id)}
+                        disabled={deleting}
+                        className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium transition hover:bg-red-500 disabled:opacity-50"
+                      >
+                        {deleting ? "Deleting..." : "Confirm"}
+                      </button>
+
+                      <button
+                        onClick={() => setConfirmingDelete(false)}
+                        disabled={deleting}
+                        className="rounded-lg bg-ink-700 px-3 py-1.5 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+
+                    </div>
+
+                  ) : (
+
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+
+                  )}
 
                 </div>
 

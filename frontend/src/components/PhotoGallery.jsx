@@ -23,6 +23,8 @@ function PhotoGallery({ customerId }) {
 
   const [activePhoto, setActivePhoto] = useState(null);
   const [pendingCaption, setPendingCaption] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -98,16 +100,23 @@ function PhotoGallery({ customerId }) {
 
   const handleDelete = async (id) => {
 
+    setDeleting(true);
+
     try {
 
       await deletePhoto(id);
       setActivePhoto(null);
+      setConfirmingDelete(false);
       await loadPhotos();
 
     } catch (error) {
 
       console.error("PHOTO DELETE ERROR:", error);
       setUploadError("Couldn't delete that photo. Please try again.");
+
+    } finally {
+
+      setDeleting(false);
 
     }
 
@@ -186,7 +195,7 @@ function PhotoGallery({ customerId }) {
 
             <button
               key={photo.id}
-              onClick={() => setActivePhoto(photo)}
+              onClick={() => { setActivePhoto(photo); setConfirmingDelete(false); }}
               className="group relative aspect-square overflow-hidden rounded-lg border border-ink-700"
             >
               <img
@@ -217,18 +226,44 @@ function PhotoGallery({ customerId }) {
             <div className="flex items-center justify-between p-3">
 
               <p className="truncate text-sm text-slate-300">
-                {activePhoto.caption || "Untitled"}
+                {confirmingDelete ? "Delete this photo?" : (activePhoto.caption || "Untitled")}
               </p>
 
               <div className="flex shrink-0 items-center gap-1">
 
-                <button
-                  onClick={() => handleDelete(activePhoto.id)}
-                  className="rounded-lg p-2 text-red-400 transition hover:bg-red-500/10"
-                  aria-label="Delete photo"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {confirmingDelete ? (
+
+                  <>
+
+                    <button
+                      onClick={() => handleDelete(activePhoto.id)}
+                      disabled={deleting}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+                    >
+                      {deleting ? "Deleting..." : "Confirm"}
+                    </button>
+
+                    <button
+                      onClick={() => setConfirmingDelete(false)}
+                      disabled={deleting}
+                      className="rounded-lg bg-ink-700 px-3 py-1.5 text-xs font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+
+                  </>
+
+                ) : (
+
+                  <button
+                    onClick={() => setConfirmingDelete(true)}
+                    className="rounded-lg p-2 text-red-400 transition hover:bg-red-500/10"
+                    aria-label="Delete photo"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
+                )}
 
                 <button
                   onClick={() => setActivePhoto(null)}

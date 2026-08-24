@@ -94,6 +94,9 @@ function Schedule() {
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
 
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
 
   const loadAppointments = async () => {
 
@@ -222,16 +225,23 @@ function Schedule() {
 
   const handleDelete = async (id) => {
 
+    setDeletingId(id);
+
     try {
 
       setActionError("");
       await deleteAppointment(id);
+      setConfirmingDeleteId(null);
       await loadAppointments();
 
     } catch (error) {
 
       console.error("DELETE APPOINTMENT ERROR:", error);
       setActionError("Couldn't remove that appointment. Please try again.");
+
+    } finally {
+
+      setDeletingId(null);
 
     }
 
@@ -509,12 +519,39 @@ function Schedule() {
                       </>
                     )}
 
-                    <button
-                      onClick={() => handleDelete(appt.id)}
-                      className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {confirmingDeleteId === appt.id ? (
+
+                      <div className="ml-auto flex items-center gap-1.5">
+
+                        <button
+                          onClick={() => handleDelete(appt.id)}
+                          disabled={deletingId === appt.id}
+                          className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-medium transition hover:bg-red-500 disabled:opacity-50"
+                        >
+                          {deletingId === appt.id ? "..." : "Confirm"}
+                        </button>
+
+                        <button
+                          onClick={() => setConfirmingDeleteId(null)}
+                          disabled={deletingId === appt.id}
+                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+
+                      </div>
+
+                    ) : (
+
+                      <button
+                        onClick={() => setConfirmingDeleteId(appt.id)}
+                        aria-label="Delete appointment"
+                        className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+
+                    )}
 
                   </div>
 
