@@ -26,6 +26,8 @@ function CustomerProfile() {
   const navigate = useNavigate();
 
   const [customer, setCustomer] = useState(null);
+  const [loadingCustomer, setLoadingCustomer] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [business, setBusiness] = useState(null);
   const [summary, setSummary] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -48,6 +50,10 @@ function CustomerProfile() {
 
 
   useEffect(() => {
+
+    setCustomer(null);
+    setLoadingCustomer(true);
+    setLoadError("");
 
     loadCustomer();
     loadSummary();
@@ -94,6 +100,20 @@ function CustomerProfile() {
       "CUSTOMER/BUSINESS LOAD ERROR:",
       err
     );
+
+    setLoadError(
+
+      err.status === 404
+
+        ? "This customer doesn't exist, or may have been deleted."
+
+        : "Couldn't load this customer. Please try again."
+
+    );
+
+  } finally {
+
+    setLoadingCustomer(false);
 
   }
 
@@ -421,11 +441,39 @@ function CustomerProfile() {
 
   if (!customer) {
 
+    if (loadingCustomer) {
+
+      return (
+
+        <div className="p-8 text-slate-400">
+
+          Loading...
+
+        </div>
+
+      );
+
+    }
+
     return (
 
-      <div className="p-8">
+      <div className="p-8 text-center">
 
-        Loading...
+        <p className="text-slate-300">
+
+          {loadError || "This customer doesn't exist, or may have been deleted."}
+
+        </p>
+
+        <button
+
+          onClick={() => navigate("/customers")}
+
+          className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+
+        >
+          Back to Customers
+        </button>
 
       </div>
 
