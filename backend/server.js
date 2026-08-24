@@ -43,6 +43,7 @@ const authRoutes = require("./routes/auth");
 const appointmentRoutes = require("./routes/appointments");
 const quoteRoutes = require("./routes/quotes");
 const photoRoutes = require("./routes/photos");
+const reviewRequestRoutes = require("./routes/reviewRequests");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -65,6 +66,7 @@ app.use("/api/follow-up", followUpRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/photos", photoRoutes);
+app.use("/api/review-requests", reviewRequestRoutes);
 
 app.get("/", (req,res)=>{
 

@@ -10,6 +10,7 @@ function BusinessProfile({ business }) {
     address: "",
     industry: "",
     services: "",
+    review_link: "",
   });
 
   const [error, setError] = useState("");
@@ -33,6 +34,7 @@ function BusinessProfile({ business }) {
         address: business.address || "",
         industry: business.industry || "",
         services: business.services || "",
+        review_link: business.review_link || "",
 
       });
 
@@ -267,6 +269,28 @@ function BusinessProfile({ business }) {
         }
 
       />
+
+
+      <input
+
+        value={form.review_link}
+
+        placeholder="Review link (e.g. your Google Business review URL)"
+
+        className={inputClass}
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            review_link: e.target.value
+          })
+        }
+
+      />
+
+      <p className="text-xs text-slate-500 -mt-2 mb-3">
+        Customers who get a review request will be sent this link.
+      </p>
 
 
       <button

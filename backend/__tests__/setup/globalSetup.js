@@ -32,7 +32,8 @@ module.exports = async () => {
           email TEXT,
           address TEXT,
           industry TEXT,
-          services TEXT
+          services TEXT,
+          review_link TEXT
         )
       `);
 
@@ -171,6 +172,16 @@ module.exports = async () => {
           original_name TEXT,
           caption TEXT,
           mime_type TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE review_requests (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT NOT NULL,
+          sent_to TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

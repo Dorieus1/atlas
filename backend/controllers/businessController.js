@@ -138,7 +138,8 @@ const updateBusiness = (req, res) => {
     email,
     address,
     industry,
-    services
+    services,
+    review_link
 
   } = req.body;
 
@@ -167,7 +168,8 @@ const updateBusiness = (req, res) => {
       email = ?,
       address = ?,
       industry = ?,
-      services = ?
+      services = ?,
+      review_link = ?
 
     WHERE id = ?
 
@@ -181,6 +183,7 @@ const updateBusiness = (req, res) => {
       address,
       industry,
       services,
+      review_link,
       id
 
     ],

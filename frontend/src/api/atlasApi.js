@@ -72,9 +72,25 @@ async function request(path, options = {}) {
 
     const text = await response.text();
 
+    let message = text;
+
+    try {
+
+      const parsed = JSON.parse(text);
+
+      if (parsed && parsed.error) {
+        message = parsed.error;
+      }
+
+    } catch (parseError) {
+
+      // Not JSON - fall back to the raw response text below.
+
+    }
+
 
     const error = new Error(
-      text || "API request failed"
+      message || "API request failed"
     );
 
     error.status = response.status;
@@ -865,3 +881,24 @@ export const deletePhoto = (id) =>
     method:"DELETE"
 
   });
+
+
+
+/* ---------- Review Requests ---------- */
+
+
+export const sendReviewRequest = (customer_id) =>
+
+  request("/review-requests", {
+
+    method:"POST",
+
+    body: JSON.stringify({ customer_id })
+
+  });
+
+
+
+export const getCustomerReviewRequests = (customerId) =>
+
+  request(`/review-requests/customer/${customerId}`);
