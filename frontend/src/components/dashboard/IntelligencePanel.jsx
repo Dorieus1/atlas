@@ -17,6 +17,8 @@ function IntelligencePanel() {
 
   const [loading, setLoading] = useState(false);
 
+  const [taskMessage, setTaskMessage] = useState({ text: "", type: "" });
+
 
 
 
@@ -81,15 +83,21 @@ function IntelligencePanel() {
       );
 
 
-      alert(
-        "Follow-up task created"
-      );
+      setTaskMessage({
+        text: "Follow-up task created for " + item.customer + ".",
+        type: "success"
+      });
 
 
     } catch(error) {
 
 
       console.error(error);
+
+      setTaskMessage({
+        text: "Couldn't create that follow-up task. Please try again.",
+        type: "error"
+      });
 
 
     }
@@ -176,6 +184,20 @@ function IntelligencePanel() {
         🧠 Atlas Intelligence
 
       </h2>
+
+
+      {taskMessage.text && (
+
+        <p className={
+          "mb-4 " +
+          (taskMessage.type === "error" ? "text-red-400" : "text-green-400")
+        }>
+
+          {taskMessage.text}
+
+        </p>
+
+      )}
 
 
 

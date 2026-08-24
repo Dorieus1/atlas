@@ -35,8 +35,6 @@ function KnowledgeEditor() {
       setTitle("");
       setContent("");
 
-      alert("Knowledge saved!");
-
       window.location.reload();
 
     } catch (err) {
