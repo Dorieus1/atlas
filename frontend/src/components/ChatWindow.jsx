@@ -6,15 +6,18 @@ function ChatWindow({ business, customer }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (!customer) {
       setMessages([]);
+      setHistoryError("");
       return;
     }
 
+    setHistoryError("");
     const token = localStorage.getItem("token");
 
     fetch(
@@ -66,6 +69,7 @@ function ChatWindow({ business, customer }) {
         );
 
         setMessages([]);
+        setHistoryError("Couldn't load this conversation's history. Please refresh to try again.");
       });
   }, [customer]);
 
@@ -188,6 +192,12 @@ function ChatWindow({ business, customer }) {
       )}
 
 
+
+      {historyError && (
+        <p className="mt-3 text-red-400">
+          {historyError}
+        </p>
+      )}
 
       <div className="mt-4 h-[400px] border border-slate-800 rounded-xl p-3 overflow-y-auto">
 

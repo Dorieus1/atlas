@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const db = require("../../database/db");
 
 
 const authMiddleware = (req, res, next) => {
@@ -51,11 +52,43 @@ const authMiddleware = (req, res, next) => {
 
 
 
-    req.user = decoded;
+    db.get(
 
+      `
+      SELECT id
+      FROM users
+      WHERE id = ? AND business_id = ?
+      `,
 
+      [decoded.id, decoded.business_id],
 
-    next();
+      (err, row) => {
+
+        if (err) {
+
+          console.error(err);
+
+          return res.status(500).json({
+            error: "Something went wrong. Please try again."
+          });
+
+        }
+
+        if (!row) {
+
+          return res.status(401).json({
+            error: "Session expired. Please log in again."
+          });
+
+        }
+
+        req.user = decoded;
+
+        next();
+
+      }
+
+    );
 
 
 

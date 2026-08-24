@@ -24,11 +24,19 @@ function Analytics() {
     hotLeads: 0
   });
 
+  const [loadError, setLoadError] = useState("");
+
   useEffect(() => {
 
     getAnalytics()
-      .then(setStats)
-      .catch(console.error);
+      .then((data) => {
+        setStats(data);
+        setLoadError("");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadError("Couldn't load your analytics. Please refresh to try again.");
+      });
 
   }, []);
 
@@ -54,6 +62,12 @@ function Analytics() {
       <h1 className="text-3xl font-bold">
         📊 Analytics
       </h1>
+
+      {loadError && (
+        <p className="mt-4 text-red-400">
+          {loadError}
+        </p>
+      )}
 
       <div className="mt-6 grid gap-5 md:grid-cols-4">
 
