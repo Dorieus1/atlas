@@ -163,6 +163,19 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE photos (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT NOT NULL,
+          filename TEXT NOT NULL,
+          original_name TEXT,
+          caption TEXT,
+          mime_type TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
         CREATE TABLE users (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

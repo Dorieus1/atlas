@@ -805,3 +805,63 @@ export const deleteQuote = (id) =>
     method:"DELETE"
 
   });
+
+
+
+/* ---------- Photos ---------- */
+
+
+export const getCustomerPhotos = (customerId) =>
+
+  request(`/photos/customer/${customerId}`);
+
+
+
+export const uploadPhoto = async (customerId, file, caption) => {
+
+  const token = localStorage.getItem("token");
+
+  const formData = new FormData();
+
+  formData.append("customer_id", customerId);
+  formData.append("photo", file);
+
+  if (caption) {
+    formData.append("caption", caption);
+  }
+
+  const response = await fetch(`${API}/photos`, {
+
+    method: "POST",
+
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+
+    body: formData
+
+  });
+
+  if (!response.ok) {
+
+    handleSessionExpired(response);
+
+    const data = await response.json().catch(() => ({}));
+
+    throw new Error(data.error || "Upload failed");
+
+  }
+
+  return response.json();
+
+};
+
+
+
+export const deletePhoto = (id) =>
+
+  request(`/photos/${id}`, {
+
+    method:"DELETE"
+
+  });

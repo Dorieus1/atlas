@@ -10,7 +10,7 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "migrate": "node database/migrate.js",
-    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
+    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups UPLOAD_DIR=./backend/__tests__/test-uploads JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +22,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "openai": "^7.3.0",
     "sqlite3": "^6.0.1",
     "uuid": "^14.0.1"

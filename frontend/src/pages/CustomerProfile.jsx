@@ -18,6 +18,7 @@ import {
 
 import ChatWindow from "../components/ChatWindow";
 import MemoryPanel from "../components/MemoryPanel";
+import PhotoGallery from "../components/PhotoGallery";
 import { SkeletonText } from "../components/Skeleton";
 
 
@@ -764,6 +765,11 @@ function CustomerProfile() {
 
 
       <MemoryPanel customer={customer} />
+
+
+      <div className="mt-6">
+        <PhotoGallery customerId={id} />
+      </div>
 
 
 

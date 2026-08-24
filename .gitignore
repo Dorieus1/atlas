@@ -3,6 +3,10 @@ node_modules/
 .DS_Store
 .claude/
 backups/
+uploads/
 atlas.db-shm
 atlas.db-wal
 atlas.db-journal
+backend/__tests__/test.db*
+backend/__tests__/test-backups/
+backend/__tests__/test-uploads/

@@ -1,5 +1,8 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const path = require("path");
+const { UPLOAD_DIR } = require("./photoService");
 
 
 const runAsync = (sql, params = []) => {
@@ -212,6 +215,16 @@ const deleteCustomer = async (
 
   }
 
+  const photos = await new Promise((resolve, reject) => {
+
+    db.all(
+      `SELECT filename FROM photos WHERE customer_id = ? AND business_id = ?`,
+      [id, business_id],
+      (err, rows) => (err ? reject(err) : resolve(rows))
+    );
+
+  });
+
 
   // A real transaction, not just sequential statements: if any one of
   // these deletes fails partway through, everything rolls back together
@@ -242,6 +255,8 @@ const deleteCustomer = async (
 
     await runAsync(`DELETE FROM quotes WHERE customer_id = ?`, [id]);
 
+    await runAsync(`DELETE FROM photos WHERE customer_id = ?`, [id]);
+
     const result = await runAsync(
 
       `
@@ -255,6 +270,18 @@ const deleteCustomer = async (
     );
 
     await runAsync("COMMIT");
+
+    photos.forEach((photo) => {
+
+      fs.unlink(path.join(UPLOAD_DIR, photo.filename), (err) => {
+
+        if (err && err.code !== "ENOENT") {
+          console.error("Failed to remove photo file:", err.message);
+        }
+
+      });
+
+    });
 
     return result.changes > 0;
 

@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
@@ -9,6 +10,11 @@ const app = express();
 app.use(cors());
 
 app.use(express.json());
+
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "..", "uploads"))
+);
 
 
 const db = require("../database/db");
@@ -36,6 +42,7 @@ const taskRoutes = require("./routes/tasks");
 const authRoutes = require("./routes/auth");
 const appointmentRoutes = require("./routes/appointments");
 const quoteRoutes = require("./routes/quotes");
+const photoRoutes = require("./routes/photos");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -57,6 +64,7 @@ app.use("/api/customer-summary", customerSummaryRoutes);
 app.use("/api/follow-up", followUpRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/quotes", quoteRoutes);
+app.use("/api/photos", photoRoutes);
 
 app.get("/", (req,res)=>{
 
