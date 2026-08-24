@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { forgotPassword } from "../api/atlasApi";
+import AuthHeader from "../components/AuthHeader";
 
 
 function ForgotPassword() {
@@ -57,6 +58,7 @@ function ForgotPassword() {
       p-8
     ">
 
+      <AuthHeader />
 
       <h1 className="
         text-3xl

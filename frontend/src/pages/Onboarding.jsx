@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
+import AuthHeader from "../components/AuthHeader";
 
 
 function Onboarding() {
@@ -219,6 +220,7 @@ function Onboarding() {
       p-8
     ">
 
+      <AuthHeader />
 
       <h1 className="
         text-3xl
@@ -226,7 +228,7 @@ function Onboarding() {
         mb-6
       ">
 
-        🚀 Setup Atlas
+        🚀 Set Up Your Business
 
       </h1>
 

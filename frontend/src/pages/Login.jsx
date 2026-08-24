@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
+import AuthHeader from "../components/AuthHeader";
 
 
 function Login() {
@@ -72,7 +73,7 @@ function Login() {
 
       if(!res.ok){
 
-        setError(data.error);
+        setError(data.error || "Login failed. Please try again.");
 
         return;
 
@@ -138,6 +139,7 @@ function Login() {
       p-8
     ">
 
+      <AuthHeader />
 
       <h1 className="
         text-3xl
@@ -145,7 +147,7 @@ function Login() {
         mb-6
       ">
 
-        🔐 Login to Atlas
+        🔐 Login
 
       </h1>
 

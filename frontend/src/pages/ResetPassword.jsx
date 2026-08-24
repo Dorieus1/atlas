@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { resetPassword } from "../api/atlasApi";
+import AuthHeader from "../components/AuthHeader";
 
 
 function ResetPassword() {
@@ -77,6 +78,7 @@ function ResetPassword() {
       p-8
     ">
 
+      <AuthHeader />
 
       <h1 className="
         text-3xl
