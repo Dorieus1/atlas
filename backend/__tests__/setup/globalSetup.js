@@ -35,7 +35,9 @@ module.exports = async () => {
           services TEXT,
           review_link TEXT,
           slug TEXT,
-          onboarding_dismissed INTEGER DEFAULT 0
+          onboarding_dismissed INTEGER DEFAULT 0,
+          stripe_account_id TEXT,
+          stripe_onboarded INTEGER DEFAULT 0
         )
       `);
 
@@ -151,7 +153,9 @@ module.exports = async () => {
           status TEXT NOT NULL DEFAULT 'draft',
           notes TEXT,
           appointment_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          stripe_checkout_session_id TEXT,
+          paid_at DATETIME
         )
       `);
 

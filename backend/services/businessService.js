@@ -41,6 +41,46 @@ const getBusinessBySlug = (slug) => {
 
 
 
+const setStripeAccountId = (business_id, stripeAccountId) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `UPDATE businesses SET stripe_account_id = ? WHERE id = ?`,
+
+      [stripeAccountId, business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
+const setStripeOnboarded = (business_id, onboarded) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `UPDATE businesses SET stripe_onboarded = ? WHERE id = ?`,
+
+      [onboarded ? 1 : 0, business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
 const slugExists = (slug) => {
 
   return new Promise((resolve, reject) => {
@@ -99,6 +139,10 @@ module.exports = {
   getBusinessById,
 
   getBusinessBySlug,
+
+  setStripeAccountId,
+
+  setStripeOnboarded,
 
   slugify,
 

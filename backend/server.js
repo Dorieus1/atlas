@@ -9,6 +9,18 @@ const app = express();
 
 app.use(cors());
 
+// Registered before express.json() and given its own raw-body parser:
+// Stripe's webhook signature check needs the exact, unparsed request
+// bytes, which express.json() would otherwise already have consumed by
+// the time a route handler saw them.
+const { handleStripeWebhook } = require("./controllers/stripeWebhookController");
+
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  handleStripeWebhook
+);
+
 app.use(express.json());
 
 app.use(
@@ -48,6 +60,7 @@ const publicRoutes = require("./routes/public");
 const notificationRoutes = require("./routes/notifications");
 const onboardingRoutes = require("./routes/onboarding");
 const portalRoutes = require("./routes/portal");
+const stripeConnectRoutes = require("./routes/stripeConnect");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -75,6 +88,7 @@ app.use("/api/public", publicRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/portal", portalRoutes);
+app.use("/api/stripe/connect", stripeConnectRoutes);
 
 app.get("/", (req,res)=>{
 

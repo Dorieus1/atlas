@@ -1094,5 +1094,23 @@ export const requestPortalAppointment = (title, notes, start_time, end_time) =>
 export const getPortalQuotes = () =>
   portalRequest("/portal/account/quotes");
 
+export const createInvoiceCheckout = (quoteId) =>
+  portalRequest(`/portal/account/quotes/${quoteId}/checkout`, {
+    method:"POST"
+  });
+
 export const getPortalPhotos = () =>
   portalRequest("/portal/account/photos");
+
+
+
+/* ---------- Online payments (Stripe Connect) ---------- */
+
+
+export const getStripeConnectStatus = () =>
+  request("/stripe/connect/status");
+
+export const startStripeOnboarding = () =>
+  request("/stripe/connect/start", {
+    method:"POST"
+  });

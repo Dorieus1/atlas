@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import PublicLinkCard from "../components/PublicLinkCard";
+import StripeConnectCard from "../components/StripeConnectCard";
 import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
 
@@ -87,6 +88,7 @@ function Settings() {
             title="🔑 Your Customer Portal"
             description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
           />
+          <StripeConnectCard />
         </div>
       )}
 

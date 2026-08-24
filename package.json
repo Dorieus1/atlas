@@ -10,7 +10,7 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "migrate": "node database/migrate.js",
-    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups UPLOAD_DIR=./backend/__tests__/test-uploads JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
+    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups UPLOAD_DIR=./backend/__tests__/test-uploads JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 STRIPE_SECRET_KEY=test_stripe_secret_key STRIPE_CONNECT_WEBHOOK_SECRET=test_stripe_webhook_secret jest"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "multer": "^2.2.0",
     "openai": "^7.3.0",
     "sqlite3": "^6.0.1",
+    "stripe": "^22.5.0",
     "uuid": "^14.0.1"
   },
   "devDependencies": {

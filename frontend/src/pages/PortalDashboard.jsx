@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, FileText, Camera, LogOut, Plus, X } from "lucide-react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { CalendarDays, FileText, Camera, LogOut, Plus, X, CreditCard } from "lucide-react";
 
 import {
   getPortalMe,
   getPortalAppointments,
   requestPortalAppointment,
   getPortalQuotes,
+  createInvoiceCheckout,
   getPortalPhotos,
   getPortalBusiness,
   API_BASE
@@ -51,6 +52,8 @@ function PortalDashboard() {
 
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const paidParam = searchParams.get("paid");
 
   const [business, setBusiness] = useState(null);
   const [customer, setCustomer] = useState(null);
@@ -72,6 +75,9 @@ function PortalDashboard() {
   const [requesting, setRequesting] = useState(false);
   const requestingRef = useRef(false);
   const [requestSuccess, setRequestSuccess] = useState("");
+
+  const [payingId, setPayingId] = useState(null);
+  const [payError, setPayError] = useState("");
 
 
   useEffect(() => {
@@ -194,6 +200,27 @@ function PortalDashboard() {
   };
 
 
+  const handlePay = async (quoteId) => {
+
+    setPayError("");
+    setPayingId(quoteId);
+
+    try {
+
+      const { url } = await createInvoiceCheckout(quoteId);
+      window.location.href = url;
+
+    } catch (error) {
+
+      console.error("PORTAL CHECKOUT ERROR:", error);
+      setPayError(error.message || "Couldn't start checkout. Please try again.");
+      setPayingId(null);
+
+    }
+
+  };
+
+
   if (loading) {
 
     return (
@@ -247,6 +274,18 @@ function PortalDashboard() {
           </button>
 
         </div>
+
+        {paidParam === "1" && (
+          <p className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">
+            Payment successful — thank you!
+          </p>
+        )}
+
+        {paidParam === "0" && (
+          <p className="mb-6 rounded-xl border border-ink-700 bg-ink-800 p-3 text-sm text-slate-300">
+            Payment cancelled — you weren't charged.
+          </p>
+        )}
 
         <div className="flex flex-col gap-6">
 
@@ -320,6 +359,12 @@ function PortalDashboard() {
               Quotes &amp; Invoices
             </h2>
 
+            {payError && (
+              <p className="mt-3 text-sm text-red-400">
+                {payError}
+              </p>
+            )}
+
             {quotes.length === 0 ? (
 
               <EmptyState
@@ -332,25 +377,46 @@ function PortalDashboard() {
 
               <div className="mt-4 flex flex-col gap-2">
 
-                {quotes.map((quote) => (
+                {quotes.map((quote) => {
 
-                  <div
-                    key={quote.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-ink-800 p-3"
-                  >
+                  const payable = quote.type === "invoice" && (quote.status === "sent" || quote.status === "accepted");
 
-                    <div className="min-w-0">
-                      <p className="truncate font-medium capitalize">{quote.type}</p>
-                      <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                  return (
+
+                    <div
+                      key={quote.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-800 p-3"
+                    >
+
+                      <div className="min-w-0">
+                        <p className="truncate font-medium capitalize">{quote.type}</p>
+                        <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
+                          {quote.status}
+                        </span>
+
+                        {payable && (
+                          <button
+                            onClick={() => handlePay(quote.id)}
+                            disabled={payingId === quote.id}
+                            className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                          >
+                            <CreditCard size={13} />
+                            {payingId === quote.id ? "Redirecting..." : `Pay ${formatMoney(quote.total)}`}
+                          </button>
+                        )}
+
+                      </div>
+
                     </div>
 
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
-                      {quote.status}
-                    </span>
+                  );
 
-                  </div>
-
-                ))}
+                })}
 
               </div>
 

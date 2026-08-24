@@ -13,6 +13,7 @@ const {
   requestAppointment,
   getMyAppointments,
   getMyQuotes,
+  createInvoiceCheckout,
   getMyPhotos
 } = require("../controllers/portalController");
 
@@ -45,6 +46,12 @@ router.get(
   "/account/quotes",
   customerAuthMiddleware,
   getMyQuotes
+);
+
+router.post(
+  "/account/quotes/:id/checkout",
+  customerAuthMiddleware,
+  createInvoiceCheckout
 );
 
 router.get(

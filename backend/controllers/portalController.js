@@ -1,11 +1,15 @@
-const { getBusinessBySlug } = require("../services/businessService");
+const { getBusinessBySlug, getBusinessById } = require("../services/businessService");
 const { getCustomerById, getCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail } = require("../services/emailService");
-const { getQuotesByCustomer } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields } = require("../services/quoteService");
 const { getAppointmentsByCustomer, createAppointment } = require("../services/appointmentService");
 const { getPhotosByCustomer } = require("../services/photoService");
 const { createNotification } = require("../services/notificationService");
+const { createCheckoutSession } = require("../services/stripeService");
+
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 
 const MAX_TITLE_LENGTH = 200;
@@ -372,6 +376,98 @@ const getMyQuotes = async (req, res) => {
 
 
 
+const createInvoiceCheckout = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.customer.business_id;
+
+    const business = await getBusinessById(business_id);
+
+    if (!business) {
+
+      return res.status(404).json({
+        error: "Business not found"
+      });
+
+    }
+
+    if (!business.stripe_account_id || !business.stripe_onboarded) {
+
+      return res.status(400).json({
+        error: "Online payment isn't set up for this business yet"
+      });
+
+    }
+
+    const quote = await getQuoteById(id, business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Invoice not found"
+      });
+
+    }
+
+    if (quote.type !== "invoice") {
+
+      return res.status(400).json({
+        error: "Only invoices can be paid online"
+      });
+
+    }
+
+    // Draft/declined invoices aren't payable yet - only ones the owner
+    // has actually sent (or the customer already accepted). Checked here
+    // too, not just hidden in the UI, since this creates a real charge.
+    if (quote.status !== "sent" && quote.status !== "accepted") {
+
+      return res.status(400).json({
+        error: quote.status === "paid" ? "This invoice is already paid" : "This invoice isn't ready to be paid yet"
+      });
+
+    }
+
+    if (!quote.items || quote.items.length === 0) {
+
+      return res.status(400).json({
+        error: "This invoice has no line items to charge"
+      });
+
+    }
+
+    const session = await createCheckoutSession(
+
+      business.stripe_account_id,
+      quote.items,
+      `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=1`,
+      `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=0`,
+      { quote_id: quote.id, business_id: business.id }
+
+    );
+
+    await updateQuoteFields(quote.id, business_id, {
+      stripe_checkout_session_id: session.id
+    });
+
+    res.json({ url: session.url });
+
+  } catch (error) {
+
+    console.error("PORTAL CHECKOUT ERROR:", error);
+
+    res.status(500).json({
+      error: error.message || "Couldn't start checkout. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const getMyPhotos = async (req, res) => {
 
   try {
@@ -418,6 +514,8 @@ module.exports = {
   getMyAppointments,
 
   getMyQuotes,
+
+  createInvoiceCheckout,
 
   getMyPhotos
 

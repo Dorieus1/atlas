@@ -9,8 +9,7 @@ const {
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
-const { getBusinessById } = require("../services/businessService");
-const { sendReviewRequestForCustomer } = require("../services/reviewRequestService");
+const { markQuotePaid } = require("../services/quotePaymentService");
 
 
 const VALID_TYPES = ["quote", "invoice"];
@@ -240,21 +239,20 @@ const updateQuote = async (req, res) => {
     const business_id = req.user.business_id;
     const { status, notes, type, items } = req.body;
 
-    const beforeUpdate = await getQuoteByIdService(id, business_id);
+    if (status !== undefined && !VALID_STATUSES.includes(status)) {
 
-    const isNewlyPaid = status === "paid" && beforeUpdate && beforeUpdate.status !== "paid";
+      return res.status(400).json({
+        error: "status must be one of: " + VALID_STATUSES.join(", ")
+      });
+
+    }
 
     const fieldsToUpdate = {};
 
-    if (status !== undefined) {
-
-      if (!VALID_STATUSES.includes(status)) {
-
-        return res.status(400).json({
-          error: "status must be one of: " + VALID_STATUSES.join(", ")
-        });
-
-      }
+    // "paid" is handled separately below via markQuotePaid, which also
+    // sets paid_at and fires the review-request automation - applying it
+    // here too would race the two status writes against each other.
+    if (status !== undefined && status !== "paid") {
 
       fieldsToUpdate.status = status;
 
@@ -320,43 +318,19 @@ const updateQuote = async (req, res) => {
 
     let reviewRequestSent = false;
 
-    // Best-effort automation: an invoice being marked paid is the exact
-    // moment a business would want to ask for a review, so do it
-    // automatically instead of relying on someone remembering to click
-    // "Request Review" separately. Silently does nothing if the customer
-    // has no email or the business hasn't set a review link yet - both
-    // are normal, expected states, not failures - and a real send
-    // failure must never make the "mark as paid" update itself look like
-    // it failed. Gated on isNewlyPaid (not just status === "paid") so
-    // re-submitting {status: "paid"} on an already-paid invoice - a
-    // retry, a double click, or someone toggling status back and forth -
-    // never re-sends the same customer a duplicate review request.
-    if (isNewlyPaid) {
+    if (status === "paid") {
 
-      try {
+      const result = await markQuotePaid(id, business_id);
 
-        const quote = await getQuoteByIdService(id, business_id);
+      if (!result.found) {
 
-        if (quote && quote.type === "invoice") {
-
-          const customer = await getCustomerById(quote.customer_id, business_id);
-          const business = await getBusinessById(business_id);
-
-          if (customer && business) {
-
-            const result = await sendReviewRequestForCustomer(business, customer);
-
-            reviewRequestSent = result.sent;
-
-          }
-
-        }
-
-      } catch (reviewError) {
-
-        console.error("AUTO REVIEW REQUEST FAILED:", reviewError);
+        return res.status(404).json({
+          error: "Not found"
+        });
 
       }
+
+      reviewRequestSent = result.reviewRequestSent;
 
     }
 
