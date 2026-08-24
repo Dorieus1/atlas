@@ -14,18 +14,6 @@ const {
 
 
 
-console.log("ACTIVITY ROUTE LOADED");
-
-
-
-router.get("/", authMiddleware, (req,res)=>{
-
-  res.send("activity route connected");
-
-});
-
-
-
 router.get("/:customer_id", authMiddleware, async (req,res)=>{
 
 

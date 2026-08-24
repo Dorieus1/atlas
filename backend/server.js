@@ -32,8 +32,7 @@ const intelligenceRoutes = require("./routes/intelligence");
 const briefingRoutes = require("./routes/briefing");
 const messageRoutes = require("./routes/messages");
 const taskRoutes = require("./routes/tasks");
-const authRoutes = require("./routes/auth"); 
-const testAuthRoutes = require("./routes/testAuth");
+const authRoutes = require("./routes/auth");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -41,7 +40,6 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/follow-up-message", followUpMessageRoutes);
-app.use("/api/test-auth", testAuthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/messages", messageRoutes);
@@ -55,13 +53,6 @@ app.use("/api/notes", noteRoutes);
 app.use("/api/customer-summary", customerSummaryRoutes);
 app.use("/api/follow-up", followUpRoutes);
 
-app.get("/test-activity", (req,res)=>{
-
-  res.send("activity route test works");
-
-});
-
-
 app.get("/", (req,res)=>{
 
   res.send("Atlas API running");
@@ -74,6 +65,16 @@ const PORT = process.env.PORT || 5050;
 
 
 if (require.main === module) {
+
+  if (!process.env.JWT_SECRET) {
+
+    console.error(
+      "Missing JWT_SECRET in your .env file. Logins won't work without it. See .env.example."
+    );
+
+    process.exit(1);
+
+  }
 
   app.listen(PORT,()=>{
 
