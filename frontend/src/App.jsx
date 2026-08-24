@@ -12,6 +12,7 @@ import Customers from "./pages/Customers";
 import Leads from "./pages/Leads";
 import Schedule from "./pages/Schedule";
 import Quotes from "./pages/Quotes";
+import PublicChat from "./pages/PublicChat";
 import Knowledge from "./pages/Knowledge";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -119,6 +120,11 @@ function App() {
                 <Quotes />
               </ProtectedRoute>
             }
+          />
+
+          <Route
+            path="/talk/:slug"
+            element={<PublicChat />}
           />
 
           <Route

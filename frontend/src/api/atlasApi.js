@@ -902,3 +902,42 @@ export const sendReviewRequest = (customer_id) =>
 export const getCustomerReviewRequests = (customerId) =>
 
   request(`/review-requests/customer/${customerId}`);
+
+
+
+/* ---------- Public chat page ---------- */
+
+
+export const getPublicBusiness = (slug) =>
+
+  request(`/public/${slug}`);
+
+
+
+export const startPublicConversation = (slug, name, email, phone) =>
+
+  request(`/public/${slug}/start`, {
+
+    method:"POST",
+
+    body: JSON.stringify({ name, email, phone })
+
+  });
+
+
+
+export const sendPublicMessage = (slug, customer_id, message) =>
+
+  request(`/public/${slug}/chat`, {
+
+    method:"POST",
+
+    body: JSON.stringify({ customer_id, message })
+
+  });
+
+
+
+export const getPublicHistory = (slug, customerId) =>
+
+  request(`/public/${slug}/conversations/${customerId}`);

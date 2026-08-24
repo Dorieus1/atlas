@@ -1,9 +1,10 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const { generateUniqueSlug } = require("../services/businessService");
 
 
 
-const createBusiness = (req, res) => {
+const createBusiness = async (req, res) => {
 
   const {
     name,
@@ -25,6 +26,7 @@ const createBusiness = (req, res) => {
 
 
   const id = uuidv4();
+  const slug = await generateUniqueSlug(name.trim());
 
 
 
@@ -38,9 +40,10 @@ const createBusiness = (req, res) => {
       email,
       address,
       industry,
-      services
+      services,
+      slug
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       id,
@@ -49,7 +52,8 @@ const createBusiness = (req, res) => {
       email || "",
       address || "",
       industry || "",
-      services || ""
+      services || "",
+      slug
     ],
     function(err) {
 

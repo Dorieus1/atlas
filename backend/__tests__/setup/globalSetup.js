@@ -33,7 +33,8 @@ module.exports = async () => {
           address TEXT,
           industry TEXT,
           services TEXT,
-          review_link TEXT
+          review_link TEXT,
+          slug TEXT
         )
       `);
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
+import PublicLinkCard from "../components/PublicLinkCard";
 import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
 
@@ -75,6 +76,12 @@ function Settings() {
         <p className="mt-6 text-slate-400">
           No business profile found yet.
         </p>
+      )}
+
+      {!loading && !error && business && (
+        <div className="mt-6">
+          <PublicLinkCard business={business} />
+        </div>
       )}
 
       <BusinessProfile business={business} />
