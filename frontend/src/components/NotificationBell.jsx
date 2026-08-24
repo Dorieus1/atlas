@@ -31,7 +31,7 @@ function timeAgo(dateString) {
 }
 
 
-function NotificationBell() {
+function NotificationBell({ align = "right" }) {
 
   const navigate = useNavigate();
 
@@ -185,7 +185,10 @@ function NotificationBell() {
 
       {open && (
 
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-ink-700 bg-ink-900 shadow-xl shadow-black/40">
+        <div className={`
+          absolute top-full z-50 mt-2 w-80 max-w-[90vw] rounded-2xl border border-ink-700 bg-ink-900 shadow-xl shadow-black/40
+          ${align === "left" ? "left-0" : "right-0"}
+        `}>
 
           <div className="flex items-center justify-between border-b border-ink-700 p-3">
 
