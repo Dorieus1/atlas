@@ -171,7 +171,7 @@ function LeadPipeline() {
 
               </p>
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex flex-wrap gap-3 mt-4">
 
                 <button
                   onClick={() => updateStatus(lead.id, "contacted")}

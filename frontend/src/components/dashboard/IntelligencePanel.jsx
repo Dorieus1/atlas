@@ -271,6 +271,7 @@ function IntelligencePanel() {
 
           <div className="
             flex
+            flex-wrap
             gap-3
             mt-5
           ">

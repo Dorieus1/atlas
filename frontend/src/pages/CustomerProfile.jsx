@@ -547,7 +547,7 @@ function CustomerProfile() {
 
           {confirmingDelete ? (
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
 
               <span className="text-slate-300 text-sm">
 

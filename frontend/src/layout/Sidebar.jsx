@@ -5,14 +5,15 @@ import {
   BookOpen,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  X
 } from "lucide-react";
 
 
 import { NavLink, useNavigate } from "react-router-dom";
 
 
-function Sidebar() {
+function Sidebar({ open, onClose }) {
 
   const navigate = useNavigate();
 
@@ -23,6 +24,16 @@ function Sidebar() {
     localStorage.removeItem("user");
 
     navigate("/login");
+
+  };
+
+  const handleLinkClick = () => {
+
+    if (onClose) {
+
+      onClose();
+
+    }
 
   };
 
@@ -71,11 +82,13 @@ function Sidebar() {
 
   return (
 
-    <aside className="
+    <aside className={`
+      fixed
+      inset-y-0
+      left-0
+      z-40
       w-64
       h-screen
-      sticky
-      top-0
       overflow-y-auto
       bg-slate-950
       border-r
@@ -83,18 +96,41 @@ function Sidebar() {
       p-6
       flex
       flex-col
-    ">
+      transform
+      transition-transform
+      duration-200
+      ${open ? "translate-x-0" : "-translate-x-full"}
+      md:translate-x-0
+      md:sticky
+      md:top-0
+    `}>
 
 
-      <h1 className="
-        text-3xl
-        font-bold
+      <div className="
+        flex
+        items-center
+        justify-between
         mb-8
       ">
 
-        Atlas
+        <h1 className="
+          text-3xl
+          font-bold
+        ">
 
-      </h1>
+          Atlas
+
+        </h1>
+
+        <button
+          onClick={onClose}
+          className="p-1 md:hidden"
+          aria-label="Close menu"
+        >
+          <X size={24} />
+        </button>
+
+      </div>
 
 
 
@@ -113,6 +149,8 @@ function Sidebar() {
               key={link.path}
 
               to={link.path}
+
+              onClick={handleLinkClick}
 
               className={({isActive})=>
 
