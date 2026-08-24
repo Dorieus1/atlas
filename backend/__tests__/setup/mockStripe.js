@@ -9,8 +9,15 @@ jest.mock("stripe", () => {
   return jest.fn().mockImplementation(() => ({
 
     accounts: {
-      create: (...args) => mockAccountsCreate(...args),
       retrieve: (...args) => mockAccountsRetrieve(...args)
+    },
+
+    v2: {
+      core: {
+        accounts: {
+          create: (...args) => mockAccountsCreate(...args)
+        }
+      }
     },
 
     accountLinks: {

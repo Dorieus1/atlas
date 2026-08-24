@@ -22,22 +22,55 @@ function getStripeClient() {
 }
 
 
-// Standard Connect account: the business owns and controls this Stripe
-// account directly (their own dashboard, their own bank account, their
-// own tax/compliance responsibility). Atlas only ever facilitates the
-// connection and never touches the money - every charge created against
-// this account is a *direct* charge, so funds land with the business
-// immediately rather than passing through a platform-owned account.
+// The v2 Accounts API's equivalent of a v1 "Standard" account: dashboard
+// "full" means the business gets their own complete Stripe dashboard and
+// owns/controls the account directly, and responsibilities.fees_collector/
+// losses_collector: "stripe" means Stripe (not Atlas) is the party on the
+// hook for that account's fees and disputes. Country/business details are
+// deliberately left out here - Stripe's own hosted onboarding link (below)
+// collects those from the business directly, same as it always has.
+// Atlas only ever facilitates the connection and never touches the money -
+// every charge created against this account is a *direct* charge (see
+// createCheckoutSession), so funds land with the business immediately
+// rather than passing through a platform-owned account.
 const createConnectAccount = async (business) => {
 
   const stripe = getStripeClient();
 
-  const account = await stripe.accounts.create({
+  // Stripe requires identity.country up front to grant the merchant
+  // (card_payments) configuration - it can't be deferred to the hosted
+  // onboarding flow the way v1 Standard accounts allowed. The rest of
+  // this app already assumes US/USD throughout (pricing, formatMoney,
+  // checkout currency), so hardcoding US here is a known simplification
+  // consistent with that, not a new limitation - genuine multi-country
+  // support would need a country picker here plus currency handling
+  // throughout quotes/analytics/checkout, which is a separate project.
+  const account = await stripe.v2.core.accounts.create({
 
-    type: "standard",
+    display_name: business.name,
 
-    business_profile: {
-      name: business.name
+    ...(business.email ? { contact_email: business.email } : {}),
+
+    dashboard: "full",
+
+    identity: {
+      country: "us"
+    },
+
+    configuration: {
+      merchant: {
+        capabilities: {
+          card_payments: { requested: true }
+        }
+      }
+    },
+
+    defaults: {
+      currency: "usd",
+      responsibilities: {
+        fees_collector: "stripe",
+        losses_collector: "stripe"
+      }
     }
 
   });
@@ -48,6 +81,10 @@ const createConnectAccount = async (business) => {
 
 
 
+// accountLinks (onboarding) and accounts.retrieve (status) are still v1
+// endpoints, but Stripe's v2 migration docs confirm v1 endpoints accept a
+// v2 account id directly and respond in v1's shape - no v2 equivalent
+// needed for either of these.
 const createAccountLink = async (stripeAccountId, refreshUrl, returnUrl) => {
 
   const stripe = getStripeClient();
