@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { resetPassword } from "../api/atlasApi";
-import AuthHeader from "../components/AuthHeader";
+import AuthLayout from "../components/AuthLayout";
 
 
 function ResetPassword() {
@@ -84,19 +84,7 @@ function ResetPassword() {
 
   return (
 
-    <div className="
-      max-w-md
-      mx-auto
-      mt-12
-      mb-12
-      rounded-2xl
-      border
-      border-ink-700
-      bg-ink-900/60
-      p-8
-    ">
-
-      <AuthHeader />
+    <AuthLayout>
 
       <h1 className="
         text-3xl
@@ -104,7 +92,7 @@ function ResetPassword() {
         mb-6
       ">
 
-        🔑 Choose a new password
+        Choose a new password
 
       </h1>
 
@@ -220,7 +208,7 @@ function ResetPassword() {
       </p>
 
 
-    </div>
+    </AuthLayout>
 
   );
 

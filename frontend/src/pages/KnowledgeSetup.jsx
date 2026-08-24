@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
+import Logo from "../components/Logo";
 
 
 function KnowledgeSetup() {
@@ -191,6 +192,7 @@ function KnowledgeSetup() {
       p-8
     ">
 
+      <Logo size={34} className="mb-6" />
 
       <h1 className="
         text-3xl

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { forgotPassword } from "../api/atlasApi";
-import AuthHeader from "../components/AuthHeader";
+import AuthLayout from "../components/AuthLayout";
 
 
 function ForgotPassword() {
@@ -64,29 +64,21 @@ function ForgotPassword() {
 
   return (
 
-    <div className="
-      max-w-md
-      mx-auto
-      mt-12
-      mb-12
-      rounded-2xl
-      border
-      border-ink-700
-      bg-ink-900/60
-      p-8
-    ">
-
-      <AuthHeader />
+    <AuthLayout>
 
       <h1 className="
         text-3xl
         font-bold
-        mb-6
+        mb-1
       ">
 
-        🔑 Reset your password
+        Reset your password
 
       </h1>
+
+      <p className="mb-6 text-slate-400">
+        We'll email you a link to get back in.
+      </p>
 
 
       {submitted ? (
@@ -184,7 +176,7 @@ function ForgotPassword() {
       </p>
 
 
-    </div>
+    </AuthLayout>
 
   );
 
