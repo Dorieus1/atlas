@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { API_BASE } from "../api/atlasApi";
 
 
@@ -10,6 +10,10 @@ function MemoryPanel({ customer }) {
   const [memory, setMemory] = useState("");
 
   const [error, setError] = useState("");
+
+  const [saving, setSaving] = useState(false);
+
+  const savingRef = useRef(false);
 
 
 
@@ -96,6 +100,16 @@ function MemoryPanel({ customer }) {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
+    setSaving(true);
+
 
     try {
 
@@ -154,6 +168,12 @@ function MemoryPanel({ customer }) {
     } catch (err) {
 
       setError(err.message);
+
+    } finally {
+
+      savingRef.current = false;
+
+      setSaving(false);
 
     }
 
@@ -233,10 +253,12 @@ function MemoryPanel({ customer }) {
 
           onClick={addMemory}
 
-          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+          disabled={saving}
+
+          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg disabled:opacity-50"
 
         >
-          Save
+          {saving ? "Saving..." : "Save"}
         </button>
 
       </div>

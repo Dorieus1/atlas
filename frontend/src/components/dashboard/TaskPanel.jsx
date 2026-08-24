@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getTasks,
   completeTask
@@ -11,6 +11,10 @@ function TaskPanel() {
   const [tasks, setTasks] = useState([]);
 
   const [error, setError] = useState("");
+
+  const [completingId, setCompletingId] = useState(null);
+
+  const completingRef = useRef(null);
 
 
 
@@ -47,6 +51,15 @@ function TaskPanel() {
 
   const finishTask = async (id)=>{
 
+    if (completingRef.current) {
+
+      return;
+
+    }
+
+    completingRef.current = id;
+
+    setCompletingId(id);
 
     try {
 
@@ -61,6 +74,12 @@ function TaskPanel() {
       console.error(err);
 
       setError("Failed to complete task. Please try again.");
+
+    } finally {
+
+      completingRef.current = null;
+
+      setCompletingId(null);
 
     }
 
@@ -184,6 +203,8 @@ function TaskPanel() {
 
                 onClick={()=>finishTask(task.id)}
 
+                disabled={completingId === task.id}
+
                 className="
                   mt-4
                   bg-green-600
@@ -191,11 +212,12 @@ function TaskPanel() {
                   px-4
                   py-2
                   rounded-lg
+                  disabled:opacity-50
                 "
 
               >
 
-                ✅ Complete
+                {completingId === task.id ? "Completing..." : "✅ Complete"}
 
               </button>
 

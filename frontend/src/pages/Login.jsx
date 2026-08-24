@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
@@ -16,6 +16,10 @@ function Login() {
 
   const [error,setError] = useState("");
 
+  const [loggingIn,setLoggingIn] = useState(false);
+
+  const loggingInRef = useRef(false);
+
 
 
 
@@ -31,6 +35,15 @@ function Login() {
 
     }
 
+    if (loggingInRef.current) {
+
+      return;
+
+    }
+
+    loggingInRef.current = true;
+
+    setLoggingIn(true);
 
     try {
 
@@ -119,6 +132,14 @@ function Login() {
 
 
       setError(error.message);
+
+
+    } finally {
+
+
+      loggingInRef.current = false;
+
+      setLoggingIn(false);
 
 
     }
@@ -222,17 +243,20 @@ function Login() {
 
         onClick={login}
 
+        disabled={loggingIn}
+
         className="
           bg-blue-600
           px-6
           py-3
           rounded-lg
           cursor-pointer
+          disabled:opacity-50
         "
 
       >
 
-        Login
+        {loggingIn ? "Logging in..." : "Login"}
 
       </button>
 

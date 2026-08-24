@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createCustomer } from "../api/atlasApi";
 
 
@@ -13,6 +13,10 @@ function CustomerForm({ onCustomerCreated }) {
 
   const [error, setError] = useState("");
 
+  const [saving, setSaving] = useState(false);
+
+  const savingRef = useRef(false);
+
 
 
   const submit = async () => {
@@ -26,7 +30,17 @@ function CustomerForm({ onCustomerCreated }) {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = true;
+
     setError("");
+
+    setSaving(true);
 
 
     try {
@@ -64,6 +78,12 @@ function CustomerForm({ onCustomerCreated }) {
 
       setError("Failed to create customer. Please try again.");
 
+
+    } finally {
+
+      savingRef.current = false;
+
+      setSaving(false);
 
     }
 
@@ -130,13 +150,16 @@ function CustomerForm({ onCustomerCreated }) {
           px-5
           py-2
           rounded-lg
+          disabled:opacity-50
         "
 
         onClick={submit}
 
+        disabled={saving}
+
       >
 
-        Create Customer
+        {saving ? "Creating..." : "Create Customer"}
 
       </button>
 

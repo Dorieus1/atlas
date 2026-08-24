@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getKnowledge, updateKnowledge, deleteKnowledge } from "../../api/atlasApi";
 
 function KnowledgePanel() {
@@ -15,6 +15,14 @@ function KnowledgePanel() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   const [error, setError] = useState("");
+
+  const [savingId, setSavingId] = useState(null);
+
+  const [deletingId, setDeletingId] = useState(null);
+
+  const savingRef = useRef(null);
+
+  const deletingRef = useRef(null);
 
 
 
@@ -72,6 +80,16 @@ function KnowledgePanel() {
 
     }
 
+    if (savingRef.current) {
+
+      return;
+
+    }
+
+    savingRef.current = id;
+
+    setSavingId(id);
+
     try {
 
       await updateKnowledge(id, editTitle.trim(), editContent.trim());
@@ -84,11 +102,27 @@ function KnowledgePanel() {
       console.error(err);
       setError("Failed to update knowledge. Please try again.");
 
+    } finally {
+
+      savingRef.current = null;
+
+      setSavingId(null);
+
     }
 
   };
 
   const handleDelete = async (id) => {
+
+    if (deletingRef.current) {
+
+      return;
+
+    }
+
+    deletingRef.current = id;
+
+    setDeletingId(id);
 
     try {
 
@@ -101,6 +135,12 @@ function KnowledgePanel() {
 
       console.error(err);
       setError("Failed to delete knowledge. Please try again.");
+
+    } finally {
+
+      deletingRef.current = null;
+
+      setDeletingId(null);
 
     }
 
@@ -192,11 +232,13 @@ function KnowledgePanel() {
 
                     onClick={() => saveEdit(item.id)}
 
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm"
+                    disabled={savingId === item.id}
+
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm disabled:opacity-50"
 
                   >
 
-                    Save
+                    {savingId === item.id ? "Saving..." : "Save"}
 
                   </button>
 
@@ -254,11 +296,13 @@ function KnowledgePanel() {
 
                         onClick={() => handleDelete(item.id)}
 
-                        className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm"
+                        disabled={deletingId === item.id}
+
+                        className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm disabled:opacity-50"
 
                       >
 
-                        Confirm
+                        {deletingId === item.id ? "Deleting..." : "Confirm"}
 
                       </button>
 
