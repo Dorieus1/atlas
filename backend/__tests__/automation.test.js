@@ -194,6 +194,45 @@ describe("Automation: an invoice marked paid auto-sends a review request", () =>
 
   });
 
+  test("re-submitting status: paid on an already-paid invoice does not re-send the review request", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AutoReviewNoDupe");
+    const customerId = await createCustomer(app, authHeader, { name: "No Dupe Customer", email: "nodupe@test.com" });
+
+    await setReviewLink(app, authHeader, "https://g.page/r/example/review");
+
+    const invoice = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: [{ description: "Job", quantity: 1, unit_price: 200 }]
+      });
+
+    const firstPaid = await request(app)
+      .patch(`/api/quotes/${invoice.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    expect(firstPaid.body.review_request_sent).toBe(true);
+
+    const secondPaid = await request(app)
+      .patch(`/api/quotes/${invoice.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    expect(secondPaid.status).toBe(200);
+    expect(secondPaid.body.review_request_sent).toBe(false);
+
+    const history = await request(app)
+      .get(`/api/review-requests/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(history.body.length).toBe(1);
+
+  });
+
   test("marking an invoice paid with no customer email or no review link quietly does not send, and does not fail the update", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "AutoReviewMissing");

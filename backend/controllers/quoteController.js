@@ -240,6 +240,10 @@ const updateQuote = async (req, res) => {
     const business_id = req.user.business_id;
     const { status, notes, type, items } = req.body;
 
+    const beforeUpdate = await getQuoteByIdService(id, business_id);
+
+    const isNewlyPaid = status === "paid" && beforeUpdate && beforeUpdate.status !== "paid";
+
     const fieldsToUpdate = {};
 
     if (status !== undefined) {
@@ -323,8 +327,11 @@ const updateQuote = async (req, res) => {
     // has no email or the business hasn't set a review link yet - both
     // are normal, expected states, not failures - and a real send
     // failure must never make the "mark as paid" update itself look like
-    // it failed.
-    if (status === "paid") {
+    // it failed. Gated on isNewlyPaid (not just status === "paid") so
+    // re-submitting {status: "paid"} on an already-paid invoice - a
+    // retry, a double click, or someone toggling status back and forth -
+    // never re-sends the same customer a duplicate review request.
+    if (isNewlyPaid) {
 
       try {
 
