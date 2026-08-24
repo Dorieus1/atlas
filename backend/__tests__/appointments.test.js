@@ -205,4 +205,149 @@ describe("Appointments", () => {
 
   });
 
+
+  test("two overlapping appointments are both flagged, a non-overlapping one is not", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptConflict");
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "First job", start_time: "2026-09-01T10:00:00.000Z", end_time: "2026-09-01T11:00:00.000Z" });
+
+    // Starts before the first ends - a real overlap.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Overlapping job", start_time: "2026-09-01T10:30:00.000Z", end_time: "2026-09-01T11:30:00.000Z" });
+
+    // Well clear of both.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Clear job", start_time: "2026-09-01T14:00:00.000Z", end_time: "2026-09-01T15:00:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byTitle = Object.fromEntries(list.body.map((a) => [a.title, a.has_conflict]));
+
+    expect(byTitle["First job"]).toBe(true);
+    expect(byTitle["Overlapping job"]).toBe(true);
+    expect(byTitle["Clear job"]).toBe(false);
+
+  });
+
+
+  test("an appointment with no end_time is treated as 1 hour long, and flags a job starting inside that window", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptConflictDefaultOverlap");
+
+    // No end_time - defaults to a 1-hour block, so 10:00-11:00.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Undated job", start_time: "2026-09-01T10:00:00.000Z" });
+
+    // Starts at 10:45, inside that assumed 10:00-11:00 window.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Just inside", start_time: "2026-09-01T10:45:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byTitle = Object.fromEntries(list.body.map((a) => [a.title, a.has_conflict]));
+
+    expect(byTitle["Undated job"]).toBe(true);
+    expect(byTitle["Just inside"]).toBe(true);
+
+  });
+
+
+  test("a job starting exactly when an undated appointment's assumed hour ends is not a conflict", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptConflictBackToBack");
+
+    // No end_time - defaults to a 1-hour block, so 10:00-11:00.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Undated job", start_time: "2026-09-01T10:00:00.000Z" });
+
+    // Starts right at 11:00 - back-to-back, not overlapping.
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Back to back", start_time: "2026-09-01T11:00:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byTitle = Object.fromEntries(list.body.map((a) => [a.title, a.has_conflict]));
+
+    expect(byTitle["Undated job"]).toBe(false);
+    expect(byTitle["Back to back"]).toBe(false);
+
+  });
+
+
+  test("a cancelled appointment never counts as a conflict", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptConflictCancelled");
+
+    const first = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Original", start_time: "2026-09-01T10:00:00.000Z", end_time: "2026-09-01T11:00:00.000Z" });
+
+    await request(app)
+      .patch(`/api/appointments/${first.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "cancelled" });
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Same slot, rebooked", start_time: "2026-09-01T10:00:00.000Z", end_time: "2026-09-01T11:00:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byTitle = Object.fromEntries(list.body.map((a) => [a.title, a.has_conflict]));
+
+    expect(byTitle["Original"]).toBe(false);
+    expect(byTitle["Same slot, rebooked"]).toBe(false);
+
+  });
+
+
+  test("conflict detection is scoped to the right business", async () => {
+
+    const bizA = await createBusinessAndUser(app, "ApptConflictScopeA");
+    const bizB = await createBusinessAndUser(app, "ApptConflictScopeB");
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", bizA.authHeader)
+      .send({ title: "A's job", start_time: "2026-09-01T10:00:00.000Z", end_time: "2026-09-01T11:00:00.000Z" });
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", bizB.authHeader)
+      .send({ title: "B's job, same time", start_time: "2026-09-01T10:00:00.000Z", end_time: "2026-09-01T11:00:00.000Z" });
+
+    const listA = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", bizA.authHeader);
+
+    expect(listA.body[0].has_conflict).toBe(false);
+
+  });
+
 });

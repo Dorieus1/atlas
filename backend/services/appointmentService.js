@@ -2,6 +2,59 @@ const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
 
+// Matches the common calendar-app convention (Google Calendar included)
+// of assuming a 1-hour block for an event with no explicit end time -
+// most appointments here are created with only a start_time.
+const DEFAULT_DURATION_MS = 60 * 60 * 1000;
+
+const CONFLICTABLE_STATUSES = new Set(["scheduled", "requested"]);
+
+
+function timeRange(appt) {
+
+  const start = new Date(appt.start_time).getTime();
+  const end = appt.end_time ? new Date(appt.end_time).getTime() : start + DEFAULT_DURATION_MS;
+
+  return { start, end };
+
+}
+
+
+// Flags every appointment that overlaps another *active* one (cancelled
+// and completed jobs don't occupy a slot, so they're never considered).
+// O(n^2) over the active subset, which is fine at the scale a single
+// local business's calendar actually reaches.
+function attachConflicts(appointments) {
+
+  const active = appointments.filter((appt) => CONFLICTABLE_STATUSES.has(appt.status));
+
+  return appointments.map((appt) => {
+
+    if (!CONFLICTABLE_STATUSES.has(appt.status)) {
+      return { ...appt, has_conflict: false };
+    }
+
+    const { start, end } = timeRange(appt);
+
+    const conflicts = active.some((other) => {
+
+      if (other.id === appt.id) {
+        return false;
+      }
+
+      const otherRange = timeRange(other);
+
+      return start < otherRange.end && otherRange.start < end;
+
+    });
+
+    return { ...appt, has_conflict: conflicts };
+
+  });
+
+}
+
+
 
 const createAppointment = (
 
@@ -103,7 +156,7 @@ const getAppointments = (business_id) => {
 
         } else {
 
-          resolve(rows);
+          resolve(attachConflicts(rows));
 
         }
 

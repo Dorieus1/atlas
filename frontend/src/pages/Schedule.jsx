@@ -8,7 +8,8 @@ import {
   X,
   Check,
   Trash2,
-  CalendarDays
+  CalendarDays,
+  AlertTriangle
 } from "lucide-react";
 
 import {
@@ -364,6 +365,7 @@ function Schedule() {
               const isCurrentMonth = day.getMonth() === viewMonth.getMonth();
               const isToday = sameDay(day, today);
               const isSelected = sameDay(day, selectedDate);
+              const dayHasConflict = dayAppointments.some((appt) => appt.has_conflict);
 
               return (
 
@@ -371,11 +373,18 @@ function Schedule() {
                   key={key}
                   onClick={() => setSelectedDate(day)}
                   className={`
-                    flex min-h-[76px] flex-col items-start rounded-xl border p-2 text-left transition
+                    relative flex min-h-[76px] flex-col items-start rounded-xl border p-2 text-left transition
                     ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
                     ${!isCurrentMonth ? "opacity-40" : ""}
                   `}
                 >
+
+                  {dayHasConflict && (
+                    <span
+                      className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-500"
+                      aria-label="This day has overlapping appointments"
+                    />
+                  )}
 
                   <span
                     className={`
@@ -472,6 +481,13 @@ function Schedule() {
                     </span>
 
                   </div>
+
+                  {appt.has_conflict && (
+                    <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400">
+                      <AlertTriangle size={13} />
+                      Overlaps with another appointment
+                    </p>
+                  )}
 
                   {appt.notes && (
                     <p className="mt-2 text-xs leading-relaxed text-slate-400">

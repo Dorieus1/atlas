@@ -372,6 +372,43 @@ describe("Customer portal", () => {
   });
 
 
+  test("a customer-requested appointment that overlaps an existing one is flagged for the owner", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalRequestConflict");
+    const slug = await getSlug(authHeader);
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ title: "Existing job", start_time: "2026-09-14T10:00:00.000Z", end_time: "2026-09-14T11:00:00.000Z" });
+
+    await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Blind Request Customer", email: "blindrequest@test.com" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "blindrequest@test.com");
+
+    // The customer has no visibility into the owner's calendar, so
+    // nothing stops them requesting a time that's already taken - the
+    // owner needs to see that when reviewing the request.
+    await request(app)
+      .post("/api/portal/account/appointments")
+      .set("Authorization", customerAuthHeader)
+      .send({ title: "Requested at the same time", start_time: "2026-09-14T10:30:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byTitle = Object.fromEntries(list.body.map((a) => [a.title, a.has_conflict]));
+
+    expect(byTitle["Existing job"]).toBe(true);
+    expect(byTitle["Requested at the same time"]).toBe(true);
+
+  });
+
+
   test("deleting a customer also removes their portal login tokens", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "PortalCascade");
