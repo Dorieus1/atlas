@@ -133,7 +133,9 @@ function Sidebar({ open, onClose }) {
 
         <div className="flex items-center gap-1">
 
-          <NotificationBell />
+          <div className="hidden md:block">
+            <NotificationBell />
+          </div>
 
           <button
             onClick={onClose}
