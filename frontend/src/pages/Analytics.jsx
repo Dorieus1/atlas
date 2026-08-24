@@ -73,7 +73,7 @@ function Analytics() {
         </p>
       )}
 
-      <div className="mt-6 grid gap-5 md:grid-cols-4">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           title="Customers"
