@@ -42,7 +42,7 @@ function Sidebar({ open, onClose }) {
 
     {
       name: "Dashboard",
-      path: "/",
+      path: "/dashboard",
       icon: LayoutDashboard
     },
 

@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 
 function NotFound() {
 
+  const isLoggedIn = !!localStorage.getItem("token");
+
   return (
 
     <div className="min-h-screen flex items-center justify-center p-8 text-center">
@@ -22,12 +24,12 @@ function NotFound() {
 
         <Link
 
-          to="/"
+          to={isLoggedIn ? "/dashboard" : "/"}
 
           className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
 
         >
-          Back to Dashboard
+          {isLoggedIn ? "Back to Dashboard" : "Back Home"}
         </Link>
 
       </div>

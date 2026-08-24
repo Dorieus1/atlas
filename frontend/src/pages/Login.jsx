@@ -125,7 +125,7 @@ function Login() {
 
 
 
-      navigate("/");
+      navigate("/dashboard");
 
 
     } catch(error){

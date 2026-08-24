@@ -1,15 +1,41 @@
 @import "tailwindcss";
 
 
-:root {
+@theme {
 
-  font-family:
-    Inter,
+  --font-sans:
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+
+  --font-display:
+    "Space Grotesk",
+    "Inter",
+    system-ui,
+    sans-serif;
+
+  --color-ink-950: #08090d;
+  --color-ink-900: #0c0e15;
+  --color-ink-850: #11141d;
+  --color-ink-800: #161a26;
+  --color-ink-700: #1f2433;
+  --color-ink-600: #2a3040;
+
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+
+}
+
+
+:root {
+
+  font-family: var(--font-sans);
 
   color-scheme: dark;
 
@@ -24,7 +50,27 @@ body {
 
   min-height: 100vh;
 
-  background:
-    #0f172a;
+  background: var(--color-ink-950);
+
+  color: #f1f5f9;
+
+}
+
+
+h1, h2, h3, h4 {
+
+  font-family: var(--font-display);
+
+  letter-spacing: -0.02em;
+
+}
+
+
+.brand-gradient-text {
+
+  background: linear-gradient(135deg, var(--color-brand-300), var(--color-brand-600));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 
 }

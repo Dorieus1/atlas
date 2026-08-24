@@ -154,7 +154,7 @@ function KnowledgeSetup() {
 
 
 
-      navigate("/");
+      navigate("/dashboard");
 
 
     } catch (err) {
@@ -316,7 +316,7 @@ function KnowledgeSetup() {
 
       <p className="mt-6 text-slate-400">
 
-        <Link to="/" className="text-blue-400 hover:underline">
+        <Link to="/dashboard" className="text-blue-400 hover:underline">
 
           Skip for now
         </Link>
