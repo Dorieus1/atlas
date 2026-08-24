@@ -76,6 +76,16 @@ if (require.main === module) {
 
   }
 
+  const { backupDatabase } = require("../database/backup");
+
+  backupDatabase().catch(() => {});
+
+  setInterval(() => {
+
+    backupDatabase().catch(() => {});
+
+  }, 6 * 60 * 60 * 1000);
+
   app.listen(PORT,()=>{
 
     console.log(

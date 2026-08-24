@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "test": "DB_PATH=./backend/__tests__/test.db JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
+    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 jest"
   },
   "keywords": [],
   "author": "",

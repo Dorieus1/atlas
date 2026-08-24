@@ -1,16 +1,38 @@
-# React + Vite
+# Atlas
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A local CRM and AI receptionist for a small roofing business. Handles customers, leads, notes, tasks, an AI chat assistant, and a knowledge base the AI draws on when talking to customers.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Backend: Node/Express (CommonJS), SQLite (`atlas.db`)
+- Frontend: React + Vite, Tailwind
+- AI: OpenAI, via `backend/services/*Service.js`
+- Email (password reset): Resend, via `backend/services/emailService.js`
 
-## React Compiler
+## Running it
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Copy `.env.example` to `.env` and fill in the values, then:
 
-## Expanding the Oxlint configuration
+```bash
+node backend/server.js       # backend, defaults to port 5050
+npm --prefix frontend run dev   # frontend, defaults to port 5173
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Both need to be running at the same time. The frontend automatically points its API calls at whatever host it was loaded from, so it also works from another device on the same WiFi network (e.g. a phone), using this computer's local network address instead of `localhost`.
+
+## Tests
+
+```bash
+npm test
+```
+
+Runs the full backend test suite (Jest + Supertest) against a throwaway SQLite database — never touches `atlas.db`, and never makes real OpenAI or Resend calls (both are mocked).
+
+## Backups
+
+Every time the backend starts, and every 6 hours it stays running, it takes a full snapshot of `atlas.db` into `backups/`. The last 30 snapshots are kept; older ones are deleted automatically. That folder is gitignored — it holds real customer data and should never be committed or shared.
+
+## Known limitations
+
+- Password-reset emails only deliver to the Resend account owner's own address until a real domain is verified with Resend (a paid step — see `.env.example` for `RESEND_API_KEY`).
+- The app is not currently hosted anywhere; it runs on whichever computer starts it.
