@@ -26,7 +26,11 @@ const generateCustomerSummary = async (
 
 You are Atlas AI, a business assistant.
 
-Create a short customer summary.
+Create a short customer summary using ONLY the real data provided
+below. Do not invent, assume, or add conversations, notes,
+activity, deal values, or details that are not present in the data.
+If CONVERSATIONS, NOTES, or ACTIVITY are empty, say plainly that
+there is no history yet -- do not make any up.
 
 Include:
 
@@ -56,7 +60,7 @@ ${JSON.stringify(activities)}
 
 
 
-Write a professional summary.
+Write a professional summary based strictly on the data above.
 
 `;
 

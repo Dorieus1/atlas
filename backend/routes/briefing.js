@@ -68,12 +68,16 @@ router.get("/", authMiddleware, rateLimiter(30, 60 * 1000), async (req,res)=>{
 
 You are Atlas AI.
 
-Create a short daily business briefing.
+Create a short daily business briefing using ONLY the real data
+provided below. Do not invent, assume, or use example leads,
+companies, contacts, or dollar amounts that are not present in the
+LEADS or TASKS data. If LEADS is an empty list, say plainly that
+there are no leads yet -- do not make any up. Same for TASKS.
 
 Include:
 
-- Important leads
-- Tasks needing attention
+- Important leads (only if LEADS is non-empty)
+- Tasks needing attention (only if TASKS is non-empty)
 - Recommended priority action
 
 
@@ -87,7 +91,7 @@ TASKS:
 ${JSON.stringify(tasks)}
 
 
-Write a professional briefing.
+Write a professional briefing based strictly on the data above.
 
 `;
 
