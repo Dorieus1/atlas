@@ -11,6 +11,7 @@ import {
 
 
 import { NavLink, useNavigate } from "react-router-dom";
+import Logo from "../components/Logo";
 
 
 function Sidebar({ open, onClose }) {
@@ -113,14 +114,7 @@ function Sidebar({ open, onClose }) {
         mb-8
       ">
 
-        <h1 className="
-          text-3xl
-          font-bold
-        ">
-
-          Atlas
-
-        </h1>
+        <Logo size={30} withWordmark />
 
         <button
           onClick={onClose}
@@ -158,12 +152,15 @@ function Sidebar({ open, onClose }) {
                 flex
                 items-center
                 gap-3
-                p-3
+                px-3.5
+                py-2.5
                 rounded-xl
+                border-l-2
+                transition
                 ${
                   isActive
-                  ? "bg-brand-600"
-                  : "hover:bg-ink-800"
+                  ? "border-brand-500 bg-brand-600/10 text-brand-400 font-semibold"
+                  : "border-transparent text-slate-400 hover:bg-ink-800 hover:text-slate-100"
                 }
                 `
 
@@ -171,7 +168,7 @@ function Sidebar({ open, onClose }) {
 
             >
 
-              <Icon size={20}/>
+              <Icon size={19}/>
 
               {link.name}
 

@@ -100,14 +100,22 @@ function Customers() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <h1 className="
-          text-3xl
-          font-bold
-        ">
+        <div>
 
-          👥 Customers
+          <h1 className="
+            text-3xl
+            font-bold
+          ">
 
-        </h1>
+            👥 Customers
+
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Every customer in one place.
+          </p>
+
+        </div>
 
         {customers.length > 0 && (
 

@@ -10,6 +10,10 @@ function Leads() {
         🔥 Leads
       </h1>
 
+      <p className="mt-1 mb-6 text-sm text-slate-500">
+        Every opportunity, ranked by how hot it is.
+      </p>
+
       <LeadPipeline />
 
     </div>

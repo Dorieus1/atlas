@@ -55,6 +55,10 @@ function Settings() {
         ⚙️ Settings
       </h1>
 
+      <p className="mt-1 text-sm text-slate-500">
+        Your business, your team, your account.
+      </p>
+
       {loading && (
         <p className="mt-6 text-slate-400">
           Loading...

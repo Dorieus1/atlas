@@ -14,15 +14,24 @@ function StatCard({
   return (
 
     <div className="
+      relative
+      overflow-hidden
       bg-ink-900/60
       border
       border-ink-700
       rounded-2xl
       p-5
-      hover:border-ink-600
       transition
+      hover:border-ink-600
+      hover:-translate-y-0.5
+      hover:shadow-xl
+      hover:shadow-black/20
     ">
 
+      <div
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/60 to-transparent"
+        aria-hidden="true"
+      />
 
       <div className="
         flex
@@ -34,7 +43,7 @@ function StatCard({
         <div>
 
 
-          <p className="text-slate-400">
+          <p className="text-sm font-medium text-slate-400">
 
             {title}
 
@@ -43,8 +52,10 @@ function StatCard({
 
 
           <h2 className="
+            font-display
             text-4xl
             font-bold
+            tracking-tight
             mt-2
           ">
 
@@ -58,8 +69,12 @@ function StatCard({
 
 
         <div className="
-          text-2xl
-          bg-brand-600/15
+          text-xl
+          bg-gradient-to-br
+          from-brand-500/20
+          to-brand-600/10
+          border
+          border-brand-500/20
           rounded-xl
           p-3
         ">

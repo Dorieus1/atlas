@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
+import Logo from "../components/Logo";
 
 
 function Layout({children}) {
@@ -80,16 +81,21 @@ function Layout({children}) {
             <Menu size={24} />
           </button>
 
-          <h1 className="text-xl font-bold">
-            Atlas
-          </h1>
+          <Logo size={26} withWordmark />
 
         </header>
 
         <main className="
           flex-1
           overflow-auto
+          relative
+          isolate
         ">
+
+          <div
+            className="pointer-events-none fixed -top-32 right-0 -z-10 h-[420px] w-[560px] rounded-full bg-brand-600/[0.07] blur-[120px]"
+            aria-hidden="true"
+          />
 
           {children}
 

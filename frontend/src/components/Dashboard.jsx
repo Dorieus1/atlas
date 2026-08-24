@@ -89,7 +89,26 @@ function Dashboard(){
 
     : 0;
 
+  let storedUser = null;
 
+  try {
+
+    storedUser = JSON.parse(localStorage.getItem("user"));
+
+  } catch (e) {}
+
+  const hour = new Date().getHours();
+
+  const greeting =
+    hour < 12 ? "Good morning" :
+    hour < 18 ? "Good afternoon" :
+    "Good evening";
+
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric"
+  });
 
 
   return (
@@ -97,13 +116,21 @@ function Dashboard(){
     <div>
 
 
+      <p className="text-sm font-medium text-brand-400">
+        {today}
+      </p>
+
       <h2 className="
-        text-2xl
+        font-display
+        text-3xl
+        sm:text-4xl
         font-bold
-        mb-5
+        tracking-tight
+        mb-6
+        mt-1
       ">
 
-        Overview
+        {greeting}{storedUser?.name ? `, ${storedUser.name.split(" ")[0]}` : ""}
 
       </h2>
 

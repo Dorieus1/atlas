@@ -1,4 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
+import Logo from "../components/Logo";
 import {
   MessageSquare,
   Flame,
@@ -85,10 +86,7 @@ function Landing() {
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
 
-        <div className="flex items-center gap-2 font-display text-xl font-bold">
-          <span aria-hidden="true">🏠</span>
-          Atlas
-        </div>
+        <Logo size={30} withWordmark />
 
         <nav className="flex items-center gap-3">
 
@@ -267,10 +265,7 @@ function Landing() {
 
       <footer className="relative z-10 border-t border-ink-800">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row">
-          <div className="flex items-center gap-2 font-display font-semibold text-slate-300">
-            <span aria-hidden="true">🏠</span>
-            Atlas
-          </div>
+          <Logo size={22} withWordmark className="text-slate-300" />
           <p>&copy; {new Date().getFullYear()} Atlas. All rights reserved.</p>
         </div>
       </footer>

@@ -12,6 +12,10 @@ function Knowledge() {
         📚 Knowledge Base
       </h1>
 
+      <p className="mt-1 text-sm text-slate-500">
+        What Atlas knows about your business.
+      </p>
+
       <KnowledgePanel />
 
       <KnowledgeEditor />

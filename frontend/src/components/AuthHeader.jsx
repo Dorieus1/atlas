@@ -1,11 +1,15 @@
+import Logo from "./Logo";
+
 function AuthHeader() {
 
   return (
 
-    <div className="mb-8 text-center">
+    <div className="mb-8 flex flex-col items-center text-center">
 
-      <h1 className="font-display text-2xl font-bold">
-        🏠 Atlas
+      <Logo size={40} />
+
+      <h1 className="font-display text-2xl font-bold mt-3">
+        Atlas
       </h1>
 
       <p className="text-slate-400 mt-1">
