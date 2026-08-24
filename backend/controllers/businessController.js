@@ -56,8 +56,10 @@ const createBusiness = (req, res) => {
 
       if (err) {
 
+        console.error(err);
+
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
 
       }
@@ -102,8 +104,10 @@ const getBusinesses = (req, res) => {
 
       if (err) {
 
+        console.error(err);
+
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
 
       }
@@ -187,8 +191,10 @@ const updateBusiness = (req, res) => {
 
       if (err) {
 
+        console.error(err);
+
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
 
       }

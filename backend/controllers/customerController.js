@@ -81,7 +81,7 @@ const createCustomer = async (req, res) => {
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -123,7 +123,7 @@ const getCustomers = async (req,res)=>{
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -183,7 +183,7 @@ const getCustomerById = async (req,res)=>{
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -244,7 +244,7 @@ const deleteCustomer = async (req, res) => {
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -323,7 +323,7 @@ const updateCustomer = async (req, res) => {
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 

@@ -35,8 +35,9 @@ const createKnowledge = (req, res) => {
     function(err) {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -78,8 +79,9 @@ const getKnowledge = (req, res) => {
     (err, rows) => {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -125,8 +127,9 @@ const updateKnowledge = (req, res) => {
     function(err) {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -164,8 +167,9 @@ const deleteKnowledge = (req, res) => {
     function(err) {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 

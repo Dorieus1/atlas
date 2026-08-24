@@ -42,8 +42,9 @@ const createMemory = async (req, res) => {
     function(err) {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -86,8 +87,9 @@ const getMemories = async (req, res) => {
     (err, rows) => {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -111,8 +113,9 @@ const getAllMemories = (req, res) => {
     (err, rows) => {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 

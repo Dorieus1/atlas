@@ -53,9 +53,11 @@ router.get("/", authMiddleware, rateLimiter(30, 60 * 1000), async (req,res)=>{
 
         if(err){
 
+          console.error(err);
+
           return res.status(500).json({
 
-            error:err.message
+            error: "Something went wrong. Please try again."
 
           });
 
@@ -173,7 +175,7 @@ Write a professional briefing based strictly on the data above.
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 

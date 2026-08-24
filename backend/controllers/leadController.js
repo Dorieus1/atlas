@@ -100,9 +100,11 @@ const changeLeadStatus = async (req,res)=>{
 
   } catch(error){
 
+    console.error(error);
+
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -147,7 +149,7 @@ const getCustomerLead = async (req,res)=>{
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 

@@ -83,9 +83,11 @@ const chatResponse = async (req, res) => {
 
         if (err) {
 
+          console.error(err);
+
           return res.status(500).json({
 
-            error: err.message
+            error: "Something went wrong. Please try again."
 
           });
 
@@ -131,9 +133,11 @@ const chatResponse = async (req, res) => {
 
         if (err) {
 
+          console.error(err);
+
           return res.status(500).json({
 
-            error: err.message
+            error: "Something went wrong. Please try again."
 
           });
 

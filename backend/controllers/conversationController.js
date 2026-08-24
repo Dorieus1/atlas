@@ -38,8 +38,9 @@ const saveConversation = async (req, res) => {
     ],
     function(err) {
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -72,8 +73,9 @@ const getConversationHistory = async (req, res) => {
     (err, rows) => {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 
@@ -94,8 +96,9 @@ const getAllConversations = (req, res) => {
     (err, rows) => {
 
       if (err) {
+        console.error(err);
         return res.status(500).json({
-          error: err.message
+          error: "Something went wrong. Please try again."
         });
       }
 

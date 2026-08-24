@@ -123,7 +123,7 @@ const register = async (req,res)=>{
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -264,7 +264,7 @@ const login = async (req,res)=>{
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -343,7 +343,7 @@ const forgotPassword = async (req, res) => {
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -416,7 +416,7 @@ const resetPassword = async (req, res) => {
 
     res.status(500).json({
 
-      error:error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -447,7 +447,7 @@ const listTeammates = async (req, res) => {
 
     res.status(500).json({
 
-      error: error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -539,7 +539,7 @@ const inviteTeammate = async (req, res) => {
 
     res.status(500).json({
 
-      error: error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -615,7 +615,7 @@ const removeTeammate = async (req, res) => {
 
     res.status(500).json({
 
-      error: error.message
+      error: "Something went wrong. Please try again."
 
     });
 
@@ -708,7 +708,7 @@ const changePassword = async (req, res) => {
 
     res.status(500).json({
 
-      error: error.message
+      error: "Something went wrong. Please try again."
 
     });
 
