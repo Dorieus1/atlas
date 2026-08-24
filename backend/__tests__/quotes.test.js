@@ -18,6 +18,26 @@ const VALID_ITEMS = [
   { description: "Shingle replacement (per bundle)", quantity: 4, unit_price: 85 }
 ];
 
+const getPdfBuffer = (req) =>
+
+  req.buffer(true).parse((res, callback) => {
+    res.setEncoding("binary");
+    let data = "";
+    res.on("data", (chunk) => { data += chunk; });
+    res.on("end", () => callback(null, Buffer.from(data, "binary")));
+  });
+
+// The page tree's /Count field is the authoritative, unambiguous page
+// count in a PDF's structure - counting "/Type /Page" substrings would
+// double-count the "/Type /Pages" tree root itself.
+const pdfPageCount = (buffer) => {
+
+  const match = buffer.toString("latin1").match(/\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/);
+
+  return match ? Number(match[1]) : null;
+
+};
+
 describe("Quotes and Invoices", () => {
 
   test("a quote requires a customer and at least one valid line item, and computes its total", async () => {
@@ -303,6 +323,55 @@ describe("Quotes and Invoices", () => {
       .set("Authorization", bizB.authHeader);
 
     expect(pdf.status).toBe(404);
+
+  });
+
+
+  test("a short invoice's PDF fits on one page", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuotePdfOnePage");
+    const customerId = await createCustomer(app, authHeader, "One Page Customer");
+
+    const quoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, type: "invoice", items: VALID_ITEMS });
+
+    const pdf = await getPdfBuffer(
+      request(app)
+        .get(`/api/quotes/${quoteRes.body.id}/pdf`)
+        .set("Authorization", authHeader)
+    );
+
+    expect(pdfPageCount(pdf.body)).toBe(1);
+
+  });
+
+
+  test("a long invoice's line items spill onto additional pages instead of overlapping the total", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuotePdfPagination");
+    const customerId = await createCustomer(app, authHeader, "Pagination Customer");
+
+    const manyItems = Array.from({ length: 35 }, (_, i) => ({
+      description: `Line item number ${i + 1} - roofing material and labor`,
+      quantity: 1,
+      unit_price: 45.5
+    }));
+
+    const quoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, type: "invoice", notes: "A note to check too.", items: manyItems });
+
+    const pdf = await getPdfBuffer(
+      request(app)
+        .get(`/api/quotes/${quoteRes.body.id}/pdf`)
+        .set("Authorization", authHeader)
+    );
+
+    expect(pdf.status).toBe(200);
+    expect(pdfPageCount(pdf.body)).toBeGreaterThanOrEqual(2);
 
   });
 
