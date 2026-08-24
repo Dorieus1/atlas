@@ -187,6 +187,24 @@ export const removeTeammate = (id) =>
 
 
 
+export const changePassword = (currentPassword, newPassword) =>
+
+  request("/auth/password", {
+
+    method: "PUT",
+
+    body: JSON.stringify({
+
+      currentPassword,
+
+      newPassword
+
+    })
+
+  });
+
+
+
 
 
 /* ---------- Business ---------- */

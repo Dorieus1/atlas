@@ -20,7 +20,9 @@ const {
 
   inviteTeammate,
 
-  removeTeammate
+  removeTeammate,
+
+  changePassword
 
 } = require("../controllers/authController");
 
@@ -69,6 +71,13 @@ router.delete(
   "/teammates/:id",
   authMiddleware,
   removeTeammate
+);
+
+
+router.put(
+  "/password",
+  authMiddleware,
+  changePassword
 );
 
 

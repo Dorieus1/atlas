@@ -36,7 +36,17 @@ function Dashboard(){
       }
     )
 
-    .then(res=>res.json())
+    .then(res=>{
+
+      if (!res.ok) {
+
+        throw new Error("Failed to load stats");
+
+      }
+
+      return res.json();
+
+    })
 
     .then(data=>{
 

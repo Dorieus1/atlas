@@ -11,6 +11,8 @@ function DailyBriefing() {
 
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState("");
+
 
 
 
@@ -42,6 +44,11 @@ function DailyBriefing() {
         console.error(
           "BRIEFING ERROR:",
           error
+        );
+
+
+        setError(
+          "Couldn't load today's briefing. Try refreshing the page."
         );
 
 
@@ -94,6 +101,15 @@ function DailyBriefing() {
         <p>
 
           Atlas is preparing your briefing...
+
+        </p>
+
+
+      ) : error ? (
+
+        <p className="text-red-400">
+
+          {error}
 
         </p>
 

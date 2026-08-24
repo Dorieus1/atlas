@@ -7,6 +7,7 @@ const {
   countUsersByBusiness,
   getUsersByBusiness,
   getUserById,
+  getUserByIdWithPassword,
   deleteUser
 } = require("../services/authService");
 
@@ -626,6 +627,99 @@ const removeTeammate = async (req, res) => {
 
 
 
+const changePassword = async (req, res) => {
+
+
+  try {
+
+
+    const {
+
+      currentPassword,
+
+      newPassword
+
+    } = req.body;
+
+
+    if (!currentPassword || !newPassword) {
+
+      return res.status(400).json({
+
+        error: "Current password and new password are required"
+
+      });
+
+    }
+
+
+    if (newPassword.length < 6) {
+
+      return res.status(400).json({
+
+        error: "New password must be at least 6 characters"
+
+      });
+
+    }
+
+
+    const user = await getUserByIdWithPassword(req.user.id);
+
+    if (!user) {
+
+      return res.status(404).json({
+
+        error: "User not found"
+
+      });
+
+    }
+
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+
+    if (!valid) {
+
+      return res.status(401).json({
+
+        error: "Current password is incorrect"
+
+      });
+
+    }
+
+
+    await resetPasswordByUserId(req.user.id, newPassword);
+
+
+    res.json({
+
+      message: "Password updated"
+
+    });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
 module.exports = {
 
   register,
@@ -640,6 +734,8 @@ module.exports = {
 
   inviteTeammate,
 
-  removeTeammate
+  removeTeammate,
+
+  changePassword
 
 };

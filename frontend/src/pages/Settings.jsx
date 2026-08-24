@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import TeamPanel from "../components/TeamPanel";
+import ChangePasswordPanel from "../components/ChangePasswordPanel";
 
 function Settings() {
 
@@ -83,7 +84,10 @@ function Settings() {
       <BusinessProfile business={business} />
 
       {!loading && !error && business && (
-        <TeamPanel />
+        <>
+          <TeamPanel />
+          <ChangePasswordPanel />
+        </>
       )}
 
     </div>

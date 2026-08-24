@@ -322,6 +322,42 @@ const getUsersByBusiness = (business_id) => {
 
 
 
+const getUserByIdWithPassword = (userId) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM users
+      WHERE id = ?
+      `,
+
+      [userId],
+
+      (err, row) => {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(row);
+
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
 const getUserById = (userId, business_id) => {
 
   return new Promise((resolve, reject) => {
@@ -412,6 +448,8 @@ module.exports = {
   getUsersByBusiness,
 
   getUserById,
+
+  getUserByIdWithPassword,
 
   deleteUser
 

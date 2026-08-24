@@ -14,6 +14,8 @@ function FollowUpAssistant() {
 
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState("");
+
 
 
   useEffect(()=>{
@@ -66,6 +68,8 @@ function FollowUpAssistant() {
 
       setLoading(true);
 
+      setError("");
+
 
 
       const data =
@@ -91,6 +95,11 @@ function FollowUpAssistant() {
       console.error(
         "FOLLOW UP ERROR:",
         error
+      );
+
+
+      setError(
+        "Couldn't generate a follow-up message. Please try again."
       );
 
 
@@ -211,6 +220,15 @@ function FollowUpAssistant() {
         </button>
 
 
+        {error && (
+
+          <p className="mt-3 text-red-400">
+
+            {error}
+
+          </p>
+
+        )}
 
 
 
