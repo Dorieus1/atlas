@@ -7,6 +7,7 @@ const { getAppointmentsByCustomer, createAppointment } = require("../services/ap
 const { getPhotosByCustomer } = require("../services/photoService");
 const { createNotification } = require("../services/notificationService");
 const { createCheckoutSession } = require("../services/stripeService");
+const { streamQuotePdf } = require("../services/pdfService");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -376,6 +377,49 @@ const getMyQuotes = async (req, res) => {
 
 
 
+const downloadMyQuotePdf = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const quote = await getQuoteById(id, req.customer.business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    const business = await getBusinessById(req.customer.business_id);
+
+    const filename = `${quote.type}-${quote.id.slice(0, 8)}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    streamQuotePdf(res, quote, business);
+
+  } catch (error) {
+
+    console.error(error);
+
+    if (!res.headersSent) {
+
+      res.status(500).json({
+        error: "Something went wrong. Please try again."
+      });
+
+    }
+
+  }
+
+};
+
+
+
 const createInvoiceCheckout = async (req, res) => {
 
   try {
@@ -514,6 +558,8 @@ module.exports = {
   getMyAppointments,
 
   getMyQuotes,
+
+  downloadMyQuotePdf,
 
   createInvoiceCheckout,
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { CalendarDays, FileText, Camera, LogOut, Plus, X, CreditCard } from "lucide-react";
+import { CalendarDays, FileText, Camera, LogOut, Plus, X, CreditCard, Download } from "lucide-react";
 
 import {
   getPortalMe,
@@ -8,6 +8,7 @@ import {
   requestPortalAppointment,
   getPortalQuotes,
   createInvoiceCheckout,
+  downloadPortalQuotePdf,
   getPortalPhotos,
   getPortalBusiness,
   API_BASE
@@ -78,6 +79,8 @@ function PortalDashboard() {
 
   const [payingId, setPayingId] = useState(null);
   const [payError, setPayError] = useState("");
+
+  const [downloadingId, setDownloadingId] = useState(null);
 
 
   useEffect(() => {
@@ -215,6 +218,29 @@ function PortalDashboard() {
       console.error("PORTAL CHECKOUT ERROR:", error);
       setPayError(error.message || "Couldn't start checkout. Please try again.");
       setPayingId(null);
+
+    }
+
+  };
+
+
+  const handleDownload = async (quoteId) => {
+
+    setPayError("");
+    setDownloadingId(quoteId);
+
+    try {
+
+      await downloadPortalQuotePdf(quoteId);
+
+    } catch (error) {
+
+      console.error("PORTAL PDF DOWNLOAD ERROR:", error);
+      setPayError(error.message || "Couldn't download that PDF. Please try again.");
+
+    } finally {
+
+      setDownloadingId(null);
 
     }
 
@@ -398,6 +424,15 @@ function PortalDashboard() {
                         <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
                           {quote.status}
                         </span>
+
+                        <button
+                          onClick={() => handleDownload(quote.id)}
+                          disabled={downloadingId === quote.id}
+                          aria-label="Download PDF"
+                          className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
+                        >
+                          <Download size={13} />
+                        </button>
 
                         {payable && (
                           <button

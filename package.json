@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
     "openai": "^7.3.0",
+    "pdfkit": "^0.20.1",
     "sqlite3": "^6.0.1",
     "stripe": "^22.5.0",
     "uuid": "^14.0.1"

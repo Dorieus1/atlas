@@ -13,6 +13,7 @@ const {
   requestAppointment,
   getMyAppointments,
   getMyQuotes,
+  downloadMyQuotePdf,
   createInvoiceCheckout,
   getMyPhotos
 } = require("../controllers/portalController");
@@ -46,6 +47,12 @@ router.get(
   "/account/quotes",
   customerAuthMiddleware,
   getMyQuotes
+);
+
+router.get(
+  "/account/quotes/:id/pdf",
+  customerAuthMiddleware,
+  downloadMyQuotePdf
 );
 
 router.post(

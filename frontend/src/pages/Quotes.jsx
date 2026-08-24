@@ -4,7 +4,8 @@ import {
   X,
   Trash2,
   FileText,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Download
 } from "lucide-react";
 
 import {
@@ -13,6 +14,7 @@ import {
   createQuote,
   updateQuote,
   deleteQuote,
+  downloadQuotePdf,
   getCustomers
 } from "../api/atlasApi";
 
@@ -55,6 +57,7 @@ function Quotes() {
   const [activeQuote, setActiveQuote] = useState(null);
   const [detailError, setDetailError] = useState("");
   const [detailSuccess, setDetailSuccess] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
 
@@ -254,6 +257,31 @@ function Quotes() {
 
       console.error("CONVERT QUOTE ERROR:", error);
       setDetailError("Couldn't convert this to an invoice. Please try again.");
+
+    }
+
+  };
+
+
+  const handleDownloadPdf = async () => {
+
+    if (!activeQuote) return;
+
+    setDownloadingPdf(true);
+    setDetailError("");
+
+    try {
+
+      await downloadQuotePdf(activeQuote.id);
+
+    } catch (error) {
+
+      console.error("DOWNLOAD PDF ERROR:", error);
+      setDetailError("Couldn't download the PDF. Please try again.");
+
+    } finally {
+
+      setDownloadingPdf(false);
 
     }
 
@@ -615,6 +643,15 @@ function Quotes() {
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">
+
+                  <button
+                    onClick={handleDownloadPdf}
+                    disabled={downloadingPdf}
+                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                  >
+                    <Download size={14} />
+                    {downloadingPdf ? "Downloading..." : "Download PDF"}
+                  </button>
 
                   {activeQuote.type === "quote" && (
                     <button

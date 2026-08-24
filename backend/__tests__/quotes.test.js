@@ -257,4 +257,53 @@ describe("Quotes and Invoices", () => {
 
   });
 
+
+  test("a PDF can be downloaded for a quote, and it's a real PDF", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuotePdf");
+    const customerId = await createCustomer(app, authHeader, "PDF Customer");
+
+    const quoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, type: "invoice", items: VALID_ITEMS });
+
+    const pdf = await request(app)
+      .get(`/api/quotes/${quoteRes.body.id}/pdf`)
+      .set("Authorization", authHeader)
+      .buffer(true)
+      .parse((res, callback) => {
+        res.setEncoding("binary");
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => callback(null, Buffer.from(data, "binary")));
+      });
+
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers["content-type"]).toBe("application/pdf");
+    expect(pdf.body.slice(0, 4).toString()).toBe("%PDF");
+    expect(pdf.body.length).toBeGreaterThan(500);
+
+  });
+
+
+  test("a PDF can't be downloaded for another business's quote", async () => {
+
+    const bizA = await createBusinessAndUser(app, "QuotePdfCrossA");
+    const bizB = await createBusinessAndUser(app, "QuotePdfCrossB");
+    const customerId = await createCustomer(app, bizA.authHeader, "Cross PDF Customer");
+
+    const quoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", bizA.authHeader)
+      .send({ customer_id: customerId, items: VALID_ITEMS });
+
+    const pdf = await request(app)
+      .get(`/api/quotes/${quoteRes.body.id}/pdf`)
+      .set("Authorization", bizB.authHeader);
+
+    expect(pdf.status).toBe(404);
+
+  });
+
 });

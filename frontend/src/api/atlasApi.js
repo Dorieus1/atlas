@@ -108,6 +108,49 @@ async function request(path, options = {}) {
 
 
 
+// Shared by both the owner and portal PDF downloads below - a plain <a
+// href> can't attach an Authorization header, so this fetches the file
+// as a blob with the right token first, then hands the browser a
+// throwaway object URL to save it through the normal download UI.
+async function downloadFile(path, tokenKey) {
+
+  const token = localStorage.getItem(tokenKey);
+
+  const response = await fetch(`${API}${path}`, {
+
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+
+  });
+
+  if (!response.ok) {
+
+    handleSessionExpired(response);
+    throw new Error("Couldn't download that file. Please try again.");
+
+  }
+
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="(.+)"/);
+  const filename = match ? match[1] : "download";
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+
 /* ---------- Auth ---------- */
 
 
@@ -824,6 +867,12 @@ export const deleteQuote = (id) =>
 
 
 
+export const downloadQuotePdf = (id) =>
+
+  downloadFile(`/quotes/${id}/pdf`, "token");
+
+
+
 /* ---------- Photos ---------- */
 
 
@@ -1098,6 +1147,9 @@ export const createInvoiceCheckout = (quoteId) =>
   portalRequest(`/portal/account/quotes/${quoteId}/checkout`, {
     method:"POST"
   });
+
+export const downloadPortalQuotePdf = (quoteId) =>
+  downloadFile(`/portal/account/quotes/${quoteId}/pdf`, "portal_token");
 
 export const getPortalPhotos = () =>
   portalRequest("/portal/account/photos");

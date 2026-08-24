@@ -402,4 +402,55 @@ describe("Customer portal", () => {
 
   });
 
+
+  test("a customer can download a PDF of their own invoice, but not another customer's", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalPdf");
+    const slug = await getSlug(authHeader);
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "PDF Customer", email: "portalpdf@test.com" });
+
+    const otherCustomerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Other Customer", email: "portalpdfother@test.com" });
+
+    const quoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, type: "invoice", items: [{ description: "Job", quantity: 1, unit_price: 200 }] });
+
+    const otherQuoteRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: otherCustomerRes.body.id, type: "invoice", items: [{ description: "Other job", quantity: 1, unit_price: 100 }] });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "portalpdf@test.com");
+
+    const ownPdf = await request(app)
+      .get(`/api/portal/account/quotes/${quoteRes.body.id}/pdf`)
+      .set("Authorization", customerAuthHeader)
+      .buffer(true)
+      .parse((res, callback) => {
+        res.setEncoding("binary");
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => callback(null, Buffer.from(data, "binary")));
+      });
+
+    expect(ownPdf.status).toBe(200);
+    expect(ownPdf.headers["content-type"]).toBe("application/pdf");
+    expect(ownPdf.body.slice(0, 4).toString()).toBe("%PDF");
+
+    const othersPdf = await request(app)
+      .get(`/api/portal/account/quotes/${otherQuoteRes.body.id}/pdf`)
+      .set("Authorization", customerAuthHeader);
+
+    expect(othersPdf.status).toBe(404);
+
+  });
+
 });

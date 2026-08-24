@@ -10,7 +10,8 @@ const {
   getCustomerQuotes,
   getQuote,
   updateQuote,
-  deleteQuote
+  deleteQuote,
+  downloadQuotePdf
 } = require("../controllers/quoteController");
 
 
@@ -36,6 +37,12 @@ router.get(
   "/:id",
   authMiddleware,
   getQuote
+);
+
+router.get(
+  "/:id/pdf",
+  authMiddleware,
+  downloadQuotePdf
 );
 
 router.patch(

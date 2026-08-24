@@ -9,7 +9,9 @@ const {
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
+const { getBusinessById } = require("../services/businessService");
 const { markQuotePaid } = require("../services/quotePaymentService");
+const { streamQuotePdf } = require("../services/pdfService");
 
 
 const VALID_TYPES = ["quote", "invoice"];
@@ -385,6 +387,49 @@ const deleteQuote = async (req, res) => {
 
 
 
+const downloadQuotePdf = async (req, res) => {
+
+  try {
+
+    const quote = await getQuoteByIdService(req.params.id, req.user.business_id);
+
+    if (!quote) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    const business = await getBusinessById(req.user.business_id);
+
+    const filename = `${quote.type}-${quote.id.slice(0, 8)}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    streamQuotePdf(res, quote, business);
+
+  } catch (error) {
+
+    console.error(error);
+
+    // Headers may already be sent once PDF streaming starts, so this
+    // only reliably reaches the client for failures before that point.
+    if (!res.headersSent) {
+
+      res.status(500).json({
+        error: "Something went wrong. Please try again."
+      });
+
+    }
+
+  }
+
+};
+
+
+
 module.exports = {
 
   createQuote,
@@ -397,6 +442,8 @@ module.exports = {
 
   updateQuote,
 
-  deleteQuote
+  deleteQuote,
+
+  downloadQuotePdf
 
 };
