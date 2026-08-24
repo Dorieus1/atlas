@@ -79,8 +79,14 @@ function Settings() {
       )}
 
       {!loading && !error && business && (
-        <div className="mt-6">
+        <div className="mt-6 flex flex-col gap-6">
           <PublicLinkCard business={business} />
+          <PublicLinkCard
+            business={business}
+            path="/portal"
+            title="🔑 Your Customer Portal"
+            description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
+          />
         </div>
       )}
 

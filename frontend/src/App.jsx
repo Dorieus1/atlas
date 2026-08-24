@@ -13,6 +13,8 @@ import Leads from "./pages/Leads";
 import Schedule from "./pages/Schedule";
 import Quotes from "./pages/Quotes";
 import PublicChat from "./pages/PublicChat";
+import PortalLogin from "./pages/PortalLogin";
+import PortalDashboard from "./pages/PortalDashboard";
 import Knowledge from "./pages/Knowledge";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -125,6 +127,16 @@ function App() {
           <Route
             path="/talk/:slug"
             element={<PublicChat />}
+          />
+
+          <Route
+            path="/portal/:slug"
+            element={<PortalLogin />}
+          />
+
+          <Route
+            path="/portal/:slug/dashboard"
+            element={<PortalDashboard />}
           />
 
           <Route

@@ -152,6 +152,31 @@ const getCustomerById = (
 
 };
 
+const getCustomerByEmail = (business_id, email) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM customers
+      WHERE business_id = ?
+      AND LOWER(email) = LOWER(?)
+      `,
+
+      [business_id, email],
+
+      (err, row) => (err ? reject(err) : resolve(row))
+
+    );
+
+  });
+
+};
+
+
+
 const getCustomersByBusiness = (business_id)=>{
 
 
@@ -359,6 +384,7 @@ module.exports = {
 
   createCustomer,
   getCustomerById,
+  getCustomerByEmail,
   getCustomersByBusiness,
   deleteCustomer,
   updateCustomer

@@ -1,6 +1,11 @@
-const requestLog = new Map();
-
 const rateLimiter = (maxRequests, windowMs) => {
+
+  // One Map per configured limiter instance, not a module-level shared
+  // one - otherwise every route that calls rateLimiter(...) draws from
+  // the same per-IP/per-user bucket, so a tight limit on one endpoint
+  // (e.g. 5/15min) silently throttles an unrelated endpoint (e.g.
+  // 60/min) sharing the same caller.
+  const requestLog = new Map();
 
   return (req, res, next) => {
 

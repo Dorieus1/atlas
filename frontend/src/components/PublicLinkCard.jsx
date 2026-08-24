@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Copy, Check, ExternalLink } from "lucide-react";
 
-function PublicLinkCard({ business }) {
+function PublicLinkCard({
+  business,
+  path = "/talk",
+  title = "💬 Your Public Chat Link",
+  description = "Share this link anywhere — your website, texts, a QR code — so customers can chat with Atlas directly, no login needed."
+}) {
 
   const [copied, setCopied] = useState(false);
 
@@ -9,7 +14,7 @@ function PublicLinkCard({ business }) {
     return null;
   }
 
-  const link = `${window.location.origin}/talk/${business.slug}`;
+  const link = `${window.location.origin}${path}/${business.slug}`;
 
   const handleCopy = async () => {
 
@@ -32,11 +37,11 @@ function PublicLinkCard({ business }) {
     <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
       <h2 className="text-xl font-bold">
-        💬 Your Public Chat Link
+        {title}
       </h2>
 
       <p className="mt-2 text-sm text-slate-400">
-        Share this link anywhere — your website, texts, a QR code — so customers can chat with Atlas directly, no login needed.
+        {description}
       </p>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">

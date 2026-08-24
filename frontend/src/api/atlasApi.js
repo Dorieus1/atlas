@@ -995,3 +995,98 @@ export const dismissOnboarding = () =>
     method:"PATCH"
 
   });
+
+
+
+/* ---------- Customer portal ---------- */
+
+
+// A separate request helper, not the shared one above - the portal uses
+// its own "portal_token" in localStorage rather than the business
+// owner's "token", so a device that's both an owner and a browsing
+// customer never has one session clobber the other.
+const portalRequest = async (path, options = {}) => {
+
+  const token = localStorage.getItem("portal_token");
+
+  const response = await fetch(`${API}${path}`, {
+
+    headers: {
+
+      "Content-Type": "application/json",
+
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`
+          }
+        : {}),
+
+      ...(options.headers || {})
+
+    },
+
+    ...options
+
+  });
+
+  if (!response.ok) {
+
+    const text = await response.text();
+
+    let message = text;
+
+    try {
+
+      const parsed = JSON.parse(text);
+
+      if (parsed && parsed.error) {
+        message = parsed.error;
+      }
+
+    } catch (parseError) {
+
+      // Not JSON - fall back to the raw response text below.
+
+    }
+
+    const error = new Error(
+      message || "API request failed"
+    );
+
+    error.status = response.status;
+
+    throw error;
+
+  }
+
+  return response.json();
+
+};
+
+
+export const getPortalBusiness = (slug) =>
+  portalRequest(`/portal/${slug}`);
+
+export const requestPortalLogin = (slug, email) =>
+  portalRequest(`/portal/${slug}/login`, {
+    method:"POST",
+    body: JSON.stringify({ email })
+  });
+
+export const verifyPortalLogin = (slug, token) =>
+  portalRequest(`/portal/${slug}/verify`, {
+    method:"POST",
+    body: JSON.stringify({ token })
+  });
+
+export const getPortalMe = () =>
+  portalRequest("/portal/account/me");
+
+export const getPortalAppointments = () =>
+  portalRequest("/portal/account/appointments");
+
+export const getPortalQuotes = () =>
+  portalRequest("/portal/account/quotes");
+
+export const getPortalPhotos = () =>
+  portalRequest("/portal/account/photos");
