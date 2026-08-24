@@ -8,7 +8,9 @@ function StatCard({
 
   icon,
 
-  description
+  description,
+
+  format
 
 }) {
 
@@ -61,7 +63,7 @@ function StatCard({
             mt-2
           ">
 
-            <AnimatedNumber value={value} />
+            <AnimatedNumber value={value} format={format} />
 
           </h2>
 

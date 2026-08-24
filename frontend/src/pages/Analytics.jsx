@@ -16,12 +16,26 @@ import StatCard from "../components/dashboard/StatCard";
 
 const COLORS = ["#f97316", "#2a3040"];
 
+function formatMoney(amount) {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount || 0);
+}
+
+function formatMonth(monthKey) {
+  const [year, month] = monthKey.split("-");
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(undefined, { month: "short" });
+}
+
 function Analytics() {
 
   const [stats, setStats] = useState({
     customers: 0,
     leads: 0,
-    hotLeads: 0
+    hotLeads: 0,
+    revenuePaid: 0,
+    revenueOutstanding: 0,
+    paidInvoiceCount: 0,
+    outstandingInvoiceCount: 0,
+    revenueByMonth: []
   });
 
   const [loadError, setLoadError] = useState("");
@@ -102,6 +116,56 @@ function Analytics() {
           icon="🎯"
           description="Lead quality score"
         />
+
+        <StatCard
+          title="Revenue Collected"
+          value={stats.revenuePaid}
+          format={formatMoney}
+          icon="💰"
+          description={`${stats.paidInvoiceCount} paid invoice${stats.paidInvoiceCount === 1 ? "" : "s"}`}
+        />
+
+        <StatCard
+          title="Outstanding"
+          value={stats.revenueOutstanding}
+          format={formatMoney}
+          icon="⏳"
+          description={`${stats.outstandingInvoiceCount} unpaid invoice${stats.outstandingInvoiceCount === 1 ? "" : "s"}`}
+        />
+
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
+
+        <h2 className="text-xl font-bold mb-4">
+          Revenue, Last 6 Months
+        </h2>
+
+        {stats.revenuePaid === 0 ? (
+
+          <p className="text-slate-400">
+            No paid invoices yet — revenue will show up here as customers pay.
+          </p>
+
+        ) : (
+
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={stats.revenueByMonth.map((m) => ({ name: formatMonth(m.month), value: m.total }))}>
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" tickFormatter={(v) => formatMoney(v)} width={70} />
+              <Tooltip
+                formatter={(value) => formatMoney(value)}
+                contentStyle={{
+                  background: "#0c0e15",
+                  border: "1px solid #1f2433",
+                  borderRadius: 8
+                }}
+              />
+              <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+
+        )}
 
       </div>
 
