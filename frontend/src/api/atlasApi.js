@@ -667,3 +667,76 @@ export const deleteNote = (id) =>
     method:"DELETE"
 
   });
+
+
+
+/* ---------- Appointments ---------- */
+
+
+export const getAppointments = () =>
+
+  request("/appointments");
+
+
+
+export const getCustomerAppointments = (customerId) =>
+
+  request(`/appointments/customer/${customerId}`);
+
+
+
+export const createAppointment = (
+
+  customer_id,
+
+  title,
+
+  notes,
+
+  start_time,
+
+  end_time
+
+) =>
+
+  request("/appointments", {
+
+    method:"POST",
+
+    body: JSON.stringify({
+
+      customer_id,
+
+      title,
+
+      notes,
+
+      start_time,
+
+      end_time
+
+    })
+
+  });
+
+
+
+export const updateAppointmentStatus = (id, status) =>
+
+  request(`/appointments/${id}`, {
+
+    method:"PATCH",
+
+    body: JSON.stringify({ status })
+
+  });
+
+
+
+export const deleteAppointment = (id) =>
+
+  request(`/appointments/${id}`, {
+
+    method:"DELETE"
+
+  });

@@ -33,6 +33,7 @@ const briefingRoutes = require("./routes/briefing");
 const messageRoutes = require("./routes/messages");
 const taskRoutes = require("./routes/tasks");
 const authRoutes = require("./routes/auth");
+const appointmentRoutes = require("./routes/appointments");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -52,6 +53,7 @@ app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/customer-summary", customerSummaryRoutes);
 app.use("/api/follow-up", followUpRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 app.get("/", (req,res)=>{
 

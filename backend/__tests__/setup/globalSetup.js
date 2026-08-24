@@ -126,6 +126,20 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE appointments (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT,
+          title TEXT NOT NULL,
+          notes TEXT,
+          start_time DATETIME NOT NULL,
+          end_time DATETIME,
+          status TEXT DEFAULT 'scheduled',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
         CREATE TABLE users (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

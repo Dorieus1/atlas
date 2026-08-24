@@ -10,6 +10,7 @@ import DashboardPage from "./pages/Dashboard";
 
 import Customers from "./pages/Customers";
 import Leads from "./pages/Leads";
+import Schedule from "./pages/Schedule";
 import Knowledge from "./pages/Knowledge";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -100,6 +101,15 @@ function App() {
     </ProtectedRoute>
   }
 />
+
+          <Route
+            path="/schedule"
+            element={
+              <ProtectedRoute>
+                <Schedule />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/knowledge"

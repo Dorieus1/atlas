@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Users,
   Flame,
+  CalendarDays,
   BookOpen,
   BarChart3,
   Settings,
@@ -57,6 +58,12 @@ function Sidebar({ open, onClose }) {
       name: "Leads",
       path: "/leads",
       icon: Flame
+    },
+
+    {
+      name: "Schedule",
+      path: "/schedule",
+      icon: CalendarDays
     },
 
     {
