@@ -41,6 +41,14 @@ const sendReviewRequest = async (req, res) => {
 
     const business = await getBusinessById(business_id);
 
+    if (!business) {
+
+      return res.status(404).json({
+        error: "Business not found"
+      });
+
+    }
+
     let result;
 
     try {
