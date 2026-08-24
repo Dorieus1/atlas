@@ -153,7 +153,8 @@ module.exports = async () => {
           start_time DATETIME NOT NULL,
           end_time DATETIME,
           status TEXT DEFAULT 'scheduled',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          reminder_sent_at DATETIME
         )
       `);
 

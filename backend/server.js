@@ -130,6 +130,16 @@ if (require.main === module) {
 
       }, 6 * 60 * 60 * 1000);
 
+      const { sendAppointmentReminders } = require("./services/reminderService");
+
+      sendAppointmentReminders().catch((err) => console.error("APPOINTMENT REMINDERS FAILED:", err));
+
+      setInterval(() => {
+
+        sendAppointmentReminders().catch((err) => console.error("APPOINTMENT REMINDERS FAILED:", err));
+
+      }, 30 * 60 * 1000);
+
       app.listen(PORT,()=>{
 
         console.log(
