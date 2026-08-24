@@ -104,12 +104,12 @@ function Onboarding() {
             body:
             JSON.stringify({
 
-              name: form.name,
-              industry: form.industry,
-              phone: form.phone,
-              email: form.email,
-              address: form.address,
-              services: form.services
+              name: form.name.trim(),
+              industry: form.industry.trim(),
+              phone: form.phone.trim(),
+              email: form.email.trim(),
+              address: form.address.trim(),
+              services: form.services.trim()
 
             })
 
@@ -144,8 +144,8 @@ function Onboarding() {
             body: JSON.stringify({
 
               business_id: business.id,
-              name: form.ownerName,
-              email: form.ownerEmail,
+              name: form.ownerName.trim(),
+              email: form.ownerEmail.trim(),
               password: form.password
 
             })

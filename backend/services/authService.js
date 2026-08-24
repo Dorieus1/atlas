@@ -16,6 +16,8 @@ const createUser = async (
 
   const normalizedEmail = email.trim().toLowerCase();
 
+  const trimmedName = name ? name.trim() : name;
+
 
   const hashedPassword =
     await bcrypt.hash(password, 10);
@@ -47,7 +49,7 @@ const createUser = async (
 
         business_id,
 
-        name,
+        trimmedName,
 
         normalizedEmail,
 

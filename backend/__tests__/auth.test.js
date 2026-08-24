@@ -36,6 +36,55 @@ describe("Auth: register and login", () => {
 
   });
 
+  test("a whitespace-only business name is rejected, and a padded one gets trimmed", async () => {
+
+    const blank = await request(app)
+      .post("/api/business")
+      .send({ name: "   " });
+
+    expect(blank.status).toBe(400);
+
+    const padded = await request(app)
+      .post("/api/business")
+      .send({ name: "  Padded Business Co  " });
+
+    expect(padded.status).toBe(201);
+
+    const rows = await new Promise((resolve, reject) => {
+      db.all(
+        "SELECT name FROM businesses WHERE id = ?",
+        [padded.body.id],
+        (err, r) => err ? reject(err) : resolve(r)
+      );
+    });
+
+    expect(rows[0].name).toBe("Padded Business Co");
+
+  });
+
+  test("a whitespace-only owner name gets trimmed on signup", async () => {
+
+    const biz = await request(app)
+      .post("/api/business")
+      .send({ name: "Trim Owner Co" });
+
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        business_id: biz.body.id,
+        name: "  Padded Owner  ",
+        email: "trimowner@test.com",
+        password: "testpass123"
+      });
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "trimowner@test.com", password: "testpass123" });
+
+    expect(login.body.user.name).toBe("Padded Owner");
+
+  });
+
   test("login is case-insensitive and trims whitespace on the email", async () => {
 
     const biz = await request(app)

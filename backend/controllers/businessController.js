@@ -15,7 +15,7 @@ const createBusiness = (req, res) => {
   } = req.body;
 
 
-  if (!name) {
+  if (!name || !name.trim()) {
 
     return res.status(400).json({
       error: "Business name is required"
@@ -44,7 +44,7 @@ const createBusiness = (req, res) => {
     `,
     [
       id,
-      name,
+      name.trim(),
       phone || "",
       email || "",
       address || "",
