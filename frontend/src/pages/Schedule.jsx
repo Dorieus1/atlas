@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -90,6 +91,7 @@ function Schedule() {
   const savingRef = useRef(false);
 
   const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
 
 
   const loadAppointments = async () => {
@@ -193,7 +195,14 @@ function Schedule() {
     try {
 
       setActionError("");
-      await updateAppointmentStatus(id, status);
+      setActionSuccess("");
+
+      const result = await updateAppointmentStatus(id, status);
+
+      if (result?.draft_invoice_id) {
+        setActionSuccess("Marked complete — a draft invoice was created for this job.");
+      }
+
       await loadAppointments();
 
     } catch (error) {
@@ -277,6 +286,15 @@ function Schedule() {
       {actionError && (
         <p className="mt-4 text-red-400">
           {actionError}
+        </p>
+      )}
+
+      {actionSuccess && (
+        <p className="mt-4 text-green-400">
+          {actionSuccess}{" "}
+          <Link to="/quotes" className="underline hover:text-green-300">
+            View it in Quotes
+          </Link>
         </p>
       )}
 

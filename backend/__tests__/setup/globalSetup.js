@@ -149,6 +149,7 @@ module.exports = async () => {
           type TEXT NOT NULL DEFAULT 'quote',
           status TEXT NOT NULL DEFAULT 'draft',
           notes TEXT,
+          appointment_id TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

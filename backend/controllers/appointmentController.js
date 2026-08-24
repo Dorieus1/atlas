@@ -1,5 +1,6 @@
 const {
   createAppointment: createAppointmentService,
+  getAppointmentById,
   getAppointments: getAppointmentsService,
   getAppointmentsByCustomer: getAppointmentsByCustomerService,
   updateAppointmentStatus: updateAppointmentStatusService,
@@ -7,6 +8,11 @@ const {
 } = require("../services/appointmentService");
 
 const { getCustomerById } = require("../services/customerService");
+
+const {
+  createQuote,
+  getQuoteByAppointmentId
+} = require("../services/quoteService");
 
 
 const VALID_STATUSES = ["scheduled", "completed", "cancelled"];
@@ -183,9 +189,11 @@ const updateAppointmentStatus = async (req, res) => {
 
     }
 
+    const business_id = req.user.business_id;
+
     const updated = await updateAppointmentStatusService(
       id,
-      req.user.business_id,
+      business_id,
       status
     );
 
@@ -197,8 +205,60 @@ const updateAppointmentStatus = async (req, res) => {
 
     }
 
+    let draftInvoiceId = null;
+
+    // Best-effort automation: a completed job usually needs billing, so
+    // give the business a head start with a draft invoice already
+    // pre-filled from the appointment, instead of starting from a blank
+    // form. A failure here must never make an otherwise-successful status
+    // update look like it failed.
+    if (status === "completed") {
+
+      try {
+
+        const appointment = await getAppointmentById(id, business_id);
+
+        if (appointment && appointment.customer_id) {
+
+          const existing = await getQuoteByAppointmentId(id, business_id);
+
+          if (existing) {
+
+            draftInvoiceId = existing.id;
+
+          } else {
+
+            draftInvoiceId = await createQuote(
+
+              business_id,
+
+              appointment.customer_id,
+
+              "invoice",
+
+              `Auto-created from the completed appointment "${appointment.title}"`,
+
+              [{ description: appointment.title, quantity: 1, unit_price: 0 }],
+
+              id
+
+            );
+
+          }
+
+        }
+
+      } catch (invoiceError) {
+
+        console.error("AUTO-INVOICE CREATION FAILED:", invoiceError);
+
+      }
+
+    }
+
     res.json({
-      message: "Appointment updated"
+      message: "Appointment updated",
+      draft_invoice_id: draftInvoiceId
     });
 
   } catch (error) {

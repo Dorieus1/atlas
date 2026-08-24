@@ -9,6 +9,8 @@ const {
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
+const { getBusinessById } = require("../services/businessService");
+const { sendReviewRequestForCustomer } = require("../services/reviewRequestService");
 
 
 const VALID_TYPES = ["quote", "invoice"];
@@ -312,8 +314,48 @@ const updateQuote = async (req, res) => {
 
     }
 
+    let reviewRequestSent = false;
+
+    // Best-effort automation: an invoice being marked paid is the exact
+    // moment a business would want to ask for a review, so do it
+    // automatically instead of relying on someone remembering to click
+    // "Request Review" separately. Silently does nothing if the customer
+    // has no email or the business hasn't set a review link yet - both
+    // are normal, expected states, not failures - and a real send
+    // failure must never make the "mark as paid" update itself look like
+    // it failed.
+    if (status === "paid") {
+
+      try {
+
+        const quote = await getQuoteByIdService(id, business_id);
+
+        if (quote && quote.type === "invoice") {
+
+          const customer = await getCustomerById(quote.customer_id, business_id);
+          const business = await getBusinessById(business_id);
+
+          if (customer && business) {
+
+            const result = await sendReviewRequestForCustomer(business, customer);
+
+            reviewRequestSent = result.sent;
+
+          }
+
+        }
+
+      } catch (reviewError) {
+
+        console.error("AUTO REVIEW REQUEST FAILED:", reviewError);
+
+      }
+
+    }
+
     res.json({
-      message: "Updated"
+      message: "Updated",
+      review_request_sent: reviewRequestSent
     });
 
   } catch (error) {

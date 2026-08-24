@@ -66,7 +66,8 @@ const createQuote = async (
   customer_id,
   type,
   notes,
-  items
+  items,
+  appointment_id = null
 
 ) => {
 
@@ -80,11 +81,11 @@ const createQuote = async (
 
       `
       INSERT INTO quotes
-      (id, business_id, customer_id, type, notes)
-      VALUES (?, ?, ?, ?, ?)
+      (id, business_id, customer_id, type, notes, appointment_id)
+      VALUES (?, ?, ?, ?, ?, ?)
       `,
 
-      [id, business_id, customer_id, type, notes || null]
+      [id, business_id, customer_id, type, notes || null, appointment_id]
 
     );
 
@@ -115,6 +116,25 @@ const createQuote = async (
     throw err;
 
   }
+
+};
+
+
+
+const getQuoteByAppointmentId = (appointment_id, business_id) => {
+
+  return getAsync(
+
+    `
+    SELECT id
+    FROM quotes
+    WHERE appointment_id = ?
+    AND business_id = ?
+    `,
+
+    [appointment_id, business_id]
+
+  );
 
 };
 
@@ -355,6 +375,8 @@ const deleteQuote = async (id, business_id) => {
 module.exports = {
 
   createQuote,
+
+  getQuoteByAppointmentId,
 
   getQuotes,
 

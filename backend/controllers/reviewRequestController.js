@@ -1,11 +1,16 @@
 const {
-  createReviewRequest: createReviewRequestService,
+  sendReviewRequestForCustomer,
   getReviewRequestsByCustomer: getReviewRequestsByCustomerService
 } = require("../services/reviewRequestService");
 
 const { getCustomerById } = require("../services/customerService");
-const { sendEmail } = require("../services/emailService");
 const { getBusinessById } = require("../services/businessService");
+
+
+const REASON_MESSAGES = {
+  no_email: "This customer doesn't have an email on file",
+  no_review_link: "Add your review link in Settings before sending review requests"
+};
 
 
 
@@ -34,40 +39,13 @@ const sendReviewRequest = async (req, res) => {
 
     }
 
-    if (!customer.email) {
-
-      return res.status(400).json({
-        error: "This customer doesn't have an email on file"
-      });
-
-    }
-
     const business = await getBusinessById(business_id);
 
-    if (!business || !business.review_link) {
-
-      return res.status(400).json({
-        error: "Add your review link in Settings before sending review requests"
-      });
-
-    }
+    let result;
 
     try {
 
-      await sendEmail({
-
-        to: customer.email,
-
-        subject: `How did we do, ${customer.name || "there"}?`,
-
-        html: `
-          <p>Hi ${customer.name || "there"},</p>
-          <p>Thanks for choosing ${business.name}! If you have a minute, we'd really appreciate a quick review.</p>
-          <p><a href="${business.review_link}">Leave us a review</a></p>
-          <p>Thank you for your support!</p>
-        `
-
-      });
+      result = await sendReviewRequestForCustomer(business, customer);
 
     } catch (emailError) {
 
@@ -79,7 +57,13 @@ const sendReviewRequest = async (req, res) => {
 
     }
 
-    await createReviewRequestService(business_id, customer_id, customer.email);
+    if (!result.sent) {
+
+      return res.status(400).json({
+        error: REASON_MESSAGES[result.reason] || "Couldn't send that review request"
+      });
+
+    }
 
     res.status(201).json({
       message: "Review request sent"

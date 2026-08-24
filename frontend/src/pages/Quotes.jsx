@@ -54,6 +54,7 @@ function Quotes() {
 
   const [activeQuote, setActiveQuote] = useState(null);
   const [detailError, setDetailError] = useState("");
+  const [detailSuccess, setDetailSuccess] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
 
 
@@ -187,6 +188,7 @@ function Quotes() {
   const openDetail = async (id) => {
 
     setDetailError("");
+    setDetailSuccess("");
     setDetailLoading(true);
     setActiveQuote({ id });
 
@@ -216,7 +218,14 @@ function Quotes() {
     try {
 
       setDetailError("");
-      await updateQuote(activeQuote.id, { status });
+      setDetailSuccess("");
+
+      const result = await updateQuote(activeQuote.id, { status });
+
+      if (result?.review_request_sent) {
+        setDetailSuccess("Marked paid — a review request was automatically sent to this customer.");
+      }
+
       setActiveQuote((previous) => ({ ...previous, status }));
       await loadQuotes();
 
@@ -531,6 +540,12 @@ function Quotes() {
             {detailError && (
               <p className="mt-3 text-sm text-red-400">
                 {detailError}
+              </p>
+            )}
+
+            {detailSuccess && (
+              <p className="mt-3 text-sm text-green-400">
+                {detailSuccess}
               </p>
             )}
 

@@ -154,6 +154,31 @@ const getAppointmentsByCustomer = (customer_id, business_id) => {
 
 
 
+const getAppointmentById = (id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM appointments
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [id, business_id],
+
+      (err, row) => (err ? reject(err) : resolve(row))
+
+    );
+
+  });
+
+};
+
+
+
 const updateAppointmentStatus = (id, business_id, status) => {
 
 
@@ -234,6 +259,8 @@ const deleteAppointment = (id, business_id) => {
 module.exports = {
 
   createAppointment,
+
+  getAppointmentById,
 
   getAppointments,
 
