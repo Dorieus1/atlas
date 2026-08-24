@@ -1,7 +1,8 @@
-const db = require("./db");
+const { run } = require("./util");
 
-db.serialize(() => {
-  db.run(`
+module.exports = async (db) => {
+
+  await run(db, `
     CREATE TABLE IF NOT EXISTS businesses (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -9,7 +10,7 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
+  await run(db, `
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
       business_id TEXT NOT NULL,
@@ -19,7 +20,7 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
+  await run(db, `
     CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,
       customer_id TEXT NOT NULL,
@@ -29,8 +30,7 @@ db.serialize(() => {
     )
   `);
 
-  console.log("Database tables created");
-    db.run(`
+  await run(db, `
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,
       customer_id TEXT NOT NULL,
@@ -38,16 +38,18 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  db.run(`
-  CREATE TABLE IF NOT EXISTS knowledge (
-    id TEXT PRIMARY KEY,
-    business_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-  db.run(`
+
+  await run(db, `
+    CREATE TABLE IF NOT EXISTS knowledge (
+      id TEXT PRIMARY KEY,
+      business_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await run(db, `
     CREATE TABLE IF NOT EXISTS leads (
       id TEXT PRIMARY KEY,
       customer_id TEXT NOT NULL,
@@ -61,24 +63,15 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
+  await run(db, `
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      business_id TEXT NOT NULL,
+      name TEXT,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-CREATE TABLE IF NOT EXISTS users (
-
-  id TEXT PRIMARY KEY,
-
-  business_id TEXT NOT NULL,
-
-  name TEXT,
-
-  email TEXT UNIQUE NOT NULL,
-
-  password TEXT NOT NULL,
-
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-
-)
-
-`);
-
-});
+};

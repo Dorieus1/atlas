@@ -20,6 +20,18 @@ npm --prefix frontend run dev   # frontend, defaults to port 5173
 
 Both need to be running at the same time. The frontend automatically points its API calls at whatever host it was loaded from, so it also works from another device on the same WiFi network (e.g. a phone), using this computer's local network address instead of `localhost`.
 
+## Database setup
+
+There's nothing to run by hand. The backend applies any pending schema changes from `database/migrations/` to `atlas.db` automatically on startup — a fresh clone gets a complete, working database the first time you run `node backend/server.js`. Migrations are tracked in a `migrations` table so each one only ever runs once, no matter how many times the server restarts.
+
+To apply pending migrations without starting the server, run:
+
+```bash
+npm run migrate
+```
+
+Adding a new table or column later means adding a new numbered file to `database/migrations/` (see the existing ones for the pattern) — it'll be picked up automatically next run.
+
 ## Tests
 
 ```bash

@@ -11,7 +11,8 @@ app.use(cors());
 app.use(express.json());
 
 
-require("../database/db");
+const db = require("../database/db");
+const { runMigrations } = require("../database/migrate");
 
 
 
@@ -34,6 +35,7 @@ const messageRoutes = require("./routes/messages");
 const taskRoutes = require("./routes/tasks");
 const authRoutes = require("./routes/auth");
 const appointmentRoutes = require("./routes/appointments");
+const quoteRoutes = require("./routes/quotes");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -54,6 +56,7 @@ app.use("/api/notes", noteRoutes);
 app.use("/api/customer-summary", customerSummaryRoutes);
 app.use("/api/follow-up", followUpRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/quotes", quoteRoutes);
 
 app.get("/", (req,res)=>{
 
@@ -78,23 +81,34 @@ if (require.main === module) {
 
   }
 
-  const { backupDatabase } = require("../database/backup");
+  runMigrations(db)
+    .then(() => {
 
-  backupDatabase().catch(() => {});
+      const { backupDatabase } = require("../database/backup");
 
-  setInterval(() => {
+      backupDatabase().catch(() => {});
 
-    backupDatabase().catch(() => {});
+      setInterval(() => {
 
-  }, 6 * 60 * 60 * 1000);
+        backupDatabase().catch(() => {});
 
-  app.listen(PORT,()=>{
+      }, 6 * 60 * 60 * 1000);
 
-    console.log(
-      `Atlas server running on port ${PORT}`
-    );
+      app.listen(PORT,()=>{
 
-  });
+        console.log(
+          `Atlas server running on port ${PORT}`
+        );
+
+      });
+
+    })
+    .catch((err) => {
+
+      console.error("Database migration failed:", err.message);
+      process.exit(1);
+
+    });
 
 }
 
