@@ -4,6 +4,7 @@ import {
   createTask,
   generateMessage
 } from "../../api/atlasApi";
+import Skeleton, { SkeletonText } from "../Skeleton";
 
 
 function IntelligencePanel() {
@@ -227,9 +228,38 @@ function IntelligencePanel() {
 
       {loadingIntelligence ? (
 
-        <p className="text-slate-400">
-          Loading recommendations...
-        </p>
+        <>
+
+          {[0, 1].map((index) => (
+
+            <div
+              key={index}
+              className="
+                bg-ink-800
+                border
+                border-ink-700
+                rounded-xl
+                p-5
+                mb-5
+              "
+            >
+
+              <Skeleton className="h-6 w-40 mb-3" />
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-4 w-28 mb-3" />
+              <SkeletonText lines={2} />
+
+              <div className="flex gap-3 mt-5">
+                <Skeleton className="h-9 w-32" />
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+
+            </div>
+
+          ))}
+
+        </>
 
       ) : loadError ? (
 

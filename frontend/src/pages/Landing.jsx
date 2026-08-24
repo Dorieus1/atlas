@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import DashboardMockup from "../components/DashboardMockup";
 import {
   MessageSquare,
   Flame,
@@ -150,6 +151,10 @@ function Landing() {
           <p className="mt-6 text-sm text-slate-500">
             No credit card required to get started.
           </p>
+
+          <div className="mx-auto mt-16 hidden max-w-4xl -rotate-1 transform lg:block">
+            <DashboardMockup />
+          </div>
 
         </section>
 

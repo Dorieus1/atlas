@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE } from "../api/atlasApi";
-import AuthHeader from "../components/AuthHeader";
+import AuthLayout from "../components/AuthLayout";
 
 
 function Login() {
@@ -154,29 +154,21 @@ function Login() {
 
   return (
 
-    <div className="
-      max-w-md
-      mx-auto
-      mt-12
-      mb-12
-      rounded-2xl
-      border
-      border-ink-700
-      bg-ink-900/60
-      p-8
-    ">
-
-      <AuthHeader />
+    <AuthLayout>
 
       <h1 className="
         text-3xl
         font-bold
-        mb-6
+        mb-1
       ">
 
-        🔐 Login
+        Welcome back
 
       </h1>
+
+      <p className="mb-6 text-slate-400">
+        Log in to your Atlas account.
+      </p>
 
 
 
@@ -308,7 +300,7 @@ function Login() {
 
 
 
-    </div>
+    </AuthLayout>
 
   );
 

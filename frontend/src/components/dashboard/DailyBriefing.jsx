@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getBriefing } from "../../api/atlasApi";
+import Skeleton, { SkeletonText } from "../Skeleton";
 
 
 function DailyBriefing() {
@@ -101,11 +102,37 @@ function DailyBriefing() {
 
       {loading ? (
 
-        <p>
+        <>
 
-          Atlas is preparing your briefing...
+          <div className="
+            grid
+            grid-cols-3
+            gap-4
+            mb-6
+          ">
 
-        </p>
+            <div className="bg-ink-800 rounded-lg p-4">
+              <Skeleton className="h-4 w-20 mb-3" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+
+            <div className="bg-ink-800 rounded-lg p-4">
+              <Skeleton className="h-4 w-16 mb-3" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+
+            <div className="bg-ink-800 rounded-lg p-4">
+              <Skeleton className="h-4 w-24 mb-3" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+
+          </div>
+
+          <div className="bg-ink-800 rounded-xl p-5">
+            <SkeletonText lines={3} />
+          </div>
+
+        </>
 
 
       ) : error ? (

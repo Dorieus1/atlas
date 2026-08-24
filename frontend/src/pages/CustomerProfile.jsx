@@ -18,6 +18,7 @@ import {
 
 import ChatWindow from "../components/ChatWindow";
 import MemoryPanel from "../components/MemoryPanel";
+import { SkeletonText } from "../components/Skeleton";
 
 
 function CustomerProfile() {
@@ -782,16 +783,23 @@ function CustomerProfile() {
 
         </h2>
 
-        <p className={
-          "mt-4 whitespace-pre-wrap" +
-          (summaryError ? " text-red-400" : "")
-        }>
+        {summaryError ? (
 
-          {summaryError ||
-            summary ||
-            "Generating summary..."}
+          <p className="mt-4 whitespace-pre-wrap text-red-400">
+            {summaryError}
+          </p>
 
-        </p>
+        ) : summary ? (
+
+          <p className="mt-4 whitespace-pre-wrap">
+            {summary}
+          </p>
+
+        ) : (
+
+          <SkeletonText lines={3} className="mt-4" />
+
+        )}
 
       </div>
 
