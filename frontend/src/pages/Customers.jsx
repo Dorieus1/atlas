@@ -9,6 +9,8 @@ function Customers() {
 
   const [customers, setCustomers] = useState([]);
 
+  const [search, setSearch] = useState("");
+
   const navigate = useNavigate();
 
 
@@ -55,6 +57,16 @@ function Customers() {
 
 
 
+  const query = search.trim().toLowerCase();
+
+  const filteredCustomers = query
+    ? customers.filter((customer) =>
+        (customer.name || "").toLowerCase().includes(query) ||
+        (customer.email || "").toLowerCase().includes(query)
+      )
+    : customers;
+
+
 
 
   return (
@@ -80,6 +92,33 @@ function Customers() {
       />
 
 
+      {customers.length > 0 && (
+
+        <input
+
+          value={search}
+
+          onChange={(e) => setSearch(e.target.value)}
+
+          placeholder="Search by name or email"
+
+          className="
+            w-full
+            mt-8
+            bg-slate-800
+            text-white
+            placeholder:text-slate-500
+            border
+            border-slate-700
+            rounded-lg
+            p-3
+          "
+
+        />
+
+      )}
+
+
 
 
       <div className="
@@ -98,10 +137,19 @@ function Customers() {
         </p>
 
 
+      ) : filteredCustomers.length === 0 ? (
+
+        <p className="text-slate-400">
+
+          No customers match "{search.trim()}".
+
+        </p>
+
+
       ) : (
 
 
-        customers.map((customer)=>(
+        filteredCustomers.map((customer)=>(
 
 
           <button

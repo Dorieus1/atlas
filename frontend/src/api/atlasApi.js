@@ -1,5 +1,6 @@
 export const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5050";
+  import.meta.env.VITE_API_URL ||
+  `http://${window.location.hostname}:5050`;
 
 const API = `${API_BASE}/api`;
 
