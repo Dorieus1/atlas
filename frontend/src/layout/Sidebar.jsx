@@ -8,6 +8,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Search,
   X
 } from "lucide-react";
 
@@ -17,7 +18,7 @@ import Logo from "../components/Logo";
 import NotificationBell from "../components/NotificationBell";
 
 
-function Sidebar({ open, onClose }) {
+function Sidebar({ open, onClose, onOpenSearch }) {
 
   const navigate = useNavigate();
 
@@ -131,6 +132,14 @@ function Sidebar({ open, onClose }) {
         <Logo size={30} withWordmark />
 
         <div className="flex items-center gap-1">
+
+          <button
+            onClick={onOpenSearch}
+            className="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-ink-800 hover:text-white md:block"
+            aria-label="Search"
+          >
+            <Search size={19} />
+          </button>
 
           <div className="hidden md:block">
             <NotificationBell align="left" />

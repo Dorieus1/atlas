@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   X,
@@ -40,6 +41,8 @@ function formatMoney(amount) {
 
 
 function Quotes() {
+
+  const [searchParams] = useSearchParams();
 
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -93,6 +96,15 @@ function Quotes() {
       .then(setCustomers)
       .catch((error) => console.error("CUSTOMERS LOAD ERROR:", error));
 
+    // A search result (or any other deep link) can land here with
+    // ?open=id to jump straight into that quote's detail view.
+    const openId = searchParams.get("open");
+
+    if (openId) {
+      openDetail(openId);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 

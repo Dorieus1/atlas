@@ -1166,3 +1166,11 @@ export const startStripeOnboarding = () =>
   request("/stripe/connect/start", {
     method:"POST"
   });
+
+
+
+/* ---------- Search ---------- */
+
+
+export const search = (query) =>
+  request(`/search?q=${encodeURIComponent(query)}`);

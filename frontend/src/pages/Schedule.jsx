@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -70,17 +70,27 @@ function buildMonthGrid(monthDate) {
 
 function Schedule() {
 
+  const [searchParams] = useSearchParams();
+
+  // A search result (or any other deep link) can land here with
+  // ?date=YYYY-MM-DD to open straight to that day instead of always
+  // defaulting to today.
+  const dateParam = searchParams.get("date");
+  const linkedDate = dateParam && !Number.isNaN(new Date(dateParam).getTime())
+    ? new Date(`${dateParam}T00:00:00`)
+    : null;
+
   const [appointments, setAppointments] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   const [viewMonth, setViewMonth] = useState(() => {
-    const now = new Date();
+    const now = linkedDate || new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => linkedDate || new Date());
   const [showForm, setShowForm] = useState(false);
 
   const [formTitle, setFormTitle] = useState("");
