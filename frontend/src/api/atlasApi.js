@@ -933,6 +933,16 @@ export const deletePhoto = (id) =>
 
 
 
+export const draftEstimateFromPhoto = (id) =>
+
+  request(`/photos/${id}/draft-estimate`, {
+
+    method:"POST"
+
+  });
+
+
+
 /* ---------- Review Requests ---------- */
 
 
@@ -1174,3 +1184,22 @@ export const startStripeOnboarding = () =>
 
 export const search = (query) =>
   request(`/search?q=${encodeURIComponent(query)}`);
+
+
+
+/* ---------- Knowledge gaps (AI-suggested knowledge entries) ---------- */
+
+
+export const getKnowledgeGaps = () =>
+  request("/knowledge-gaps");
+
+export const approveKnowledgeGap = (id, title, content) =>
+  request(`/knowledge-gaps/${id}/approve`, {
+    method:"POST",
+    body: JSON.stringify({ title, content })
+  });
+
+export const dismissKnowledgeGap = (id) =>
+  request(`/knowledge-gaps/${id}/dismiss`, {
+    method:"POST"
+  });

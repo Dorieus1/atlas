@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Plus,
   X,
   Trash2,
   FileText,
   ArrowRightLeft,
-  Download
+  Download,
+  Sparkles
 } from "lucide-react";
 
 import {
@@ -43,6 +44,10 @@ function formatMoney(amount) {
 function Quotes() {
 
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [draftSummary, setDraftSummary] = useState("");
 
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -104,6 +109,25 @@ function Quotes() {
       openDetail(openId);
     }
 
+    // PhotoGallery's "Draft Estimate with AI" hands off a draft this way
+    // instead of the URL - a whole line-item array doesn't belong in a
+    // query string. Pre-fills the create form instead of auto-saving,
+    // since an AI-drafted estimate from a photo is a starting point the
+    // owner is expected to review, not something that should land as a
+    // real quote untouched.
+    if (location.state?.draftItems?.length > 0) {
+
+      setFormCustomerId(location.state.draftCustomerId || "");
+      setFormItems(location.state.draftItems);
+      setFormNotes("");
+      setFormError("");
+      setDraftSummary(location.state.draftSummary || "");
+      setShowForm(true);
+
+      navigate(location.pathname, { replace: true });
+
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -114,6 +138,7 @@ function Quotes() {
     setFormNotes("");
     setFormItems([emptyItem()]);
     setFormError("");
+    setDraftSummary("");
     setShowForm(true);
 
   };
@@ -443,7 +468,7 @@ function Quotes() {
             <div className="flex items-center justify-between">
 
               <h3 className="font-display text-lg font-bold">
-                New Quote
+                {draftSummary ? "AI-Drafted Quote" : "New Quote"}
               </h3>
 
               <button
@@ -455,6 +480,13 @@ function Quotes() {
               </button>
 
             </div>
+
+            {draftSummary && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg bg-brand-600/10 p-3 text-sm text-brand-300">
+                <Sparkles size={15} className="mt-0.5 shrink-0" />
+                <p>{draftSummary} Review the line items below before saving — this is a starting point, not a final price.</p>
+              </div>
+            )}
 
             {formError && (
               <p className="mt-3 text-sm text-red-400">

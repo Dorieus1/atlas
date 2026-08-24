@@ -1,15 +1,19 @@
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
+const fs = require("fs/promises");
 
 const {
   UPLOAD_DIR,
   savePhotoRecord,
   getPhotosByCustomer,
+  getPhotoById,
   deletePhoto
 } = require("../services/photoService");
 
 const { getCustomerById } = require("../services/customerService");
+const { getBusinessById } = require("../services/businessService");
+const { generateEstimateFromPhoto } = require("../services/aiService");
 
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -215,12 +219,78 @@ const removePhoto = async (req, res) => {
 
 
 
+const draftEstimateFromPhoto = async (req, res) => {
+
+  try {
+
+    const photo = await getPhotoById(req.params.id, req.user.business_id);
+
+    if (!photo) {
+
+      return res.status(404).json({
+        error: "Photo not found"
+      });
+
+    }
+
+    let fileBuffer;
+
+    try {
+
+      fileBuffer = await fs.readFile(path.join(UPLOAD_DIR, photo.filename));
+
+    } catch (readError) {
+
+      return res.status(404).json({
+        error: "That photo's file couldn't be found"
+      });
+
+    }
+
+    const dataUrl = `data:${photo.mime_type || "image/jpeg"};base64,${fileBuffer.toString("base64")}`;
+
+    const business = await getBusinessById(req.user.business_id);
+
+    let draft;
+
+    try {
+
+      draft = await generateEstimateFromPhoto(dataUrl, business, photo.caption);
+
+    } catch (aiError) {
+
+      console.error("PHOTO ESTIMATE AI ERROR:", aiError);
+
+      return res.status(502).json({
+        error: "Couldn't draft an estimate from that photo right now. Please try again."
+      });
+
+    }
+
+    res.json(draft);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 module.exports = {
 
   uploadPhoto,
 
   getCustomerPhotos,
 
-  removePhoto
+  removePhoto,
+
+  draftEstimateFromPhoto
 
 };

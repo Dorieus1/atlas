@@ -62,6 +62,7 @@ const onboardingRoutes = require("./routes/onboarding");
 const portalRoutes = require("./routes/portal");
 const stripeConnectRoutes = require("./routes/stripeConnect");
 const searchRoutes = require("./routes/search");
+const knowledgeGapRoutes = require("./routes/knowledgeGaps");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -91,6 +92,7 @@ app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/portal", portalRoutes);
 app.use("/api/stripe/connect", stripeConnectRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/knowledge-gaps", knowledgeGapRoutes);
 
 app.get("/", (req,res)=>{
 

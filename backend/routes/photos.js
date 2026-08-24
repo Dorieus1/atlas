@@ -8,7 +8,8 @@ const rateLimiter = require("../middleware/rateLimiter");
 const {
   uploadPhoto,
   getCustomerPhotos,
-  removePhoto
+  removePhoto,
+  draftEstimateFromPhoto
 } = require("../controllers/photoController");
 
 
@@ -23,6 +24,15 @@ router.get(
   "/customer/:customer_id",
   authMiddleware,
   getCustomerPhotos
+);
+
+// Tighter limit than uploads - a vision call is far more expensive than
+// saving a file.
+router.post(
+  "/:id/draft-estimate",
+  authMiddleware,
+  rateLimiter(10, 60 * 1000),
+  draftEstimateFromPhoto
 );
 
 router.delete(

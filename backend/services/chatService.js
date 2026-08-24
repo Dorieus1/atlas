@@ -1,4 +1,4 @@
-const { generateAIResponse } = require("./aiService");
+const { generateAIResponse, detectKnowledgeGap } = require("./aiService");
 const { getCustomerMemories } = require("./memoryService");
 const { saveConversation } = require("./conversationService");
 const { getBusinessKnowledge } = require("./knowledgeService");
@@ -7,6 +7,7 @@ const { createActivity } = require("./activityService");
 const { createLead } = require("./leadService");
 const { createTask } = require("./taskService");
 const { createNotification } = require("./notificationService");
+const { createKnowledgeGap } = require("./knowledgeGapService");
 
 
 // Shared by the authenticated chat endpoint and the public chat page -
@@ -112,6 +113,49 @@ const processChatMessage = async (customer, business, message) => {
       sideEffectError
 
     );
+
+  }
+
+  // A second, independent best-effort pass - kept in its own try/catch
+  // so a failure here (or in the block above) never affects the other.
+  // The reply has already been generated and saved either way; this
+  // only ever adds a suggestion for the owner to review later, never
+  // changes what the customer already received.
+  try {
+
+    const gap = await detectKnowledgeGap(message, reply, knowledge);
+
+    if (gap.hasGap && gap.suggestedTitle && gap.suggestedContent) {
+
+      await createKnowledgeGap(
+
+        business_id,
+        customer_id,
+        message,
+        gap.suggestedTitle,
+        gap.suggestedContent
+
+      );
+
+      await createNotification(
+
+        business_id,
+
+        "knowledge_gap",
+
+        `🧠 Atlas wasn't sure how to answer a question`,
+
+        gap.suggestedTitle,
+
+        "/knowledge"
+
+      );
+
+    }
+
+  } catch (gapError) {
+
+    console.error("KNOWLEDGE GAP DETECTION FAILED:", gapError);
 
   }
 

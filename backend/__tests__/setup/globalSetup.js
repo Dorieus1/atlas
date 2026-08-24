@@ -82,6 +82,19 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE knowledge_gaps (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT,
+          question TEXT NOT NULL,
+          suggested_title TEXT NOT NULL,
+          suggested_content TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
         CREATE TABLE leads (
           id TEXT PRIMARY KEY,
           customer_id TEXT NOT NULL,

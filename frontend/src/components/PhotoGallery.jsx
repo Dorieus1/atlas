@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { Camera, X, Trash2, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Camera, X, Trash2, Upload, Sparkles } from "lucide-react";
 
 import {
   getCustomerPhotos,
   uploadPhoto,
   deletePhoto,
+  draftEstimateFromPhoto,
   API_BASE
 } from "../api/atlasApi";
 
@@ -13,6 +15,8 @@ import Skeleton from "./Skeleton";
 
 
 function PhotoGallery({ customerId }) {
+
+  const navigate = useNavigate();
 
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +29,8 @@ function PhotoGallery({ customerId }) {
   const [pendingCaption, setPendingCaption] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState("");
 
   const fileInputRef = useRef(null);
 
@@ -117,6 +123,44 @@ function PhotoGallery({ customerId }) {
     } finally {
 
       setDeleting(false);
+
+    }
+
+  };
+
+
+  const handleDraftEstimate = async (photo) => {
+
+    setDrafting(true);
+    setDraftError("");
+
+    try {
+
+      const draft = await draftEstimateFromPhoto(photo.id);
+
+      if (!draft.items || draft.items.length === 0) {
+
+        setDraftError(draft.summary || "The AI couldn't find anything to estimate in this photo.");
+        return;
+
+      }
+
+      navigate("/quotes", {
+        state: {
+          draftCustomerId: customerId,
+          draftItems: draft.items,
+          draftSummary: draft.summary
+        }
+      });
+
+    } catch (error) {
+
+      console.error("DRAFT ESTIMATE ERROR:", error);
+      setDraftError(error.message || "Couldn't draft an estimate from that photo. Please try again.");
+
+    } finally {
+
+      setDrafting(false);
 
     }
 
@@ -282,6 +326,25 @@ function PhotoGallery({ customerId }) {
               alt={activePhoto.caption || "Customer photo"}
               className="max-h-[70vh] w-full object-contain"
             />
+
+            <div className="border-t border-ink-800 p-3">
+
+              {draftError && (
+                <p className="mb-2 text-xs text-red-400">
+                  {draftError}
+                </p>
+              )}
+
+              <button
+                onClick={() => handleDraftEstimate(activePhoto)}
+                disabled={drafting}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600/15 px-3 py-2 text-sm font-semibold text-brand-400 transition hover:bg-brand-600/25 disabled:opacity-50"
+              >
+                <Sparkles size={15} />
+                {drafting ? "Looking at the photo..." : "Draft Estimate with AI"}
+              </button>
+
+            </div>
 
           </div>
 

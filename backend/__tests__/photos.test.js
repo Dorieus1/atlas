@@ -178,4 +178,127 @@ describe("Photos", () => {
 
   });
 
+
+  describe("AI draft estimate from a photo", () => {
+
+    beforeEach(() => {
+      global.__mockOpenAICreate.mockClear();
+    });
+
+    test("drafts line items from a valid AI response", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoEstimateValid");
+      const customerId = await createCustomer(app, authHeader, "Estimate Customer");
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("customer_id", customerId)
+        .field("caption", "Cracked shingles")
+        .attach("photo", FAKE_IMAGE, { filename: "damage.jpg", contentType: "image/jpeg" });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({
+
+        output_text: JSON.stringify({
+          items: [
+            { description: "Replace damaged shingles", quantity: 12, unit_price: 8.5 },
+            { description: "Labor", quantity: 2, unit_price: 75 }
+          ],
+          summary: "Visible shingle damage on the north-facing slope."
+        })
+
+      });
+
+      const res = await request(app)
+        .post(`/api/photos/${uploaded.body.id}/draft-estimate`)
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBe(2);
+      expect(res.body.items[0].description).toBe("Replace damaged shingles");
+      expect(res.body.summary).toContain("shingle");
+
+      // Confirms the actual image bytes were sent to the model, not just
+      // a filename or URL - the model has no access to this server's disk.
+      const callArgs = global.__mockOpenAICreate.mock.calls[0][0];
+      const imageContent = callArgs.input[0].content.find((c) => c.type === "input_image");
+      expect(imageContent.image_url).toMatch(/^data:image\/jpeg;base64,/);
+
+    });
+
+    test("strips a markdown code fence if the model wraps its JSON in one", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoEstimateFenced");
+      const customerId = await createCustomer(app, authHeader, "Fenced Customer");
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("customer_id", customerId)
+        .attach("photo", FAKE_IMAGE, { filename: "damage.jpg", contentType: "image/jpeg" });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({
+
+        output_text: "```json\n" + JSON.stringify({
+          items: [{ description: "Patch drywall", quantity: 1, unit_price: 150 }],
+          summary: "Water damage on the ceiling."
+        }) + "\n```"
+
+      });
+
+      const res = await request(app)
+        .post(`/api/photos/${uploaded.body.id}/draft-estimate`)
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBe(1);
+
+    });
+
+    test("a malformed AI response is reported as a 502, not a crash", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoEstimateMalformed");
+      const customerId = await createCustomer(app, authHeader, "Malformed Customer");
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("customer_id", customerId)
+        .attach("photo", FAKE_IMAGE, { filename: "damage.jpg", contentType: "image/jpeg" });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({
+        output_text: "Sorry, I can't help with that."
+      });
+
+      const res = await request(app)
+        .post(`/api/photos/${uploaded.body.id}/draft-estimate`)
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(502);
+
+    });
+
+    test("can't draft an estimate for another business's photo", async () => {
+
+      const bizA = await createBusinessAndUser(app, "PhotoEstimateCrossA");
+      const bizB = await createBusinessAndUser(app, "PhotoEstimateCrossB");
+      const customerId = await createCustomer(app, bizA.authHeader, "A's Customer");
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", bizA.authHeader)
+        .field("customer_id", customerId)
+        .attach("photo", FAKE_IMAGE, { filename: "damage.jpg", contentType: "image/jpeg" });
+
+      const res = await request(app)
+        .post(`/api/photos/${uploaded.body.id}/draft-estimate`)
+        .set("Authorization", bizB.authHeader);
+
+      expect(res.status).toBe(404);
+      expect(global.__mockOpenAICreate).not.toHaveBeenCalled();
+
+    });
+
+  });
+
 });
