@@ -6,6 +6,7 @@ import IntelligencePanel from "../components/dashboard/IntelligencePanel";
 import LeadPipeline from "../components/LeadPipeline";
 import FollowUpAssistant from "../components/dashboard/FollowUpAssistant";
 import TaskPanel from "../components/dashboard/TaskPanel";
+import GettingStartedChecklist from "../components/GettingStartedChecklist";
 
 
 function DashboardPage() {
@@ -19,6 +20,10 @@ function DashboardPage() {
     ">
 
       <Dashboard />
+
+      <div className="mt-8">
+        <GettingStartedChecklist />
+      </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
 

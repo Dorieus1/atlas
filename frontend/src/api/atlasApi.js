@@ -976,3 +976,22 @@ export const markAllNotificationsRead = () =>
     method:"PATCH"
 
   });
+
+
+
+/* ---------- Getting started checklist ---------- */
+
+
+export const getOnboardingStatus = () =>
+
+  request("/onboarding/status");
+
+
+
+export const dismissOnboarding = () =>
+
+  request("/onboarding/dismiss", {
+
+    method:"PATCH"
+
+  });

@@ -34,7 +34,8 @@ module.exports = async () => {
           industry TEXT,
           services TEXT,
           review_link TEXT,
-          slug TEXT
+          slug TEXT,
+          onboarding_dismissed INTEGER DEFAULT 0
         )
       `);
 
