@@ -2,7 +2,8 @@ const {
   createCustomer: createCustomerService,
   getCustomerById: getCustomerByIdService,
   getCustomersByBusiness: getCustomersByBusinessService,
-  deleteCustomer: deleteCustomerService
+  deleteCustomer: deleteCustomerService,
+  updateCustomer: updateCustomerService
 } = require("../services/customerService");
 
 
@@ -251,6 +252,83 @@ const deleteCustomer = async (req, res) => {
 
 
 
+const updateCustomer = async (req, res) => {
+
+
+  try {
+
+
+    const { name, email } = req.body;
+
+
+    if (!name || !name.trim()) {
+
+      return res.status(400).json({
+
+        error:
+        "name is required"
+
+      });
+
+    }
+
+
+    const updated = await updateCustomerService(
+
+      req.params.id,
+
+      req.user.business_id,
+
+      name.trim(),
+
+      email
+
+    );
+
+
+    if (!updated) {
+
+
+      return res.status(404).json({
+
+        error:
+        "Customer not found"
+
+      });
+
+
+    }
+
+
+    res.json({
+
+      message:
+      "Customer updated"
+
+    });
+
+
+
+  } catch(error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error:error.message
+
+    });
+
+
+  }
+
+
+};
+
+
+
 module.exports = {
 
 
@@ -260,7 +338,9 @@ module.exports = {
 
   getCustomerById,
 
-  deleteCustomer
+  deleteCustomer,
+
+  updateCustomer
 
 
 };

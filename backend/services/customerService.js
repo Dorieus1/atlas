@@ -285,11 +285,65 @@ const deleteCustomer = async (
 
 
 
+const updateCustomer = (
+
+  id,
+  business_id,
+  name,
+  email
+
+) => {
+
+
+  return new Promise((resolve, reject) => {
+
+
+    db.run(
+
+      `
+      UPDATE customers
+      SET name = ?, email = ?
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [
+        name,
+        email || null,
+        id,
+        business_id
+      ],
+
+      function(err) {
+
+        if (err) {
+
+          reject(err);
+
+        } else {
+
+          resolve(this.changes > 0);
+
+        }
+
+      }
+
+    );
+
+
+  });
+
+
+};
+
+
+
 module.exports = {
 
   createCustomer,
   getCustomers,
   getCustomerById,
   getCustomersByBusiness,
-  deleteCustomer
+  deleteCustomer,
+  updateCustomer
 };

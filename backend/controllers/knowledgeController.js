@@ -93,7 +93,102 @@ const getKnowledge = (req, res) => {
 
 
 
+const updateKnowledge = (req, res) => {
+
+  const {
+    title,
+    content
+  } = req.body;
+
+  const business_id = req.user.business_id;
+
+  const { id } = req.params;
+
+
+  if (!title || !title.trim() || !content || !content.trim()) {
+    return res.status(400).json({
+      error: "title and content are required"
+    });
+  }
+
+
+  db.run(
+    `UPDATE knowledge
+     SET title = ?, content = ?
+     WHERE id = ? AND business_id = ?`,
+    [
+      title.trim(),
+      content.trim(),
+      id,
+      business_id
+    ],
+    function(err) {
+
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          error: "Knowledge entry not found"
+        });
+      }
+
+      res.json({
+        message: "Knowledge updated"
+      });
+
+    }
+  );
+
+};
+
+
+
+const deleteKnowledge = (req, res) => {
+
+  const business_id = req.user.business_id;
+
+  const { id } = req.params;
+
+
+  db.run(
+    `DELETE FROM knowledge
+     WHERE id = ? AND business_id = ?`,
+    [
+      id,
+      business_id
+    ],
+    function(err) {
+
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          error: "Knowledge entry not found"
+        });
+      }
+
+      res.json({
+        message: "Knowledge deleted"
+      });
+
+    }
+  );
+
+};
+
+
+
 module.exports = {
   createKnowledge,
-  getKnowledge
+  getKnowledge,
+  updateKnowledge,
+  deleteKnowledge
 };

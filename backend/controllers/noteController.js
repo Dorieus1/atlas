@@ -1,6 +1,9 @@
 const {
   createNote,
-  getCustomerNotes
+  getCustomerNotes,
+  getNoteById,
+  updateNote,
+  deleteNote
 } = require("../services/noteService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -102,10 +105,118 @@ const getNotes = async (req, res) => {
 
 
 
+const editNote = async (req, res) => {
+
+  try {
+
+    const { note } = req.body;
+
+    if (!note || !note.trim()) {
+
+      return res.status(400).json({
+        error: "note is required"
+      });
+
+    }
+
+    const existing = await getNoteById(req.params.id);
+
+    if (!existing) {
+
+      return res.status(404).json({
+        error: "Note not found"
+      });
+
+    }
+
+    const customer = await getCustomerById(
+      existing.customer_id,
+      req.user.business_id
+    );
+
+    if (!customer) {
+
+      return res.status(404).json({
+        error: "Note not found"
+      });
+
+    }
+
+    await updateNote(req.params.id, note.trim());
+
+    res.json({
+      message: "Note updated"
+    });
+
+  } catch(error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Failed to update note"
+    });
+
+  }
+
+};
+
+
+
+const removeNote = async (req, res) => {
+
+  try {
+
+    const existing = await getNoteById(req.params.id);
+
+    if (!existing) {
+
+      return res.status(404).json({
+        error: "Note not found"
+      });
+
+    }
+
+    const customer = await getCustomerById(
+      existing.customer_id,
+      req.user.business_id
+    );
+
+    if (!customer) {
+
+      return res.status(404).json({
+        error: "Note not found"
+      });
+
+    }
+
+    await deleteNote(req.params.id);
+
+    res.json({
+      message: "Note deleted"
+    });
+
+  } catch(error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Failed to delete note"
+    });
+
+  }
+
+};
+
+
+
 module.exports = {
 
   addNote,
 
-  getNotes
+  getNotes,
+
+  editNote,
+
+  removeNote
 
 };

@@ -6,13 +6,19 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const {
   createKnowledge,
-  getKnowledge
+  getKnowledge,
+  updateKnowledge,
+  deleteKnowledge
 } = require("../controllers/knowledgeController");
 
 
 router.post("/", authMiddleware, createKnowledge);
 
 router.get("/:business_id", authMiddleware, getKnowledge);
+
+router.put("/:id", authMiddleware, updateKnowledge);
+
+router.delete("/:id", authMiddleware, deleteKnowledge);
 
 
 module.exports = router;

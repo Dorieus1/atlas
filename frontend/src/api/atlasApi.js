@@ -168,6 +168,32 @@ export const deleteCustomer = (id) =>
 
 
 
+export const updateCustomerInfo = (
+
+  id,
+
+  name,
+
+  email
+
+) =>
+
+  request(`/customers/${id}`, {
+
+    method: "PUT",
+
+    body: JSON.stringify({
+
+      name,
+
+      email
+
+    })
+
+  });
+
+
+
 
 
 /* ---------- Leads ---------- */
@@ -288,6 +314,42 @@ export const createKnowledge = (
       content
 
     })
+
+  });
+
+
+
+export const updateKnowledge = (
+
+  id,
+
+  title,
+
+  content
+
+) =>
+
+  request(`/knowledge/${id}`, {
+
+    method:"PUT",
+
+    body: JSON.stringify({
+
+      title,
+
+      content
+
+    })
+
+  });
+
+
+
+export const deleteKnowledge = (id) =>
+
+  request(`/knowledge/${id}`, {
+
+    method:"DELETE"
 
   });
 
@@ -430,5 +492,37 @@ export const createNote = (
       note
 
     })
+
+  });
+
+
+
+export const updateNote = (
+
+  id,
+
+  note
+
+) =>
+
+  request(`/notes/${id}`, {
+
+    method:"PUT",
+
+    body: JSON.stringify({
+
+      note
+
+    })
+
+  });
+
+
+
+export const deleteNote = (id) =>
+
+  request(`/notes/${id}`, {
+
+    method:"DELETE"
 
   });
