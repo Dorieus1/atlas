@@ -1,5 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
+const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
 
 
@@ -245,6 +246,37 @@ describe("Customer portal", () => {
 
     expect(photos.status).toBe(200);
     expect(photos.body.length).toBe(0);
+
+  });
+
+
+  test("deleting a customer also removes their portal login tokens", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PortalCascade");
+    const slug = await getSlug(authHeader);
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Cascade Customer", email: "portalcascade@test.com" });
+
+    await request(app)
+      .post(`/api/portal/${slug}/login`)
+      .send({ email: "portalcascade@test.com" });
+
+    await request(app)
+      .delete(`/api/customers/${customerRes.body.id}`)
+      .set("Authorization", authHeader);
+
+    const remaining = await new Promise((resolve, reject) => {
+      db.all(
+        "SELECT id FROM portal_login_tokens WHERE customer_id = ?",
+        [customerRes.body.id],
+        (err, rows) => (err ? reject(err) : resolve(rows))
+      );
+    });
+
+    expect(remaining.length).toBe(0);
 
   });
 

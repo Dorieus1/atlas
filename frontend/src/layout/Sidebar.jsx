@@ -105,7 +105,6 @@ function Sidebar({ open, onClose }) {
       z-40
       w-64
       h-screen
-      overflow-y-auto
       bg-ink-900
       border-r
       border-ink-700
@@ -151,7 +150,7 @@ function Sidebar({ open, onClose }) {
 
 
 
-      <nav className="space-y-2 flex-1">
+      <nav className="space-y-2 flex-1 overflow-y-auto">
 
         {links.map((link)=>{
 

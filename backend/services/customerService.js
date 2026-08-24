@@ -284,6 +284,8 @@ const deleteCustomer = async (
 
     await runAsync(`DELETE FROM review_requests WHERE customer_id = ?`, [id]);
 
+    await runAsync(`DELETE FROM portal_login_tokens WHERE customer_id = ?`, [id]);
+
     const result = await runAsync(
 
       `

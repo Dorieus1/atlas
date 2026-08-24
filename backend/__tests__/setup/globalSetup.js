@@ -215,6 +215,8 @@ module.exports = async () => {
         )
       `);
 
+      // Kept as a separate CREATE TABLE from users, above, so this stays
+      // the last statement with the resolve/reject callback attached.
       db.run(`
         CREATE TABLE portal_login_tokens (
           id TEXT PRIMARY KEY,
