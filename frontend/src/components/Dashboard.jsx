@@ -17,6 +17,8 @@ function Dashboard(){
 
   });
 
+  const [loadError, setLoadError] = useState("");
+
 
 
 
@@ -58,9 +60,17 @@ function Dashboard(){
 
       setStats(data);
 
+      setLoadError("");
+
     })
 
-    .catch(console.error);
+    .catch((error)=>{
+
+      console.error(error);
+
+      setLoadError("Couldn't load your stats. Please refresh to try again.");
+
+    });
 
 
   },[]);
@@ -99,6 +109,14 @@ function Dashboard(){
 
 
 
+
+      {loadError ? (
+
+        <p className="text-red-400">
+          {loadError}
+        </p>
+
+      ) : (
 
       <div className="
         grid
@@ -165,6 +183,8 @@ function Dashboard(){
 
 
       </div>
+
+      )}
 
 
     </div>
