@@ -2,6 +2,7 @@ const { getBusinessBySlug } = require("../services/businessService");
 const { createCustomer, getCustomerById } = require("../services/customerService");
 const { getConversationHistory } = require("../services/conversationService");
 const { processChatMessage } = require("../services/chatService");
+const { createNotification } = require("../services/notificationService");
 
 
 const MAX_NAME_LENGTH = 200;
@@ -83,6 +84,31 @@ const startConversation = async (req, res) => {
       phone || null
 
     );
+
+    // Best-effort - a stranger reaching out through the public chat page
+    // is worth flagging, but a failure here must never block them from
+    // actually starting the conversation.
+    try {
+
+      await createNotification(
+
+        business.id,
+
+        "new_conversation",
+
+        `💬 ${name.trim()} started a chat`,
+
+        "New visitor from your public chat page",
+
+        `/customers/${customerId}`
+
+      );
+
+    } catch (notificationError) {
+
+      console.error("NEW CONVERSATION NOTIFICATION FAILED:", notificationError);
+
+    }
 
     res.status(201).json({
       customer_id: customerId

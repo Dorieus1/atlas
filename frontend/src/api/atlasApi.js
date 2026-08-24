@@ -941,3 +941,38 @@ export const sendPublicMessage = (slug, customer_id, message) =>
 export const getPublicHistory = (slug, customerId) =>
 
   request(`/public/${slug}/conversations/${customerId}`);
+
+
+
+/* ---------- Notifications ---------- */
+
+
+export const getNotifications = () =>
+
+  request("/notifications");
+
+
+
+export const getUnreadNotificationCount = () =>
+
+  request("/notifications/unread-count");
+
+
+
+export const markNotificationRead = (id) =>
+
+  request(`/notifications/${id}/read`, {
+
+    method:"PATCH"
+
+  });
+
+
+
+export const markAllNotificationsRead = () =>
+
+  request("/notifications/read-all", {
+
+    method:"PATCH"
+
+  });

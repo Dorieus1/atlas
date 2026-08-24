@@ -6,6 +6,7 @@ const { createMemory } = require("./memoryCreationService");
 const { createActivity } = require("./activityService");
 const { createLead } = require("./leadService");
 const { createTask } = require("./taskService");
+const { createNotification } = require("./notificationService");
 
 
 // Shared by the authenticated chat endpoint and the public chat page -
@@ -77,6 +78,20 @@ const processChatMessage = async (customer, business, message) => {
         "Customer showed buying intent: " + message,
 
         new Date().toISOString()
+
+      );
+
+      await createNotification(
+
+        business_id,
+
+        "hot_lead",
+
+        `🔥 New hot lead: ${customer.name || "A customer"}`,
+
+        message.length > 140 ? message.slice(0, 140) + "…" : message,
+
+        "/leads"
 
       );
 

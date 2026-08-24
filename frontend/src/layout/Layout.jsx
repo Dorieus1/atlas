@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Logo from "../components/Logo";
+import NotificationBell from "../components/NotificationBell";
 
 
 function Layout({children}) {
@@ -82,6 +83,10 @@ function Layout({children}) {
           </button>
 
           <Logo size={26} withWordmark />
+
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
 
         </header>
 

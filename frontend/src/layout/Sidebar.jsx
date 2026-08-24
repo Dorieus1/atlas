@@ -14,6 +14,7 @@ import {
 
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import NotificationBell from "../components/NotificationBell";
 
 
 function Sidebar({ open, onClose }) {
@@ -130,13 +131,19 @@ function Sidebar({ open, onClose }) {
 
         <Logo size={30} withWordmark />
 
-        <button
-          onClick={onClose}
-          className="p-1 md:hidden"
-          aria-label="Close menu"
-        >
-          <X size={24} />
-        </button>
+        <div className="flex items-center gap-1">
+
+          <NotificationBell />
+
+          <button
+            onClick={onClose}
+            className="p-1 md:hidden"
+            aria-label="Close menu"
+          >
+            <X size={24} />
+          </button>
+
+        </div>
 
       </div>
 

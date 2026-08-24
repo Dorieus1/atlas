@@ -45,6 +45,7 @@ const quoteRoutes = require("./routes/quotes");
 const photoRoutes = require("./routes/photos");
 const reviewRequestRoutes = require("./routes/reviewRequests");
 const publicRoutes = require("./routes/public");
+const notificationRoutes = require("./routes/notifications");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -69,6 +70,7 @@ app.use("/api/quotes", quoteRoutes);
 app.use("/api/photos", photoRoutes);
 app.use("/api/review-requests", reviewRequestRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req,res)=>{
 
