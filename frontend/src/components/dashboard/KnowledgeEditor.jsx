@@ -64,7 +64,7 @@ function KnowledgeEditor() {
 
   return (
 
-    <div className="mt-8 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+    <div className="mt-8 bg-ink-900/60 border border-ink-700 rounded-2xl p-6">
 
       <h2 className="text-2xl font-bold">
         ➕ Add Business Knowledge
@@ -77,14 +77,14 @@ function KnowledgeEditor() {
       )}
 
       <input
-        className="w-full mt-5 bg-slate-800 rounded-xl p-3"
+        className="w-full mt-5 bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
         placeholder="Title"
         value={title}
         onChange={(e)=>setTitle(e.target.value)}
       />
 
       <textarea
-        className="w-full mt-4 bg-slate-800 rounded-xl p-3 h-32"
+        className="w-full mt-4 bg-ink-800 border border-ink-700 rounded-xl p-3 h-32 placeholder:text-slate-500"
         placeholder="Content"
         value={content}
         onChange={(e)=>setContent(e.target.value)}
@@ -93,7 +93,7 @@ function KnowledgeEditor() {
       <button
         onClick={saveKnowledge}
         disabled={saving}
-        className="mt-5 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-xl disabled:opacity-50"
+        className="mt-5 bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl disabled:opacity-50 transition"
       >
         {saving ? "Saving..." : "Save Knowledge"}
       </button>

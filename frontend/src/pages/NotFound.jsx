@@ -26,7 +26,7 @@ function NotFound() {
 
           to={isLoggedIn ? "/dashboard" : "/"}
 
-          className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+          className="inline-block mt-6 bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg transition"
 
         >
           {isLoggedIn ? "Back to Dashboard" : "Back Home"}

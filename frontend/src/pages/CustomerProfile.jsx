@@ -497,7 +497,7 @@ function CustomerProfile() {
 
           onClick={() => navigate("/customers")}
 
-          className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+          className="inline-block mt-6 bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg"
 
         >
           Back to Customers
@@ -540,7 +540,7 @@ function CustomerProfile() {
 
                 placeholder="Customer name"
 
-                className="bg-slate-800 text-white border border-slate-700 rounded-lg p-2"
+                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2"
 
               />
 
@@ -552,7 +552,7 @@ function CustomerProfile() {
 
                 placeholder="Customer email"
 
-                className="bg-slate-800 text-white border border-slate-700 rounded-lg p-2 ml-2"
+                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2 ml-2"
 
               />
 
@@ -564,7 +564,7 @@ function CustomerProfile() {
 
                 placeholder="Customer phone"
 
-                className="bg-slate-800 text-white border border-slate-700 rounded-lg p-2 ml-2"
+                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2 ml-2"
 
               />
 
@@ -576,7 +576,7 @@ function CustomerProfile() {
 
                   disabled={savingCustomerEdit}
 
-                  className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg disabled:opacity-50"
 
                 >
 
@@ -590,7 +590,7 @@ function CustomerProfile() {
 
                   disabled={savingCustomerEdit}
 
-                  className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
+                  className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg"
 
                 >
 
@@ -678,7 +678,7 @@ function CustomerProfile() {
 
                 disabled={deleting}
 
-                className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
+                className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg"
 
               >
 
@@ -735,8 +735,10 @@ function CustomerProfile() {
       ) : (
 
         <div className="
-          bg-slate-800
-          rounded-xl
+          rounded-2xl
+          border
+          border-ink-700
+          bg-ink-900/60
           p-6
         ">
 
@@ -767,8 +769,10 @@ function CustomerProfile() {
       {/* AI CUSTOMER SUMMARY */}
 
       <div className="
-        bg-slate-800
-        rounded-xl
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
         p-6
       ">
 
@@ -796,8 +800,10 @@ function CustomerProfile() {
       {/* LEAD INFORMATION */}
 
       <div className="
-        bg-slate-800
-        rounded-xl
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
         p-6
       ">
 
@@ -859,7 +865,9 @@ function CustomerProfile() {
               }
 
               className="
-                bg-slate-900
+                bg-ink-800
+                border
+                border-ink-700
                 rounded-lg
                 p-3
               "
@@ -906,8 +914,10 @@ function CustomerProfile() {
       {/* NOTES */}
 
       <div className="
-        bg-slate-800
-        rounded-xl
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
         p-6
       ">
 
@@ -958,10 +968,13 @@ function CustomerProfile() {
 
             className="
               flex-1
-              bg-slate-900
+              bg-ink-900/60
+              border
+              border-ink-700
               rounded-lg
               p-3
               text-white
+              placeholder:text-slate-500
             "
 
           />
@@ -972,8 +985,8 @@ function CustomerProfile() {
             onClick={addNote}
 
             className="
-              bg-blue-600
-              hover:bg-blue-700
+              bg-brand-600
+              hover:bg-brand-500
               px-5
               rounded-lg
             "
@@ -995,7 +1008,7 @@ function CustomerProfile() {
             key={note.id}
 
             className="
-              bg-slate-900
+              bg-ink-800
               rounded-lg
               p-4
               mt-4
@@ -1013,7 +1026,7 @@ function CustomerProfile() {
 
                   onChange={(e) => setEditNoteText(e.target.value)}
 
-                  className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg p-2"
+                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2"
 
                 />
 
@@ -1023,7 +1036,7 @@ function CustomerProfile() {
 
                     onClick={() => saveEditNote(note.id)}
 
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm"
+                    className="bg-brand-600 hover:bg-brand-500 px-3 py-1 rounded-lg text-sm"
 
                   >
 
@@ -1035,7 +1048,7 @@ function CustomerProfile() {
 
                     onClick={cancelEditNote}
 
-                    className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-sm"
+                    className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
 
                   >
 
@@ -1073,7 +1086,7 @@ function CustomerProfile() {
 
                       onClick={() => setConfirmingDeleteNoteId(null)}
 
-                      className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-sm"
+                      className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
 
                     >
 
@@ -1130,8 +1143,10 @@ function CustomerProfile() {
       {/* CONVERSATION HISTORY */}
 
       <div className="
-        bg-slate-800
-        rounded-xl
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
         p-6
       ">
 
@@ -1170,7 +1185,7 @@ function CustomerProfile() {
               >
 
                 <div className="
-                  bg-slate-900
+                  bg-ink-800
                   rounded-lg
                   p-4
                 ">
@@ -1189,7 +1204,7 @@ function CustomerProfile() {
                 {conversation.response && (
 
                   <div className="
-                    bg-blue-900
+                    bg-brand-600/15
                     rounded-lg
                     p-4
                   ">

@@ -115,7 +115,7 @@ function Customers() {
 
             onClick={exportCSV}
 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-lg text-sm"
+            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
 
           >
 
@@ -149,11 +149,11 @@ function Customers() {
           className="
             w-full
             mt-8
-            bg-slate-800
+            bg-ink-900/60
             text-white
             placeholder:text-slate-500
             border
-            border-slate-700
+            border-ink-700
             rounded-lg
             p-3
           "
@@ -213,10 +213,14 @@ function Customers() {
 
             className="
               text-left
-              bg-slate-800
-              hover:bg-slate-700
+              border
+              border-ink-700
+              bg-ink-900/60
+              hover:border-ink-600
+              hover:bg-ink-900
               rounded-xl
               p-5
+              transition
             "
 
           >

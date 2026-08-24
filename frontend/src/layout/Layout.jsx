@@ -15,7 +15,7 @@ function Layout({children}) {
 
       <div className="
         min-h-screen
-        bg-slate-900
+        bg-ink-950
         text-white
       ">
 
@@ -32,7 +32,7 @@ function Layout({children}) {
     <div className="
       flex
       min-h-screen
-      bg-slate-900
+      bg-ink-950
       text-white
     ">
 
@@ -68,8 +68,8 @@ function Layout({children}) {
           gap-4
           p-4
           border-b
-          border-slate-800
-          bg-slate-950
+          border-ink-700
+          bg-ink-900
         ">
 
           <button

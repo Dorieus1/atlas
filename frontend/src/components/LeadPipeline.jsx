@@ -172,7 +172,7 @@ function LeadPipeline() {
 
   return (
 
-    <div className="mt-8 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+    <div className="mt-8 rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
@@ -186,7 +186,7 @@ function LeadPipeline() {
 
             onClick={exportCSV}
 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-lg text-sm"
+            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
 
           >
 
@@ -220,7 +220,7 @@ function LeadPipeline() {
 
             <div
               key={lead.id}
-              className={`bg-slate-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
+              className={`bg-ink-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
             >
 
               <div className="flex justify-between">
@@ -297,7 +297,7 @@ function LeadPipeline() {
                 <button
                   onClick={() => updateStatus(lead.id, "contacted")}
                   disabled={updatingId === lead.id}
-                  className="bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Contacted
                 </button>
@@ -305,7 +305,7 @@ function LeadPipeline() {
                 <button
                   onClick={() => updateStatus(lead.id, "qualified")}
                   disabled={updatingId === lead.id}
-                  className="bg-green-600 px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Qualified
                 </button>
@@ -313,7 +313,7 @@ function LeadPipeline() {
                 <button
                   onClick={() => updateStatus(lead.id, "closed")}
                   disabled={updatingId === lead.id}
-                  className="bg-slate-600 px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   Closed
                 </button>

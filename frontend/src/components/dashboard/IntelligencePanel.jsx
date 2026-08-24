@@ -191,8 +191,10 @@ function IntelligencePanel() {
   return (
 
     <div className="
-      bg-slate-800
-      rounded-xl
+      rounded-2xl
+      border
+      border-ink-700
+      bg-ink-900/60
       p-6
     ">
 
@@ -252,7 +254,9 @@ function IntelligencePanel() {
           key={index}
 
           className="
-            bg-slate-900
+            bg-ink-800
+            border
+            border-ink-700
             rounded-xl
             p-5
             mb-5
@@ -325,7 +329,9 @@ function IntelligencePanel() {
                 createTaskHandler(item)
               }
               className="
-                bg-purple-600
+                bg-brand-600
+                hover:bg-brand-500
+                transition
                 px-4
                 py-2
                 rounded-lg
@@ -347,7 +353,9 @@ function IntelligencePanel() {
                 )
               }
               className="
-                bg-blue-600
+                bg-brand-600
+                hover:bg-brand-500
+                transition
                 px-4
                 py-2
                 rounded-lg
@@ -369,7 +377,9 @@ function IntelligencePanel() {
                 )
               }
               className="
-                bg-green-600
+                bg-brand-600
+                hover:bg-brand-500
+                transition
                 px-4
                 py-2
                 rounded-lg
@@ -394,7 +404,9 @@ function IntelligencePanel() {
       {messageType && (
 
         <div className="
-          bg-slate-900
+          bg-ink-800
+          border
+          border-ink-700
           rounded-xl
           p-5
         ">
@@ -435,7 +447,9 @@ function IntelligencePanel() {
                 w-full
                 mt-3
                 h-40
-                bg-slate-800
+                bg-ink-900
+                border
+                border-ink-700
                 rounded-lg
                 p-3
               "

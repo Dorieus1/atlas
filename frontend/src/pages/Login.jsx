@@ -157,6 +157,12 @@ function Login() {
     <div className="
       max-w-md
       mx-auto
+      mt-12
+      mb-12
+      rounded-2xl
+      border
+      border-ink-700
+      bg-ink-900/60
       p-8
     ">
 
@@ -204,9 +210,15 @@ function Login() {
         className="
           w-full
           mb-4
-          bg-slate-800
+          bg-ink-800
+          border
+          border-ink-700
           rounded-lg
           p-3
+          text-white
+          placeholder:text-slate-500
+          focus:outline-none
+          focus:border-ink-600
         "
 
       />
@@ -228,9 +240,15 @@ function Login() {
         className="
           w-full
           mb-4
-          bg-slate-800
+          bg-ink-800
+          border
+          border-ink-700
           rounded-lg
           p-3
+          text-white
+          placeholder:text-slate-500
+          focus:outline-none
+          focus:border-ink-600
         "
 
       />
@@ -246,11 +264,15 @@ function Login() {
         disabled={loggingIn}
 
         className="
-          bg-blue-600
+          bg-brand-600
+          hover:bg-brand-500
           px-6
           py-3
           rounded-lg
           cursor-pointer
+          font-semibold
+          text-white
+          transition
           disabled:opacity-50
         "
 
@@ -263,7 +285,7 @@ function Login() {
 
       <p className="mt-4 text-slate-400">
 
-        <Link to="/forgot-password" className="text-blue-400 hover:underline">
+        <Link to="/forgot-password" className="text-brand-400 hover:underline">
 
           Forgot your password?
 
@@ -276,7 +298,7 @@ function Login() {
 
         New business?{" "}
 
-        <Link to="/onboarding" className="text-blue-400 hover:underline">
+        <Link to="/onboarding" className="text-brand-400 hover:underline">
 
           Set up Atlas
 

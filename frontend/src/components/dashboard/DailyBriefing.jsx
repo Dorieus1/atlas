@@ -77,8 +77,10 @@ function DailyBriefing() {
   return (
 
     <div className="
-      bg-slate-800
-      rounded-xl
+      rounded-2xl
+      border
+      border-ink-700
+      bg-ink-900/60
       p-6
     ">
 
@@ -131,7 +133,7 @@ function DailyBriefing() {
 
 
               <div className="
-                bg-slate-900
+                bg-ink-800
                 rounded-lg
                 p-4
               ">
@@ -151,7 +153,7 @@ function DailyBriefing() {
 
 
               <div className="
-                bg-slate-900
+                bg-ink-800
                 rounded-lg
                 p-4
               ">
@@ -171,7 +173,7 @@ function DailyBriefing() {
 
 
               <div className="
-                bg-slate-900
+                bg-ink-800
                 rounded-lg
                 p-4
               ">
@@ -197,7 +199,7 @@ function DailyBriefing() {
 
 
           <div className="
-            bg-slate-900
+            bg-ink-800
             rounded-xl
             p-5
           ">

@@ -139,11 +139,11 @@ function BusinessProfile({ business }) {
 
 
   const inputClass =
-    "w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3";
+    "w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3";
 
   return (
 
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
 
       <h2 className="text-xl font-bold mb-4">
         Business Profile
@@ -275,7 +275,7 @@ function BusinessProfile({ business }) {
 
         disabled={saving}
 
-        className="mt-2 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg disabled:opacity-50"
+        className="mt-2 bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg disabled:opacity-50"
 
       >
 

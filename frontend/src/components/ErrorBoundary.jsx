@@ -28,7 +28,7 @@ class ErrorBoundary extends Component {
 
       return (
 
-        <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-8 text-center">
+        <div className="min-h-screen bg-ink-950 text-white flex items-center justify-center p-8 text-center">
 
           <div>
 
@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
 
               onClick={() => window.location.reload()}
 
-              className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg"
+              className="inline-block mt-6 bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg transition"
 
             >
               Reload

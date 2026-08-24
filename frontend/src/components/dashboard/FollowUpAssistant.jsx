@@ -133,9 +133,9 @@ function FollowUpAssistant() {
       return (
 
         <div className="
-          bg-slate-900
+          bg-ink-900/60
           border
-          border-slate-800
+          border-ink-700
           rounded-2xl
           p-6
           mt-8
@@ -166,9 +166,9 @@ function FollowUpAssistant() {
   return (
 
     <div className="
-      bg-slate-900
+      bg-ink-900/60
       border
-      border-slate-800
+      border-ink-700
       rounded-2xl
       p-6
       mt-8
@@ -238,7 +238,8 @@ function FollowUpAssistant() {
 
           className="
             mt-5
-            bg-blue-600
+            bg-brand-600
+            hover:bg-brand-500
             px-5
             py-2
             rounded-xl
@@ -271,7 +272,7 @@ function FollowUpAssistant() {
 
           <div className="
             mt-5
-            bg-slate-800
+            bg-ink-800
             rounded-xl
             p-4
             whitespace-pre-wrap

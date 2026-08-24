@@ -96,14 +96,16 @@ function CustomerForm({ onCustomerCreated }) {
   return (
 
     <div className="
-      bg-slate-900
-      rounded-xl
+      bg-ink-900/60
+      border
+      border-ink-700
+      rounded-2xl
       p-6
       mt-6
     ">
 
 
-      <h2 className="text-xl font-bold">
+      <h2 className="text-xl font-bold mb-3">
 
         Add Customer
 
@@ -125,31 +127,35 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer name"
   value={name}
   onChange={(e) => setName(e.target.value)}
-  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3"
+  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
 />
 
 <input
   placeholder="Customer email"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
-  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3 mb-3"
+  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
 />
 
 <input
   placeholder="Customer phone"
   value={phone}
   onChange={(e) => setPhone(e.target.value)}
-  className="w-full bg-slate-900 text-white placeholder:text-slate-500 border border-slate-700 rounded-lg p-3"
+  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 focus:outline-none focus:border-ink-600"
 />
 
       <button
 
         className="
           mt-4
-          bg-blue-600
+          bg-brand-600
+          hover:bg-brand-500
           px-5
           py-2
           rounded-lg
+          font-semibold
+          text-white
+          transition
           disabled:opacity-50
         "
 

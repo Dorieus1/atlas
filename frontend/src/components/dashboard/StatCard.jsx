@@ -14,12 +14,12 @@ function StatCard({
   return (
 
     <div className="
-      bg-slate-900
+      bg-ink-900/60
       border
-      border-slate-800
+      border-ink-700
       rounded-2xl
       p-5
-      hover:border-slate-600
+      hover:border-ink-600
       transition
     ">
 
@@ -59,7 +59,7 @@ function StatCard({
 
         <div className="
           text-2xl
-          bg-slate-800
+          bg-brand-600/15
           rounded-xl
           p-3
         ">

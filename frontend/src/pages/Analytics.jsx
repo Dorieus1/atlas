@@ -14,7 +14,7 @@ import {
 import { getAnalytics } from "../api/atlasApi";
 import StatCard from "../components/dashboard/StatCard";
 
-const COLORS = ["#f97316", "#334155"];
+const COLORS = ["#f97316", "#2a3040"];
 
 function Analytics() {
 
@@ -103,7 +103,7 @@ function Analytics() {
 
       <div className="mt-8 grid gap-5 md:grid-cols-2">
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
 
           <h2 className="text-xl font-bold mb-4">
             Pipeline Overview
@@ -123,12 +123,12 @@ function Analytics() {
                 <YAxis stroke="#94a3b8" allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    background: "#0f172a",
-                    border: "1px solid #334155",
+                    background: "#0c0e15",
+                    border: "1px solid #1f2433",
                     borderRadius: 8
                   }}
                 />
-                <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
 
@@ -136,7 +136,7 @@ function Analytics() {
 
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
 
           <h2 className="text-xl font-bold mb-4">
             Lead Priority Mix
@@ -166,8 +166,8 @@ function Analytics() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "#0f172a",
-                    border: "1px solid #334155",
+                    background: "#0c0e15",
+                    border: "1px solid #1f2433",
                     borderRadius: 8
                   }}
                 />

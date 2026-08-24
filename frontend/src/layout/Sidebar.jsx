@@ -90,9 +90,9 @@ function Sidebar({ open, onClose }) {
       w-64
       h-screen
       overflow-y-auto
-      bg-slate-950
+      bg-ink-900
       border-r
-      border-slate-800
+      border-ink-700
       p-6
       flex
       flex-col
@@ -162,8 +162,8 @@ function Sidebar({ open, onClose }) {
                 rounded-xl
                 ${
                   isActive
-                  ? "bg-blue-600"
-                  : "hover:bg-slate-800"
+                  ? "bg-brand-600"
+                  : "hover:bg-ink-800"
                 }
                 `
 
@@ -196,7 +196,7 @@ function Sidebar({ open, onClose }) {
           p-3
           rounded-xl
           text-slate-400
-          hover:bg-slate-800
+          hover:bg-ink-800
           hover:text-white
         "
 

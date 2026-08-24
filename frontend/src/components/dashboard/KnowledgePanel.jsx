@@ -155,9 +155,9 @@ function KnowledgePanel() {
 
     <div className="
       mt-8
-      bg-slate-900
+      bg-ink-900/60
       border
-      border-slate-800
+      border-ink-700
       rounded-2xl
       p-6
     ">
@@ -199,7 +199,7 @@ function KnowledgePanel() {
 
             className="
               mt-4
-              bg-slate-800
+              bg-ink-800
               rounded-xl
               p-4
             "
@@ -216,7 +216,7 @@ function KnowledgePanel() {
 
                   onChange={(e) => setEditTitle(e.target.value)}
 
-                  className="w-full bg-slate-900 text-white border border-slate-700 rounded-lg p-2 mb-2"
+                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 mb-2"
 
                 />
 
@@ -226,7 +226,7 @@ function KnowledgePanel() {
 
                   onChange={(e) => setEditContent(e.target.value)}
 
-                  className="w-full bg-slate-900 text-white border border-slate-700 rounded-lg p-2 h-24"
+                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 h-24"
 
                 />
 
@@ -238,7 +238,7 @@ function KnowledgePanel() {
 
                     disabled={savingId === item.id}
 
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm disabled:opacity-50"
+                    className="bg-brand-600 hover:bg-brand-500 px-3 py-1 rounded-lg text-sm disabled:opacity-50"
 
                   >
 
@@ -250,7 +250,7 @@ function KnowledgePanel() {
 
                     onClick={cancelEdit}
 
-                    className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-sm"
+                    className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
 
                   >
 
@@ -314,7 +314,7 @@ function KnowledgePanel() {
 
                         onClick={() => setConfirmingDeleteId(null)}
 
-                        className="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-sm"
+                        className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
 
                       >
 

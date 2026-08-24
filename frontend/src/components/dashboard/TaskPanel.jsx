@@ -119,8 +119,10 @@ function TaskPanel() {
   return (
 
     <div className="
-      bg-slate-800
-      rounded-xl
+      bg-ink-900/60
+      border
+      border-ink-700
+      rounded-2xl
       p-6
     ">
 
@@ -158,7 +160,7 @@ function TaskPanel() {
             key={task.id}
 
             className={`
-              bg-slate-900
+              bg-ink-800
               rounded-xl
               p-5
               mb-4
@@ -209,8 +211,8 @@ function TaskPanel() {
 
                 className="
                   mt-4
-                  bg-green-600
-                  hover:bg-green-700
+                  bg-brand-600
+                  hover:bg-brand-500
                   px-4
                   py-2
                   rounded-lg
