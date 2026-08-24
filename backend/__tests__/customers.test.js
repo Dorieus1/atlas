@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
+const db = require("../../database/db");
 
 describe("Customers", () => {
 
@@ -159,6 +160,61 @@ describe("Customers", () => {
 
     // the customer no longer exists, so notes lookup should 404 too
     expect(notesAfter.status).toBe(404);
+
+  });
+
+  test("deleting a customer really does remove every related row from every table, not just the ones an API route happens to expose", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "CustCascadeDeep");
+
+    const customer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Deep Cascade Customer" });
+
+    const customerId = customer.body.id;
+
+    await request(app)
+      .post("/api/notes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, note: "should be gone" });
+
+    await request(app)
+      .post("/api/tasks")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, title: "should be gone" });
+
+    await request(app)
+      .post("/api/memories")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, memory: "should be gone" });
+
+    await request(app)
+      .post("/api/chat")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, message: "I need an estimate for a repair" });
+
+    const del = await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(del.status).toBe(200);
+
+    const tables = ["notes", "tasks", "memories", "leads", "conversations", "activities"];
+
+    for (const table of tables) {
+
+      const rows = await new Promise((resolve, reject) => {
+        db.all(
+          `SELECT * FROM ${table} WHERE customer_id = ?`,
+          [customerId],
+          (err, r) => err ? reject(err) : resolve(r)
+        );
+      });
+
+      expect(rows).toHaveLength(0);
+
+    }
 
   });
 

@@ -2,6 +2,29 @@ const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
 
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(sql, params, function(err) {
+
+      if (err) {
+
+        reject(err);
+
+      } else {
+
+        resolve(this);
+
+      }
+
+    });
+
+  });
+
+};
+
+
 
 const createCustomer = (
 
@@ -190,52 +213,49 @@ const deleteCustomer = async (
   }
 
 
-  return new Promise((resolve, reject) => {
+  // A real transaction, not just sequential statements: if any one of
+  // these deletes fails partway through, everything rolls back together
+  // instead of leaving the customer gone but some of their notes,
+  // leads, or other records silently orphaned behind in the database.
+  await runAsync("BEGIN TRANSACTION");
 
+  try {
 
-    db.serialize(() => {
+    await runAsync(`DELETE FROM notes WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM notes WHERE customer_id = ?`, [id]);
+    await runAsync(`DELETE FROM conversations WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM conversations WHERE customer_id = ?`, [id]);
+    await runAsync(`DELETE FROM memories WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM memories WHERE customer_id = ?`, [id]);
+    await runAsync(`DELETE FROM activities WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM activities WHERE customer_id = ?`, [id]);
+    await runAsync(`DELETE FROM leads WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM leads WHERE customer_id = ?`, [id]);
+    await runAsync(`DELETE FROM tasks WHERE customer_id = ?`, [id]);
 
-      db.run(`DELETE FROM tasks WHERE customer_id = ?`, [id]);
+    const result = await runAsync(
 
-      db.run(
+      `
+      DELETE FROM customers
+      WHERE id = ?
+      AND business_id = ?
+      `,
 
-        `
-        DELETE FROM customers
-        WHERE id = ?
-        AND business_id = ?
-        `,
+      [id, business_id]
 
-        [id, business_id],
+    );
 
-        function(err) {
+    await runAsync("COMMIT");
 
-          if (err) {
+    return result.changes > 0;
 
-            reject(err);
+  } catch (err) {
 
-          } else {
+    await runAsync("ROLLBACK").catch(() => {});
 
-            resolve(this.changes > 0);
+    throw err;
 
-          }
-
-        }
-
-      );
-
-    });
-
-  });
+  }
 
 
 };
