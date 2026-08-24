@@ -230,7 +230,10 @@ const deleteIncompleteBusiness = (req, res) => {
   // then failed on the next step (e.g. a duplicate email), leaving it
   // permanently orphaned with no way to ever log in and use it. This is
   // narrow and safe on purpose: it can never touch a business anyone is
-  // actually using.
+  // actually using. This route has no auth (the failed signup that
+  // triggers it has no valid session yet), so the delete is also capped
+  // to businesses created in the last hour to keep the unauthenticated
+  // window as small as the real cleanup case actually needs.
   db.get(
 
     `
@@ -263,7 +266,11 @@ const deleteIncompleteBusiness = (req, res) => {
 
       db.run(
 
-        `DELETE FROM businesses WHERE id = ?`,
+        `
+        DELETE FROM businesses
+        WHERE id = ?
+        AND created_at >= datetime('now', '-1 hour')
+        `,
 
         [id],
 
