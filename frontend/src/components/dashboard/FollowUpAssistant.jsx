@@ -16,6 +16,8 @@ function FollowUpAssistant() {
 
   const [error, setError] = useState("");
 
+  const [loadError, setLoadError] = useState("");
+
 
 
   useEffect(()=>{
@@ -36,13 +38,19 @@ function FollowUpAssistant() {
 
         }
 
+        setLoadError("");
 
-      } catch(error) {
+
+      } catch(err) {
 
 
         console.error(
           "LEAD FETCH ERROR:",
-          error
+          err
+        );
+
+        setLoadError(
+          "Couldn't load your leads. Please refresh to try again."
         );
 
 
@@ -119,6 +127,33 @@ function FollowUpAssistant() {
 
 
   if(!lead){
+
+    if (loadError) {
+
+      return (
+
+        <div className="
+          bg-slate-900
+          border
+          border-slate-800
+          rounded-2xl
+          p-6
+          mt-8
+        ">
+
+          <h2 className="text-xl font-bold">
+            🧠 AI Follow-Up Assistant
+          </h2>
+
+          <p className="mt-3 text-red-400">
+            {loadError}
+          </p>
+
+        </div>
+
+      );
+
+    }
 
     return null;
 

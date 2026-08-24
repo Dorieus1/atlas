@@ -72,7 +72,7 @@ function LeadPipeline() {
 
         console.error("Failed to load leads");
 
-        setLeads([]);
+        setError("Couldn't load your leads. Please refresh to try again.");
 
         return;
 
@@ -84,17 +84,19 @@ function LeadPipeline() {
 
         setLeads(data);
 
+        setError("");
+
       } else {
 
         setLeads([]);
 
       }
 
-    } catch (error) {
+    } catch (err) {
 
-      console.error(error);
+      console.error(err);
 
-      setLeads([]);
+      setError("Couldn't load your leads. Please refresh to try again.");
 
     }
 

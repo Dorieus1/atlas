@@ -64,11 +64,13 @@ function MemoryPanel({ customer }) {
 
       setMemories(data);
 
+      setError("");
+
     } catch (err) {
 
       console.error(err);
 
-      setMemories([]);
+      setError("Couldn't load what Atlas remembers about this customer. Please refresh to try again.");
 
     }
 
@@ -239,7 +241,7 @@ function MemoryPanel({ customer }) {
 
       )}
 
-      {memories.length === 0 && (
+      {memories.length === 0 && !error && (
 
         <p className="text-slate-400 text-sm mb-4">
           Nothing remembered yet.

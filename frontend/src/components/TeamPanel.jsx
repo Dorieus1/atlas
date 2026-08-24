@@ -14,6 +14,7 @@ function TeamPanel() {
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -44,9 +45,13 @@ function TeamPanel() {
 
       setTeammates(data);
 
+      setLoadError("");
+
     } catch (err) {
 
       console.error("TEAMMATES LOAD ERROR:", err);
+
+      setLoadError("Couldn't load your team. Please refresh to try again.");
 
     }
 
@@ -159,6 +164,12 @@ function TeamPanel() {
       <p className="text-slate-400 text-sm mb-4">
         Anyone added here gets their own email and password to log in to this business.
       </p>
+
+      {loadError && (
+        <p className="text-red-400 text-sm mb-4">
+          {loadError}
+        </p>
+      )}
 
       {teammates.length > 0 && (
 

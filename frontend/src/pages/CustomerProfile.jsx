@@ -30,9 +30,13 @@ function CustomerProfile() {
   const [loadError, setLoadError] = useState("");
   const [business, setBusiness] = useState(null);
   const [summary, setSummary] = useState("");
+  const [summaryError, setSummaryError] = useState("");
   const [conversations, setConversations] = useState([]);
+  const [conversationsError, setConversationsError] = useState("");
   const [lead, setLead] = useState(null);
+  const [leadError, setLeadError] = useState("");
   const [notes, setNotes] = useState([]);
+  const [notesLoadError, setNotesLoadError] = useState("");
   const [newNote, setNewNote] = useState("");
   const [noteError, setNoteError] = useState("");
   const [editingNoteId, setEditingNoteId] = useState(null);
@@ -54,6 +58,14 @@ function CustomerProfile() {
     setCustomer(null);
     setLoadingCustomer(true);
     setLoadError("");
+    setSummary("");
+    setSummaryError("");
+    setConversations([]);
+    setConversationsError("");
+    setLead(null);
+    setLeadError("");
+    setNotes([]);
+    setNotesLoadError("");
 
     loadCustomer();
     loadSummary();
@@ -132,12 +144,16 @@ function CustomerProfile() {
         data.summary || ""
       );
 
+      setSummaryError("");
+
     } catch (err) {
 
       console.error(
         "SUMMARY LOAD ERROR:",
         err
       );
+
+      setSummaryError("Couldn't generate a summary. Please refresh to try again.");
 
     }
 
@@ -154,12 +170,16 @@ function CustomerProfile() {
 
       setConversations(data);
 
+      setConversationsError("");
+
     } catch (err) {
 
       console.error(
         "CONVERSATIONS LOAD ERROR:",
         err
       );
+
+      setConversationsError("Couldn't load conversation history. Please refresh to try again.");
 
     }
 
@@ -176,12 +196,16 @@ function CustomerProfile() {
 
       setLead(data);
 
+      setLeadError("");
+
     } catch (err) {
 
       console.error(
         "LEAD LOAD ERROR:",
         err
       );
+
+      setLeadError("Couldn't load lead information. Please refresh to try again.");
 
     }
 
@@ -198,12 +222,16 @@ function CustomerProfile() {
 
       setNotes(data);
 
+      setNotesLoadError("");
+
     } catch (err) {
 
       console.error(
         "NOTES LOAD ERROR:",
         err
       );
+
+      setNotesLoadError("Couldn't load notes. Please refresh to try again.");
 
     }
 
@@ -750,12 +778,13 @@ function CustomerProfile() {
 
         </h2>
 
-        <p className="
-          mt-4
-          whitespace-pre-wrap
-        ">
+        <p className={
+          "mt-4 whitespace-pre-wrap" +
+          (summaryError ? " text-red-400" : "")
+        }>
 
-          {summary ||
+          {summaryError ||
+            summary ||
             "Generating summary..."}
 
         </p>
@@ -859,12 +888,12 @@ function CustomerProfile() {
 
         ) : (
 
-          <p className="
-            mt-4
-            text-slate-400
-          ">
+          <p className={
+            "mt-4 " +
+            (leadError ? "text-red-400" : "text-slate-400")
+          }>
 
-            No lead found.
+            {leadError || "No lead found."}
 
           </p>
 
@@ -893,6 +922,16 @@ function CustomerProfile() {
           <p className="text-red-400 mt-3">
 
             {noteError}
+
+          </p>
+
+        )}
+
+        {notesLoadError && (
+
+          <p className="text-red-400 mt-3">
+
+            {notesLoadError}
 
           </p>
 
@@ -1105,12 +1144,12 @@ function CustomerProfile() {
 
         {conversations.length === 0 ? (
 
-          <p className="
-            mt-4
-            text-slate-400
-          ">
+          <p className={
+            "mt-4 " +
+            (conversationsError ? "text-red-400" : "text-slate-400")
+          }>
 
-            No conversations yet.
+            {conversationsError || "No conversations yet."}
 
           </p>
 

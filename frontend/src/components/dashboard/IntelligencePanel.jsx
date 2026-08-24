@@ -17,7 +17,13 @@ function IntelligencePanel() {
 
   const [loading, setLoading] = useState(false);
 
+  const [loadingIntelligence, setLoadingIntelligence] = useState(true);
+
+  const [loadError, setLoadError] = useState("");
+
   const [taskMessage, setTaskMessage] = useState({ text: "", type: "" });
+
+  const [messageError, setMessageError] = useState("");
 
 
 
@@ -38,6 +44,8 @@ function IntelligencePanel() {
           data.recommendations || []
         );
 
+        setLoadError("");
+
 
       } catch(error) {
 
@@ -47,6 +55,14 @@ function IntelligencePanel() {
           error
         );
 
+        setLoadError(
+          "Couldn't load your recommendations. Please refresh to try again."
+        );
+
+
+      } finally {
+
+        setLoadingIntelligence(false);
 
       }
 
@@ -124,6 +140,10 @@ function IntelligencePanel() {
 
       setMessageType(type);
 
+      setMessageError("");
+
+      setGeneratedMessage("");
+
 
 
       const data = await generateMessage(
@@ -148,6 +168,8 @@ function IntelligencePanel() {
 
 
       console.error(error);
+
+      setMessageError("Couldn't generate that message. Please try again.");
 
 
     } finally {
@@ -198,6 +220,27 @@ function IntelligencePanel() {
         </p>
 
       )}
+
+
+      {loadingIntelligence ? (
+
+        <p className="text-slate-400">
+          Loading recommendations...
+        </p>
+
+      ) : loadError ? (
+
+        <p className="text-red-400">
+          {loadError}
+        </p>
+
+      ) : recommendations.length === 0 ? (
+
+        <p className="text-slate-400">
+          Nothing needs your attention right now.
+        </p>
+
+      ) : null}
 
 
 
@@ -368,6 +411,12 @@ function IntelligencePanel() {
 
             <p>
               Atlas is writing...
+            </p>
+
+          ) : messageError ? (
+
+            <p className="mt-3 text-red-400">
+              {messageError}
             </p>
 
           ) : (

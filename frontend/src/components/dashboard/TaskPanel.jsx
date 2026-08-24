@@ -27,11 +27,13 @@ function TaskPanel() {
 
       setTasks(data);
 
-    } catch(error) {
+      setError("");
 
-      console.error(error);
+    } catch(err) {
 
-      setTasks([]);
+      console.error(err);
+
+      setError("Couldn't load your tasks. Please refresh to try again.");
 
     }
 

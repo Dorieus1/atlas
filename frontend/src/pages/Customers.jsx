@@ -12,6 +12,8 @@ function Customers() {
 
   const [search, setSearch] = useState("");
 
+  const [loadError, setLoadError] = useState("");
+
   const navigate = useNavigate();
 
 
@@ -27,6 +29,8 @@ function Customers() {
 
       setCustomers(data);
 
+      setLoadError("");
+
 
     } catch(error) {
 
@@ -37,7 +41,7 @@ function Customers() {
       );
 
 
-      setCustomers([]);
+      setLoadError("Couldn't load your customers. Please refresh to try again.");
 
 
     }
@@ -168,7 +172,16 @@ function Customers() {
       ">
 
 
-      {customers.length === 0 ? (
+      {loadError ? (
+
+        <p className="text-red-400">
+
+          {loadError}
+
+        </p>
+
+
+      ) : customers.length === 0 ? (
 
         <p className="text-slate-400">
 

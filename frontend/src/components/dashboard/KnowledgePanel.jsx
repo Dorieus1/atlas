@@ -36,12 +36,16 @@ function KnowledgePanel() {
 
       setKnowledge(data);
 
-    } catch (error) {
+      setError("");
+
+    } catch (err) {
 
       console.error(
         "Knowledge error:",
-        error
+        err
       );
+
+      setError("Couldn't load your knowledge base. Please refresh to try again.");
 
     }
 
@@ -176,7 +180,7 @@ function KnowledgePanel() {
 
 
 
-      {knowledge.length === 0 ? (
+      {knowledge.length === 0 && !error ? (
 
         <p className="mt-4 text-slate-400">
 
@@ -185,7 +189,7 @@ function KnowledgePanel() {
         </p>
 
 
-      ) : (
+      ) : knowledge.length === 0 ? null : (
 
         knowledge.map((item) => (
 
