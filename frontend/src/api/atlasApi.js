@@ -1270,6 +1270,22 @@ export const startStripeOnboarding = () =>
 
 
 
+/* ---------- Google Calendar sync ---------- */
+
+
+export const getGoogleCalendarStatus = () =>
+  request("/calendar/google/status");
+
+export const startGoogleCalendarConnect = () =>
+  request("/calendar/google/connect");
+
+export const disconnectGoogleCalendar = () =>
+  request("/calendar/google/disconnect", {
+    method: "POST"
+  });
+
+
+
 /* ---------- Search ---------- */
 
 

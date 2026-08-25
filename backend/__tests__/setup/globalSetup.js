@@ -41,7 +41,10 @@ module.exports = async () => {
           business_hours TEXT,
           timezone TEXT,
           next_quote_number INTEGER NOT NULL DEFAULT 1001,
-          last_digest_sent_date TEXT
+          last_digest_sent_date TEXT,
+          google_calendar_connected INTEGER NOT NULL DEFAULT 0,
+          google_refresh_token TEXT,
+          google_calendar_email TEXT
         )
       `);
 
@@ -165,7 +168,8 @@ module.exports = async () => {
           recurrence_id TEXT,
           recurrence_rule TEXT,
           created_by_user_id TEXT,
-          created_by_name TEXT
+          created_by_name TEXT,
+          google_event_id TEXT
         )
       `);
 

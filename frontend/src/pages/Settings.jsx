@@ -3,6 +3,7 @@ import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import PublicLinkCard from "../components/PublicLinkCard";
 import StripeConnectCard from "../components/StripeConnectCard";
+import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
 import SavedServicesPanel from "../components/SavedServicesPanel";
@@ -91,6 +92,7 @@ function Settings() {
             description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
           />
           <StripeConnectCard />
+          <GoogleCalendarCard />
         </div>
       )}
 

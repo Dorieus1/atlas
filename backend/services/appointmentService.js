@@ -1,6 +1,10 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
+const { getBusinessById } = require("./businessService");
+
+const googleCalendarService = require("./googleCalendarService");
+
 
 // Matches the common calendar-app convention (Google Calendar included)
 // of assuming a 1-hour block for an event with no explicit end time -
@@ -205,7 +209,130 @@ function insertAppointmentRow(
 
 
 
-const createAppointment = (
+// Records the Google Calendar event id a synced appointment got back, so
+// a later status change or delete knows which event to touch.
+function setAppointmentGoogleEventId(id, business_id, google_event_id) {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `UPDATE appointments SET google_event_id = ? WHERE id = ? AND business_id = ?`,
+
+      [google_event_id, id, business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+}
+
+
+
+// One-way (Atlas -> Google) best-effort sync, matching the detached
+// side-effect discipline chatService.js uses for its own third-party
+// calls: every function below is wrapped in its own try/catch, logs on
+// failure, and never throws back into the caller - a Google Calendar
+// outage or misconfiguration must never affect an appointment create/
+// update/delete in the app itself. Each one also no-ops silently when the
+// business hasn't connected Google Calendar, so this is a total no-op
+// (no extra DB read even) cost for the common case of a business that
+// never set this up.
+async function pushAppointmentCreateToGoogle(business_id, appointmentId, appointment) {
+
+  try {
+
+    const business = await getBusinessById(business_id);
+
+    if (!business || !business.google_calendar_connected || !business.google_refresh_token) {
+      return;
+    }
+
+    const googleEventId = await googleCalendarService.createCalendarEvent(
+
+      business.google_refresh_token,
+      appointment
+
+    );
+
+    await setAppointmentGoogleEventId(appointmentId, business_id, googleEventId);
+
+  } catch (error) {
+
+    console.error("GOOGLE CALENDAR SYNC (create) FAILED:", error);
+
+  }
+
+}
+
+
+
+async function pushAppointmentUpdateToGoogle(appointment) {
+
+  try {
+
+    if (!appointment || !appointment.google_event_id) {
+      return;
+    }
+
+    const business = await getBusinessById(appointment.business_id);
+
+    if (!business || !business.google_calendar_connected || !business.google_refresh_token) {
+      return;
+    }
+
+    await googleCalendarService.updateCalendarEvent(
+
+      business.google_refresh_token,
+      appointment.google_event_id,
+      appointment
+
+    );
+
+  } catch (error) {
+
+    console.error("GOOGLE CALENDAR SYNC (update) FAILED:", error);
+
+  }
+
+}
+
+
+
+async function pushAppointmentDeleteToGoogle(appointment) {
+
+  try {
+
+    if (!appointment || !appointment.google_event_id) {
+      return;
+    }
+
+    const business = await getBusinessById(appointment.business_id);
+
+    if (!business || !business.google_calendar_connected || !business.google_refresh_token) {
+      return;
+    }
+
+    await googleCalendarService.deleteCalendarEvent(
+
+      business.google_refresh_token,
+      appointment.google_event_id
+
+    );
+
+  } catch (error) {
+
+    console.error("GOOGLE CALENDAR SYNC (delete) FAILED:", error);
+
+  }
+
+}
+
+
+
+const createAppointment = async (
 
   business_id,
   customer_id,
@@ -219,7 +346,7 @@ const createAppointment = (
 
 ) => {
 
-  return insertAppointmentRow(
+  const id = await insertAppointmentRow(
 
     business_id,
     customer_id,
@@ -234,6 +361,10 @@ const createAppointment = (
     created_by_name
 
   );
+
+  await pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time, end_time });
+
+  return id;
 
 };
 
@@ -299,6 +430,11 @@ const createRecurringAppointments = async (
       created_by_name
 
     );
+
+    // Occurrences are independent rows once created, so each one gets its
+    // own Google Calendar event - this falls out naturally from being
+    // inside the same loop that creates the rows.
+    await pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time: occStart, end_time: occEnd });
 
     ids.push(id);
 
@@ -417,10 +553,10 @@ const getAppointmentById = (id, business_id) => {
 
 
 
-const updateAppointmentStatus = (id, business_id, status) => {
+const updateAppointmentStatus = async (id, business_id, status) => {
 
 
-  return new Promise((resolve, reject) => {
+  const updated = await new Promise((resolve, reject) => {
 
 
     db.run(
@@ -452,14 +588,27 @@ const updateAppointmentStatus = (id, business_id, status) => {
 
   });
 
+  if (updated) {
+
+    const appt = await getAppointmentById(id, business_id);
+    await pushAppointmentUpdateToGoogle(appt);
+
+  }
+
+  return updated;
+
 };
 
 
 
-const deleteAppointment = (id, business_id) => {
+const deleteAppointment = async (id, business_id) => {
 
+  // Fetched before the DELETE below so google_event_id is still available
+  // to push a delete to Google afterward - once the row is gone there's
+  // nowhere left to read it from.
+  const appt = await getAppointmentById(id, business_id);
 
-  return new Promise((resolve, reject) => {
+  const deleted = await new Promise((resolve, reject) => {
 
 
     db.run(
@@ -490,6 +639,12 @@ const deleteAppointment = (id, business_id) => {
 
   });
 
+  if (deleted && appt) {
+    await pushAppointmentDeleteToGoogle(appt);
+  }
+
+  return deleted;
+
 };
 
 
@@ -512,7 +667,7 @@ const updateAppointmentStatusForSeries = async (id, business_id, status) => {
     return updated ? 1 : 0;
   }
 
-  return new Promise((resolve, reject) => {
+  const changes = await new Promise((resolve, reject) => {
 
     db.run(
 
@@ -540,6 +695,36 @@ const updateAppointmentStatusForSeries = async (id, business_id, status) => {
 
   });
 
+  if (changes > 0) {
+
+    const affected = await new Promise((resolve, reject) => {
+
+      db.all(
+
+        `
+        SELECT *
+        FROM appointments
+        WHERE business_id = ?
+        AND recurrence_id = ?
+        AND start_time >= ?
+        `,
+
+        [business_id, appt.recurrence_id, appt.start_time],
+
+        (err, rows) => (err ? reject(err) : resolve(rows))
+
+      );
+
+    });
+
+    for (const row of affected) {
+      await pushAppointmentUpdateToGoogle(row);
+    }
+
+  }
+
+  return changes;
+
 };
 
 
@@ -558,7 +743,30 @@ const deleteAppointmentForSeries = async (id, business_id) => {
     return deleted ? 1 : 0;
   }
 
-  return new Promise((resolve, reject) => {
+  // Fetched before the DELETE below for the same reason as
+  // deleteAppointment above - need each row's google_event_id while it
+  // still exists.
+  const affected = await new Promise((resolve, reject) => {
+
+    db.all(
+
+      `
+      SELECT *
+      FROM appointments
+      WHERE business_id = ?
+      AND recurrence_id = ?
+      AND start_time >= ?
+      `,
+
+      [business_id, appt.recurrence_id, appt.start_time],
+
+      (err, rows) => (err ? reject(err) : resolve(rows))
+
+    );
+
+  });
+
+  const changes = await new Promise((resolve, reject) => {
 
     db.run(
 
@@ -584,6 +792,14 @@ const deleteAppointmentForSeries = async (id, business_id) => {
     );
 
   });
+
+  if (changes > 0) {
+    for (const row of affected) {
+      await pushAppointmentDeleteToGoogle(row);
+    }
+  }
+
+  return changes;
 
 };
 
