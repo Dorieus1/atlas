@@ -643,6 +643,16 @@ function CustomerProfile() {
 
               )}
 
+              {customer.created_by_name && (
+
+                <p className="mt-1 text-xs text-slate-500">
+
+                  Added by {customer.created_by_name}
+
+                </p>
+
+              )}
+
             </>
 
           )}

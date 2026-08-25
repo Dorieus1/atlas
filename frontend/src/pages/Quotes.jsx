@@ -724,6 +724,11 @@ function Quotes() {
                     {quoteDisplayNumber(activeQuote)}
                   </p>
                 )}
+                {activeQuote.created_by_name && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Added by {activeQuote.created_by_name}
+                  </p>
+                )}
               </div>
 
               <button

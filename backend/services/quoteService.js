@@ -154,7 +154,9 @@ const createQuote = async (
   type,
   notes,
   items,
-  appointment_id = null
+  appointment_id = null,
+  created_by_user_id = null,
+  created_by_name = null
 
 ) => {
 
@@ -177,11 +179,21 @@ const createQuote = async (
 
         `
         INSERT INTO quotes
-        (id, business_id, customer_id, type, notes, appointment_id, quote_number)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
 
-        [id, business_id, customer_id, type, notes || null, appointment_id, quote_number]
+        [
+          id,
+          business_id,
+          customer_id,
+          type,
+          notes || null,
+          appointment_id,
+          quote_number,
+          created_by_user_id || null,
+          created_by_name || null
+        ]
 
       );
 

@@ -34,7 +34,9 @@ const createCustomer = (
   business_id,
   name,
   email,
-  phone
+  phone,
+  created_by_user_id = null,
+  created_by_name = null
 
 ) => {
 
@@ -55,9 +57,11 @@ const createCustomer = (
         business_id,
         name,
         email,
-        phone
+        phone,
+        created_by_user_id,
+        created_by_name
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -65,7 +69,9 @@ const createCustomer = (
         business_id,
         name,
         email || null,
-        phone || null
+        phone || null,
+        created_by_user_id || null,
+        created_by_name || null
       ],
 
 

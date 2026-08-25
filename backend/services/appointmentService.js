@@ -132,7 +132,9 @@ function insertAppointmentRow(
   end_time,
   status,
   recurrence_id,
-  recurrence_rule
+  recurrence_rule,
+  created_by_user_id,
+  created_by_name
 
 ) {
 
@@ -156,10 +158,12 @@ function insertAppointmentRow(
         end_time,
         status,
         recurrence_id,
-        recurrence_rule
+        recurrence_rule,
+        created_by_user_id,
+        created_by_name
       )
 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -173,7 +177,9 @@ function insertAppointmentRow(
         end_time || null,
         status,
         recurrence_id || null,
-        recurrence_rule || null
+        recurrence_rule || null,
+        created_by_user_id || null,
+        created_by_name || null
 
       ],
 
@@ -207,7 +213,9 @@ const createAppointment = (
   notes,
   start_time,
   end_time,
-  status = "scheduled"
+  status = "scheduled",
+  created_by_user_id = null,
+  created_by_name = null
 
 ) => {
 
@@ -221,7 +229,9 @@ const createAppointment = (
     end_time,
     status,
     null,
-    null
+    null,
+    created_by_user_id,
+    created_by_name
 
   );
 
@@ -251,7 +261,9 @@ const createRecurringAppointments = async (
   end_time,
   status,
   recurrence,
-  occurrences
+  occurrences,
+  created_by_user_id = null,
+  created_by_name = null
 
 ) => {
 
@@ -270,6 +282,8 @@ const createRecurringAppointments = async (
       ? new Date(new Date(occStart).getTime() + durationMs).toISOString()
       : null;
 
+    // Every occurrence in the series shares the same creator/name - it's
+    // one act of scheduling by one person, not N separate ones.
     const id = await insertAppointmentRow(
 
       business_id,
@@ -280,7 +294,9 @@ const createRecurringAppointments = async (
       occEnd,
       status,
       recurrence_id,
-      recurrence
+      recurrence,
+      created_by_user_id,
+      created_by_name
 
     );
 

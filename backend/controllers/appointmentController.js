@@ -19,6 +19,8 @@ const {
   getQuoteByAppointmentId
 } = require("../services/quoteService");
 
+const { getUserById } = require("../services/authService");
+
 
 const VALID_STATUSES = ["scheduled", "completed", "cancelled"];
 
@@ -94,6 +96,13 @@ const createAppointment = async (req, res) => {
 
     }
 
+    // Snapshot the acting user's current name at creation time - see the
+    // matching comment in customerController.createCustomer for why this
+    // isn't a live join to `users`.
+    const actingUser = await getUserById(req.user.id, business_id);
+    const createdByUserId = req.user.id;
+    const createdByName = actingUser ? actingUser.name : null;
+
     // Recurrence is entirely optional - omitting it keeps this endpoint
     // byte-for-byte the same single-appointment behavior it always had.
     if (recurrence !== undefined && recurrence !== null && recurrence !== "") {
@@ -134,7 +143,9 @@ const createAppointment = async (req, res) => {
         end_time,
         "scheduled",
         recurrence,
-        occurrenceCount
+        occurrenceCount,
+        createdByUserId,
+        createdByName
 
       );
 
@@ -154,7 +165,10 @@ const createAppointment = async (req, res) => {
       title.trim(),
       notes,
       start_time,
-      end_time
+      end_time,
+      "scheduled",
+      createdByUserId,
+      createdByName
 
     );
 
@@ -288,6 +302,10 @@ const updateAppointmentStatus = async (req, res) => {
 
           } else {
 
+            // Attributed to whoever marked the appointment completed -
+            // it's their action that triggered this invoice.
+            const actingUser = await getUserById(req.user.id, business_id);
+
             const draftInvoice = await createQuote(
 
               business_id,
@@ -300,7 +318,11 @@ const updateAppointmentStatus = async (req, res) => {
 
               [{ description: appointment.title, quantity: 1, unit_price: 0 }],
 
-              id
+              id,
+
+              req.user.id,
+
+              actingUser ? actingUser.name : null
 
             );
 
