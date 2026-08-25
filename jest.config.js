@@ -23,7 +23,8 @@ module.exports = {
   setupFiles: [
     "<rootDir>/backend/__tests__/setup/mockOpenai.js",
     "<rootDir>/backend/__tests__/setup/mockEmail.js",
-    "<rootDir>/backend/__tests__/setup/mockStripe.js"
+    "<rootDir>/backend/__tests__/setup/mockStripe.js",
+    "<rootDir>/backend/__tests__/setup/mockGoogleCalendar.js"
   ],
 
   maxWorkers: 1,

@@ -81,6 +81,68 @@ const setStripeOnboarded = (business_id, onboarded) => {
 
 
 
+// Stores a successful Google Calendar connection - the refresh token
+// (plaintext, same precedent as stripe_account_id above), the connected
+// account's email for display in Settings, and flips the connected flag.
+const setGoogleCalendarConnection = (business_id, refreshToken, email) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE businesses
+      SET google_calendar_connected = 1,
+          google_refresh_token = ?,
+          google_calendar_email = ?
+      WHERE id = ?
+      `,
+
+      [refreshToken, email || null, business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
+// Disconnects Google Calendar - clears the stored refresh token and
+// email and flips the connected flag back off. Does not attempt to
+// revoke the token with Google; a stale unused refresh token isn't a
+// meaningful risk here (see the migration's comment on plaintext storage
+// matching Stripe's existing precedent), and Google tokens naturally stop
+// being usable if the owner revokes access from their Google account
+// directly.
+const clearGoogleCalendarConnection = (business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE businesses
+      SET google_calendar_connected = 0,
+          google_refresh_token = NULL,
+          google_calendar_email = NULL
+      WHERE id = ?
+      `,
+
+      [business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
 const slugExists = (slug) => {
 
   return new Promise((resolve, reject) => {
@@ -143,6 +205,10 @@ module.exports = {
   setStripeAccountId,
 
   setStripeOnboarded,
+
+  setGoogleCalendarConnection,
+
+  clearGoogleCalendarConnection,
 
   slugify,
 
