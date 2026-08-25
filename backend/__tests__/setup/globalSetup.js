@@ -51,7 +51,9 @@ module.exports = async () => {
           name TEXT,
           email TEXT,
           phone TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_by_user_id TEXT,
+          created_by_name TEXT
         )
       `);
 
@@ -159,7 +161,9 @@ module.exports = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           reminder_sent_at DATETIME,
           recurrence_id TEXT,
-          recurrence_rule TEXT
+          recurrence_rule TEXT,
+          created_by_user_id TEXT,
+          created_by_name TEXT
         )
       `);
 
@@ -178,7 +182,9 @@ module.exports = async () => {
           sent_at DATETIME,
           last_reminder_sent_at DATETIME,
           reminder_count INTEGER NOT NULL DEFAULT 0,
-          quote_number INTEGER
+          quote_number INTEGER,
+          created_by_user_id TEXT,
+          created_by_name TEXT
         )
       `);
 

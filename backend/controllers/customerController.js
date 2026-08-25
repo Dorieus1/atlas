@@ -6,6 +6,8 @@ const {
   updateCustomer: updateCustomerService
 } = require("../services/customerService");
 
+const { getUserById } = require("../services/authService");
+
 
 
 
@@ -47,6 +49,13 @@ const createCustomer = async (req, res) => {
 
 
 
+    // Snapshot the acting user's current name at creation time rather
+    // than relying on a live join to `users` - removing a teammate is a
+    // hard delete (see authController.removeTeammate), so a live join
+    // would silently lose this attribution the moment that teammate was
+    // removed.
+    const actingUser = await getUserById(req.user.id, business_id);
+
     const id =
       await createCustomerService(
 
@@ -56,7 +65,11 @@ const createCustomer = async (req, res) => {
 
         email ? email.trim() : email,
 
-        phone ? phone.trim() : phone
+        phone ? phone.trim() : phone,
+
+        req.user.id,
+
+        actingUser ? actingUser.name : null
 
       );
 

@@ -13,6 +13,7 @@ const {
 
 const { getCustomerById } = require("../services/customerService");
 const { getBusinessById } = require("../services/businessService");
+const { getUserById } = require("../services/authService");
 const { markQuotePaid } = require("../services/quotePaymentService");
 const { streamQuotePdf } = require("../services/pdfService");
 const { quotesToCsv } = require("../services/csvService");
@@ -143,12 +144,20 @@ const createQuote = async (req, res) => {
 
     }
 
+    // Snapshot the acting user's current name at creation time - see the
+    // matching comment in customerController.createCustomer for why this
+    // isn't a live join to `users`.
+    const actingUser = await getUserById(req.user.id, business_id);
+
     const { id, quote_number } = await createQuoteService(
       business_id,
       customer_id,
       quoteType,
       notes,
-      normalizeItems(items)
+      normalizeItems(items),
+      null,
+      req.user.id,
+      actingUser ? actingUser.name : null
     );
 
     res.status(201).json({
