@@ -237,6 +237,16 @@ module.exports = async () => {
         )
       `);
 
+      db.run(`
+        CREATE TABLE saved_line_items (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          description TEXT NOT NULL,
+          unit_price REAL NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Kept as a separate CREATE TABLE from users, above, so this stays
       // the last statement with the resolve/reject callback attached.
       db.run(`

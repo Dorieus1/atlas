@@ -1223,3 +1223,28 @@ export const dismissKnowledgeGap = (id) =>
   request(`/knowledge-gaps/${id}/dismiss`, {
     method:"POST"
   });
+
+
+
+/* ---------- Saved line items (quick-add services catalog) ---------- */
+
+
+export const getSavedLineItems = () =>
+  request("/saved-line-items");
+
+export const createSavedLineItem = (description, unit_price) =>
+  request("/saved-line-items", {
+    method:"POST",
+    body: JSON.stringify({ description, unit_price })
+  });
+
+export const updateSavedLineItem = (id, description, unit_price) =>
+  request(`/saved-line-items/${id}`, {
+    method:"PUT",
+    body: JSON.stringify({ description, unit_price })
+  });
+
+export const deleteSavedLineItem = (id) =>
+  request(`/saved-line-items/${id}`, {
+    method:"DELETE"
+  });
