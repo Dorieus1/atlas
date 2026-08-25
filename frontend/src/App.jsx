@@ -1,3 +1,5 @@
+import { Suspense, lazy } from "react";
+
 import {
   BrowserRouter,
   Routes,
@@ -5,28 +7,62 @@ import {
 } from "react-router-dom";
 
 import Layout from "./layout/Layout";
-import Landing from "./pages/Landing";
-import DashboardPage from "./pages/Dashboard";
 
-import Customers from "./pages/Customers";
-import Leads from "./pages/Leads";
-import Schedule from "./pages/Schedule";
-import Quotes from "./pages/Quotes";
-import PublicChat from "./pages/PublicChat";
-import PortalLogin from "./pages/PortalLogin";
-import PortalDashboard from "./pages/PortalDashboard";
-import Knowledge from "./pages/Knowledge";
-import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
-import CustomerProfile from "./pages/CustomerProfile";
-import IntelligencePanel from "./components/dashboard/IntelligencePanel";
-import Onboarding from "./pages/Onboarding"; 
-import KnowledgeSetup from "./pages/KnowledgeSetup";
+// Landing ("/") and Login ("/login") are the first thing most visitors see -
+// keeping them as eager, static imports means the very first page render
+// doesn't pay for an extra network round-trip. NotFound is trivially small
+// (a handful of lines, no heavy deps) so splitting it out would add a
+// Suspense round-trip to every mistyped URL for no real bundle-size win -
+// it stays eager too. Every other page below is lazy: none of them are the
+// first thing a given visitor sees for the *common* path (a brand-new
+// customer opening the public chat widget or the portal login page never
+// touches the CRM dashboard, and a logged-in CRM user pays a one-time
+// per-page fetch cost rather than downloading the whole app upfront).
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+
+import IntelligencePanel from "./components/dashboard/IntelligencePanel";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const Customers = lazy(() => import("./pages/Customers"));
+const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
+const Leads = lazy(() => import("./pages/Leads"));
+const Schedule = lazy(() => import("./pages/Schedule"));
+const Quotes = lazy(() => import("./pages/Quotes"));
+const PublicChat = lazy(() => import("./pages/PublicChat"));
+const PortalLogin = lazy(() => import("./pages/PortalLogin"));
+const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
+const Knowledge = lazy(() => import("./pages/Knowledge"));
+// Analytics pulls in recharts, a sizeable charting library used nowhere
+// else in the app - lazy-loading it means recharts only ever downloads
+// for visitors who actually open the Analytics page.
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const KnowledgeSetup = lazy(() => import("./pages/KnowledgeSetup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
+// Matches the "Loading..." text used elsewhere in the app (e.g.
+// frontend/src/pages/Schedule.jsx, Quotes.jsx) rather than inventing a new
+// spinner style from scratch.
+function PageLoading() {
+
+  return (
+
+    <div className="flex min-h-[50vh] items-center justify-center">
+
+      <p className="text-sm text-slate-500">
+        Loading...
+      </p>
+
+    </div>
+
+  );
+
+}
 
 function App() {
 
@@ -35,6 +71,8 @@ function App() {
     <BrowserRouter>
 
       <Layout>
+
+        <Suspense fallback={<PageLoading />}>
 
         <Routes>
 
@@ -172,6 +210,8 @@ function App() {
           />
 
         </Routes>
+
+        </Suspense>
 
       </Layout>
 
