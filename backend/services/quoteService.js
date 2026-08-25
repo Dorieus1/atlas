@@ -165,6 +165,74 @@ const getQuotes = (business_id) => {
 
 
 
+// Powers the CSV export - like getQuotes() but with the customer's email
+// (bookkeeping needs a way to reach the customer, not just their name) and
+// optional type/status filtering so an accountant can pull just invoices,
+// or just paid ones, instead of the whole history every time.
+const getQuotesForExport = (business_id, { type, status } = {}) => {
+
+  const conditions = ["quotes.business_id = ?"];
+  const params = [business_id];
+
+  if (type) {
+    conditions.push("quotes.type = ?");
+    params.push(type);
+  }
+
+  if (status) {
+    conditions.push("quotes.status = ?");
+    params.push(status);
+  }
+
+  return allAsync(
+
+    `
+    SELECT
+      quotes.*,
+      customers.name AS customer_name,
+      customers.email AS customer_email,
+      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS total
+    FROM quotes
+    LEFT JOIN customers ON customers.id = quotes.customer_id
+    LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
+    WHERE ${conditions.join(" AND ")}
+    GROUP BY quotes.id
+    ORDER BY quotes.created_at DESC
+    `,
+
+    params
+
+  );
+
+};
+
+
+
+const getQuoteItemsForQuoteIds = async (quoteIds) => {
+
+  if (quoteIds.length === 0) {
+    return [];
+  }
+
+  const placeholders = quoteIds.map(() => "?").join(", ");
+
+  return allAsync(
+
+    `
+    SELECT *
+    FROM quote_items
+    WHERE quote_id IN (${placeholders})
+    ORDER BY created_at ASC
+    `,
+
+    quoteIds
+
+  );
+
+};
+
+
+
 const getQuotesByCustomer = (customer_id, business_id) => {
 
   return allAsync(
@@ -389,6 +457,10 @@ module.exports = {
   getQuoteByAppointmentId,
 
   getQuotes,
+
+  getQuotesForExport,
+
+  getQuoteItemsForQuoteIds,
 
   getQuotesByCustomer,
 

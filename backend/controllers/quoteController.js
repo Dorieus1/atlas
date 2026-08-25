@@ -1,6 +1,8 @@
 const {
   createQuote: createQuoteService,
   getQuotes: getQuotesService,
+  getQuotesForExport: getQuotesForExportService,
+  getQuoteItemsForQuoteIds: getQuoteItemsForQuoteIdsService,
   getQuotesByCustomer: getQuotesByCustomerService,
   getQuoteById: getQuoteByIdService,
   updateQuoteFields: updateQuoteFieldsService,
@@ -12,6 +14,7 @@ const { getCustomerById } = require("../services/customerService");
 const { getBusinessById } = require("../services/businessService");
 const { markQuotePaid } = require("../services/quotePaymentService");
 const { streamQuotePdf } = require("../services/pdfService");
+const { quotesToCsv } = require("../services/csvService");
 
 
 const VALID_TYPES = ["quote", "invoice"];
@@ -153,6 +156,79 @@ const getQuotes = async (req, res) => {
     const quotes = await getQuotesService(req.user.business_id);
 
     res.json(quotes);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const exportQuotesCsv = async (req, res) => {
+
+  try {
+
+    const business_id = req.user.business_id;
+    const { type, status } = req.query;
+
+    if (type !== undefined && !VALID_TYPES.includes(type)) {
+
+      return res.status(400).json({
+        error: "type must be one of: " + VALID_TYPES.join(", ")
+      });
+
+    }
+
+    if (status !== undefined && !VALID_STATUSES.includes(status)) {
+
+      return res.status(400).json({
+        error: "status must be one of: " + VALID_STATUSES.join(", ")
+      });
+
+    }
+
+    const quotes = await getQuotesForExportService(business_id, { type, status });
+
+    const items = await getQuoteItemsForQuoteIdsService(quotes.map((quote) => quote.id));
+
+    const itemsByQuoteId = {};
+
+    for (const item of items) {
+
+      if (!itemsByQuoteId[item.quote_id]) {
+        itemsByQuoteId[item.quote_id] = [];
+      }
+
+      itemsByQuoteId[item.quote_id].push(item);
+
+    }
+
+    const csv = quotesToCsv(quotes, itemsByQuoteId);
+
+    const business = await getBusinessById(business_id);
+
+    // Business name folded into a filesystem/header-safe slug - avoids
+    // quotes, slashes, or other characters that would need escaping (or
+    // could break) inside a Content-Disposition filename value.
+    const businessSlug = (business?.name || "atlas")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "atlas";
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `${businessSlug}-quotes-${dateStamp}.csv`;
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    res.send(csv);
 
   } catch (error) {
 
@@ -435,6 +511,8 @@ module.exports = {
   createQuote,
 
   getQuotes,
+
+  exportQuotesCsv,
 
   getCustomerQuotes,
 

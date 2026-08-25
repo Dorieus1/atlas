@@ -17,6 +17,7 @@ import {
   updateQuote,
   deleteQuote,
   downloadQuotePdf,
+  exportQuotesCsv,
   getCustomers
 } from "../api/atlasApi";
 
@@ -69,6 +70,8 @@ function Quotes() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportError, setExportError] = useState("");
 
 
   const loadQuotes = async () => {
@@ -328,6 +331,29 @@ function Quotes() {
   };
 
 
+  const handleExportCsv = async () => {
+
+    setExportingCsv(true);
+    setExportError("");
+
+    try {
+
+      await exportQuotesCsv();
+
+    } catch (error) {
+
+      console.error("EXPORT QUOTES CSV ERROR:", error);
+      setExportError("Couldn't export your quotes. Please try again.");
+
+    } finally {
+
+      setExportingCsv(false);
+
+    }
+
+  };
+
+
   const handleDelete = async (id) => {
 
     setDeleting(true);
@@ -368,19 +394,38 @@ function Quotes() {
           </p>
         </div>
 
-        <button
-          onClick={openCreateForm}
-          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500"
-        >
-          <Plus size={17} />
-          New Quote
-        </button>
+        <div className="flex items-center gap-2">
+
+          <button
+            onClick={handleExportCsv}
+            disabled={exportingCsv}
+            className="flex items-center gap-2 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-ink-600 hover:bg-ink-900 disabled:opacity-50"
+          >
+            <Download size={17} />
+            {exportingCsv ? "Exporting..." : "Export CSV"}
+          </button>
+
+          <button
+            onClick={openCreateForm}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500"
+          >
+            <Plus size={17} />
+            New Quote
+          </button>
+
+        </div>
 
       </div>
 
       {loadError && (
         <p className="mt-4 text-red-400">
           {loadError}
+        </p>
+      )}
+
+      {exportError && (
+        <p className="mt-4 text-red-400">
+          {exportError}
         </p>
       )}
 

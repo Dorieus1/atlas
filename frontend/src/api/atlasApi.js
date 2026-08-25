@@ -873,6 +873,26 @@ export const downloadQuotePdf = (id) =>
 
 
 
+export const exportQuotesCsv = (filters = {}) => {
+
+  const params = new URLSearchParams();
+
+  if (filters.type) {
+    params.set("type", filters.type);
+  }
+
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+
+  const query = params.toString();
+
+  return downloadFile(`/quotes/export.csv${query ? `?${query}` : ""}`, "token");
+
+};
+
+
+
 /* ---------- Photos ---------- */
 
 
