@@ -140,6 +140,16 @@ if (require.main === module) {
 
       }, 30 * 60 * 1000);
 
+      const { sendInvoiceReminders } = require("./services/invoiceReminderService");
+
+      sendInvoiceReminders().catch((err) => console.error("INVOICE REMINDERS FAILED:", err));
+
+      setInterval(() => {
+
+        sendInvoiceReminders().catch((err) => console.error("INVOICE REMINDERS FAILED:", err));
+
+      }, 30 * 60 * 1000);
+
       app.listen(PORT,()=>{
 
         console.log(

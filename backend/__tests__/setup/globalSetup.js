@@ -169,7 +169,10 @@ module.exports = async () => {
           appointment_id TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           stripe_checkout_session_id TEXT,
-          paid_at DATETIME
+          paid_at DATETIME,
+          sent_at DATETIME,
+          last_reminder_sent_at DATETIME,
+          reminder_count INTEGER NOT NULL DEFAULT 0
         )
       `);
 
