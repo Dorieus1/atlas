@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Menu, Search } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Logo from "../components/Logo";
@@ -6,12 +7,40 @@ import NotificationBell from "../components/NotificationBell";
 import SearchPalette from "../components/SearchPalette";
 
 
+// Routes that must never show the business's own CRM navigation, no
+// matter what's sitting in localStorage - these are pages a customer
+// (not the business owner) is meant to land on directly. A business
+// owner who stays logged in on a shared/office computer must not have
+// their own sidebar (Dashboard, Customers, Leads, Analytics, Settings,
+// Log Out) wrap around the page a walk-in customer opens from a chat
+// link or a portal QR code.
+const PUBLIC_PATH_PREFIXES = [
+  "/talk/",
+  "/portal/",
+  "/login",
+  "/forgot-password",
+  "/reset-password"
+];
+
+function isPublicPath(pathname) {
+
+  if (pathname === "/") {
+    return true;
+  }
+
+  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
+}
+
+
 function Layout({children}) {
+
+  const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const isLoggedIn = !!localStorage.getItem("token");
+  const isLoggedIn = !!localStorage.getItem("token") && !isPublicPath(location.pathname);
 
 
   // Global Cmd/Ctrl+K, works from anywhere in the app regardless of what
