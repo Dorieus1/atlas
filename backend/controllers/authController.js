@@ -83,7 +83,13 @@ const register = async (req,res)=>{
 
         email,
 
-        password
+        password,
+
+        // The very first login created for a business is always the
+        // owner - there's no invite flow to get here, register() only
+        // succeeds when the business has zero existing users (see the
+        // countUsersByBusiness check above).
+        "owner"
 
       );
 
@@ -482,7 +488,9 @@ const inviteTeammate = async (req, res) => {
 
       email,
 
-      password
+      password,
+
+      role
 
     } = req.body;
 
@@ -509,6 +517,25 @@ const inviteTeammate = async (req, res) => {
     }
 
 
+    // Default a new teammate to the lower-privilege role. An owner can
+    // still explicitly add another owner, but the safe default for
+    // "Add Teammate" is staff.
+    const resolvedRole =
+      role === undefined || role === null || role === ""
+        ? "staff"
+        : role;
+
+    if (resolvedRole !== "owner" && resolvedRole !== "staff") {
+
+      return res.status(400).json({
+
+        error: "Role must be either \"owner\" or \"staff\""
+
+      });
+
+    }
+
+
     const userId = await createUser(
 
       req.user.business_id,
@@ -517,7 +544,9 @@ const inviteTeammate = async (req, res) => {
 
       email,
 
-      password
+      password,
+
+      resolvedRole
 
     );
 
