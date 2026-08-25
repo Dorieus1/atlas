@@ -1,5 +1,6 @@
 const {
   createQuote: createQuoteService,
+  formatQuoteNumber,
   getQuotes: getQuotesService,
   getQuotesForExport: getQuotesForExportService,
   getQuoteItemsForQuoteIds: getQuoteItemsForQuoteIdsService,
@@ -70,6 +71,26 @@ function normalizeItems(items) {
 }
 
 
+// Attaches the formatted "Q-1001"/"INV-1002" display number to a quote
+// row (or every row in an array) before it goes out in a response.
+function withFormattedNumber(quoteOrQuotes) {
+
+  if (Array.isArray(quoteOrQuotes)) {
+    return quoteOrQuotes.map(withFormattedNumber);
+  }
+
+  if (!quoteOrQuotes) {
+    return quoteOrQuotes;
+  }
+
+  return {
+    ...quoteOrQuotes,
+    quote_number_formatted: formatQuoteNumber(quoteOrQuotes.type, quoteOrQuotes.quote_number)
+  };
+
+}
+
+
 
 const createQuote = async (req, res) => {
 
@@ -122,7 +143,7 @@ const createQuote = async (req, res) => {
 
     }
 
-    const id = await createQuoteService(
+    const { id, quote_number } = await createQuoteService(
       business_id,
       customer_id,
       quoteType,
@@ -132,6 +153,8 @@ const createQuote = async (req, res) => {
 
     res.status(201).json({
       id,
+      quote_number,
+      quote_number_formatted: formatQuoteNumber(quoteType, quote_number),
       message: quoteType === "invoice" ? "Invoice created" : "Quote created"
     });
 
@@ -155,7 +178,7 @@ const getQuotes = async (req, res) => {
 
     const quotes = await getQuotesService(req.user.business_id);
 
-    res.json(quotes);
+    res.json(withFormattedNumber(quotes));
 
   } catch (error) {
 
@@ -263,7 +286,7 @@ const getCustomerQuotes = async (req, res) => {
 
     const quotes = await getQuotesByCustomerService(customer_id, business_id);
 
-    res.json(quotes);
+    res.json(withFormattedNumber(quotes));
 
   } catch (error) {
 
@@ -293,7 +316,7 @@ const getQuote = async (req, res) => {
 
     }
 
-    res.json(quote);
+    res.json(withFormattedNumber(quote));
 
   } catch (error) {
 
@@ -479,7 +502,8 @@ const downloadQuotePdf = async (req, res) => {
 
     const business = await getBusinessById(req.user.business_id);
 
-    const filename = `${quote.type}-${quote.id.slice(0, 8)}.pdf`;
+    const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : quote.id.slice(0, 8);
+    const filename = `${quote.type}-${numberPart}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

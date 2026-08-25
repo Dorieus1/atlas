@@ -2,7 +2,7 @@ const { getBusinessBySlug, getBusinessById } = require("../services/businessServ
 const { getCustomerById, getCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail } = require("../services/emailService");
-const { getQuotesByCustomer, getQuoteById, updateQuoteFields } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber } = require("../services/quoteService");
 const { getAppointmentsByCustomer, createAppointment } = require("../services/appointmentService");
 const { checkWithinBusinessHours } = require("../services/businessHoursService");
 const { getPhotosByCustomer } = require("../services/photoService");
@@ -387,7 +387,10 @@ const getMyQuotes = async (req, res) => {
 
     const quotes = await getQuotesByCustomer(req.customer.customer_id, req.customer.business_id);
 
-    res.json(quotes);
+    res.json(quotes.map((quote) => ({
+      ...quote,
+      quote_number_formatted: formatQuoteNumber(quote.type, quote.quote_number)
+    })));
 
   } catch (error) {
 
@@ -421,7 +424,8 @@ const downloadMyQuotePdf = async (req, res) => {
 
     const business = await getBusinessById(req.customer.business_id);
 
-    const filename = `${quote.type}-${quote.id.slice(0, 8)}.pdf`;
+    const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : quote.id.slice(0, 8);
+    const filename = `${quote.type}-${numberPart}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

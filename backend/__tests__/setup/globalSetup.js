@@ -39,7 +39,8 @@ module.exports = async () => {
           stripe_account_id TEXT,
           stripe_onboarded INTEGER DEFAULT 0,
           business_hours TEXT,
-          timezone TEXT
+          timezone TEXT,
+          next_quote_number INTEGER NOT NULL DEFAULT 1001
         )
       `);
 
@@ -176,7 +177,8 @@ module.exports = async () => {
           paid_at DATETIME,
           sent_at DATETIME,
           last_reminder_sent_at DATETIME,
-          reminder_count INTEGER NOT NULL DEFAULT 0
+          reminder_count INTEGER NOT NULL DEFAULT 0,
+          quote_number INTEGER
         )
       `);
 

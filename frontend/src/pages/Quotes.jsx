@@ -24,6 +24,7 @@ import {
 
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
 const STATUS_STYLES = {
@@ -512,6 +513,8 @@ function Quotes() {
                   </div>
 
                   <p className="mt-0.5 text-xs text-slate-500">
+                    {quoteDisplayNumber(quote)}
+                    {quoteDisplayNumber(quote) ? " · " : ""}
                     {new Date(quote.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   </p>
 
@@ -712,9 +715,16 @@ function Quotes() {
 
             <div className="flex items-center justify-between">
 
-              <h3 className="font-display text-lg font-bold">
-                {activeQuote.customer_name || "Quote"}
-              </h3>
+              <div>
+                <h3 className="font-display text-lg font-bold">
+                  {activeQuote.customer_name || "Quote"}
+                </h3>
+                {quoteDisplayNumber(activeQuote) && (
+                  <p className="text-xs font-medium text-slate-500">
+                    {quoteDisplayNumber(activeQuote)}
+                  </p>
+                )}
+              </div>
 
               <button
                 onClick={() => setActiveQuote(null)}
