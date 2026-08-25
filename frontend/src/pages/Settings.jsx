@@ -5,6 +5,7 @@ import PublicLinkCard from "../components/PublicLinkCard";
 import StripeConnectCard from "../components/StripeConnectCard";
 import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
+import SavedServicesPanel from "../components/SavedServicesPanel";
 
 function Settings() {
 
@@ -96,6 +97,7 @@ function Settings() {
 
       {!loading && !error && business && (
         <>
+          <SavedServicesPanel />
           <TeamPanel />
           <ChangePasswordPanel />
         </>

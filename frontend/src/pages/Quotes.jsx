@@ -18,7 +18,8 @@ import {
   deleteQuote,
   downloadQuotePdf,
   exportQuotesCsv,
-  getCustomers
+  getCustomers,
+  getSavedLineItems
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
@@ -52,6 +53,7 @@ function Quotes() {
 
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [savedItems, setSavedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -103,6 +105,10 @@ function Quotes() {
     getCustomers()
       .then(setCustomers)
       .catch((error) => console.error("CUSTOMERS LOAD ERROR:", error));
+
+    getSavedLineItems()
+      .then(setSavedItems)
+      .catch((error) => console.error("SAVED LINE ITEMS LOAD ERROR:", error));
 
     // A search result (or any other deep link) can land here with
     // ?open=id to jump straight into that quote's detail view.
@@ -158,6 +164,41 @@ function Quotes() {
 
   const addFormItem = () => {
     setFormItems((previous) => [...previous, emptyItem()]);
+  };
+
+
+  const handleQuickAdd = (savedItemId) => {
+
+    const savedItem = savedItems.find((item) => item.id === savedItemId);
+
+    if (!savedItem) {
+      return;
+    }
+
+    // Quick-add only ever copies the saved item's description/price into a
+    // brand-new line item - quantity defaults to 1, and the result is a
+    // normal, independent line item the user can still edit or remove like
+    // any manually-typed one. Nothing here links back to the saved item,
+    // so later editing/deleting the saved template can't affect this quote.
+    const newItem = {
+      description: savedItem.description,
+      quantity: 1,
+      unit_price: savedItem.unit_price
+    };
+
+    setFormItems((previous) => {
+
+      // A fresh, still-blank form starts with one empty placeholder row -
+      // quick-adding into that state should fill it in rather than leave
+      // an empty row dangling above the picked service.
+      if (previous.length === 1 && !previous[0].description.trim() && Number(previous[0].unit_price) === 0) {
+        return [newItem];
+      }
+
+      return [...previous, newItem];
+
+    });
+
   };
 
 
@@ -551,6 +592,27 @@ function Quotes() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              {savedItems.length > 0 && (
+
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleQuickAdd(e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-slate-300 focus:border-ink-600 focus:outline-none"
+                >
+                  <option value="">⚡ Quick add a saved service...</option>
+                  {savedItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.description} — {formatMoney(item.unit_price)}
+                    </option>
+                  ))}
+                </select>
+
+              )}
 
               <div className="flex flex-col gap-2">
 
