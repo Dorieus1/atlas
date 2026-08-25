@@ -1,5 +1,6 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const { withTransaction } = require("../../database/transactionQueue");
 
 
 const runAsync = (sql, params = []) => {
@@ -60,31 +61,10 @@ const getAsync = (sql, params = []) => {
 
 
 
-// The whole module shares a single sqlite3 connection (see database/db.js),
-// and that connection is never opened in serialized mode. node-sqlite3
-// does not queue db.run() calls issued by separate, concurrent async call
-// stacks against each other - so two overlapping "BEGIN TRANSACTION ...
-// COMMIT" blocks (e.g. two quotes being created for the same business at
-// nearly the same instant) can interleave and collide with
-// "cannot start a transaction within a transaction", which would also
-// leave the earlier transaction rolled back out from under it. This
-// in-process promise-chain mutex serializes every multi-statement
-// transaction in this file against every other one, so only one
-// BEGIN...COMMIT block ever runs against the connection at a time.
-let transactionQueue = Promise.resolve();
-
-const withTransaction = (work) => {
-
-  const result = transactionQueue.then(() => work());
-
-  // Keep the queue moving even if this transaction fails, so a rejected
-  // transaction doesn't wedge every transaction queued after it.
-  transactionQueue = result.then(() => {}, () => {});
-
-  return result;
-
-};
-
+// withTransaction is imported from database/transactionQueue.js - it
+// serializes every BEGIN/COMMIT transaction across the WHOLE app (not
+// just this file) against the shared sqlite3 connection, which is never
+// opened in serialized mode. See that file for the full explanation.
 
 
 // "Q-1001" / "INV-1002" - the human-readable form of a quote/invoice's

@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
 const { UPLOAD_DIR } = require("./photoService");
+const { withTransaction } = require("../../database/transactionQueue");
 
 
 const runAsync = (sql, params = []) => {
@@ -261,6 +262,12 @@ const deleteCustomer = async (
   // these deletes fails partway through, everything rolls back together
   // instead of leaving the customer gone but some of their notes,
   // leads, or other records silently orphaned behind in the database.
+  // Routed through withTransaction so this can never collide with a
+  // BEGIN/COMMIT block running concurrently in another service (e.g. a
+  // quote being created at the same instant) - see
+  // database/transactionQueue.js.
+  return withTransaction(async () => {
+
   await runAsync("BEGIN TRANSACTION");
 
   try {
@@ -327,6 +334,8 @@ const deleteCustomer = async (
     throw err;
 
   }
+
+  });
 
 
 };
