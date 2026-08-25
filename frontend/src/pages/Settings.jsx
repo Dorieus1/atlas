@@ -9,6 +9,20 @@ import ChangePasswordPanel from "../components/ChangePasswordPanel";
 import SavedServicesPanel from "../components/SavedServicesPanel";
 import TagManagerPanel from "../components/TagManagerPanel";
 
+// Settings grew, one feature at a time, into nine stacked cards on a
+// single flat page - functional, but not the kind of first impression
+// a business owner should get from their own settings screen. Grouping
+// them into a small set of named tabs (matching how Stripe/Linear/
+// Notion organize their own settings) keeps every existing panel
+// exactly as-is - only where it lives changed, nothing about how it
+// works.
+const TABS = [
+  { key: "general", label: "General" },
+  { key: "integrations", label: "Integrations" },
+  { key: "customization", label: "Customization" },
+  { key: "team", label: "Team & Account" }
+];
+
 function Settings() {
 
   const [business, setBusiness] = useState(null);
@@ -16,6 +30,8 @@ function Settings() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => {
 
@@ -83,28 +99,88 @@ function Settings() {
       )}
 
       {!loading && !error && business && (
-        <div className="mt-6 flex flex-col gap-6">
-          <PublicLinkCard business={business} />
-          <PublicLinkCard
-            business={business}
-            path="/portal"
-            title="🔑 Your Customer Portal"
-            description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
-          />
-          <StripeConnectCard />
-          <GoogleCalendarCard />
-        </div>
-      )}
 
-      <BusinessProfile business={business} />
-
-      {!loading && !error && business && (
         <>
-          <SavedServicesPanel />
-          <TagManagerPanel />
-          <TeamPanel />
-          <ChangePasswordPanel />
+
+          <div className="mt-6 flex flex-wrap gap-1.5 border-b border-ink-800">
+
+            {TABS.map((tab) => (
+
+              <button
+
+                key={tab.key}
+
+                onClick={() => setActiveTab(tab.key)}
+
+                className={`
+                  -mb-px
+                  rounded-t-lg
+                  border-b-2
+                  px-4
+                  py-2.5
+                  text-sm
+                  transition
+                  ${
+                    activeTab === tab.key
+                      ? "border-brand-500 bg-brand-600/10 font-semibold text-brand-400"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }
+                `}
+
+              >
+
+                {tab.label}
+
+              </button>
+
+            ))}
+
+          </div>
+
+          <div className="mt-6 flex flex-col gap-6">
+
+            {activeTab === "general" && (
+              <BusinessProfile business={business} />
+            )}
+
+            {activeTab === "integrations" && (
+
+              <>
+                <PublicLinkCard business={business} />
+                <PublicLinkCard
+                  business={business}
+                  path="/portal"
+                  title="🔑 Your Customer Portal"
+                  description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
+                />
+                <StripeConnectCard />
+                <GoogleCalendarCard />
+              </>
+
+            )}
+
+            {activeTab === "customization" && (
+
+              <>
+                <SavedServicesPanel />
+                <TagManagerPanel />
+              </>
+
+            )}
+
+            {activeTab === "team" && (
+
+              <>
+                <TeamPanel />
+                <ChangePasswordPanel />
+              </>
+
+            )}
+
+          </div>
+
         </>
+
       )}
 
     </div>
