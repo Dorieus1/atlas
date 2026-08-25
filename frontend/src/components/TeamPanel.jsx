@@ -12,6 +12,7 @@ function TeamPanel() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("staff");
 
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -36,6 +37,16 @@ function TeamPanel() {
     }
 
   })();
+
+  // The teammates list (fetched fresh on every load, below) is the source
+  // of truth for the current user's own role - not the JWT/localStorage
+  // "user" object captured at login, which would go stale if this user's
+  // role changed after they logged in and never refreshed the page.
+  // Default to false (hide owner-only controls) until the list has
+  // loaded, rather than briefly flashing controls a staff member can't
+  // actually use.
+  const currentUser = teammates.find((t) => t.id === currentUserId);
+  const isOwner = currentUser?.role === "owner";
 
   const loadTeammates = async () => {
 
@@ -95,11 +106,12 @@ function TeamPanel() {
 
     try {
 
-      await inviteTeammate(name.trim(), email.trim(), password);
+      await inviteTeammate(name.trim(), email.trim(), password, role);
 
       setName("");
       setEmail("");
       setPassword("");
+      setRole("staff");
 
       await loadTeammates();
 
@@ -189,6 +201,9 @@ function TeamPanel() {
                   {teammate.id === currentUserId && (
                     <span className="text-slate-400 font-normal"> (you)</span>
                   )}
+                  <span className="ml-2 text-xs uppercase tracking-wide text-slate-400 bg-ink-700 rounded px-2 py-0.5 align-middle">
+                    {teammate.role === "owner" ? "Owner" : "Staff"}
+                  </span>
                 </p>
 
                 <p className="text-slate-400 text-sm">
@@ -197,7 +212,7 @@ function TeamPanel() {
 
               </div>
 
-              {teammate.id !== currentUserId && (
+              {isOwner && teammate.id !== currentUserId && (
 
                 confirmingDeleteId === teammate.id ? (
 
@@ -247,67 +262,100 @@ function TeamPanel() {
         </p>
       )}
 
-      <h3 className="font-semibold mb-3">
-        Add a teammate
-      </h3>
+      {isOwner ? (
 
-      {error && (
-        <p className="text-red-400 text-sm mb-3">
-          {error}
+        <>
+
+          <h3 className="font-semibold mb-3">
+            Add a teammate
+          </h3>
+
+          {error && (
+            <p className="text-red-400 text-sm mb-3">
+              {error}
+            </p>
+          )}
+
+          <input
+
+            value={name}
+
+            placeholder="Name"
+
+            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+
+            onChange={(e) => setName(e.target.value)}
+
+          />
+
+          <input
+
+            value={email}
+
+            placeholder="Email"
+
+            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+
+            onChange={(e) => setEmail(e.target.value)}
+
+          />
+
+          <input
+
+            value={password}
+
+            type="password"
+
+            placeholder="Password"
+
+            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+
+            onChange={(e) => setPassword(e.target.value)}
+
+          />
+
+          <select
+
+            value={role}
+
+            className="w-full bg-ink-800 text-white border border-ink-700 rounded-lg p-3 mb-3"
+
+            onChange={(e) => setRole(e.target.value)}
+
+          >
+
+            <option value="staff">Staff</option>
+            <option value="owner">Owner</option>
+
+          </select>
+
+          <p className="text-slate-400 text-xs mb-3">
+            Staff can use the CRM day-to-day. Owners can also manage the team and payment settings.
+          </p>
+
+          <button
+
+            onClick={handleInvite}
+
+            disabled={saving}
+
+            className="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg disabled:opacity-50"
+
+          >
+
+            {saving ? "Adding..." : "Add Teammate"}
+
+          </button>
+
+        </>
+
+      ) : (
+
+        <p className="text-slate-400 text-sm">
+          Only the business owner can add or remove teammates.
         </p>
+
       )}
-
-      <input
-
-        value={name}
-
-        placeholder="Name"
-
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
-
-        onChange={(e) => setName(e.target.value)}
-
-      />
-
-      <input
-
-        value={email}
-
-        placeholder="Email"
-
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
-
-        onChange={(e) => setEmail(e.target.value)}
-
-      />
-
-      <input
-
-        value={password}
-
-        type="password"
-
-        placeholder="Password"
-
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
-
-        onChange={(e) => setPassword(e.target.value)}
-
-      />
-
-      <button
-
-        onClick={handleInvite}
-
-        disabled={saving}
-
-        className="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-lg disabled:opacity-50"
-
-      >
-
-        {saving ? "Adding..." : "Add Teammate"}
-
-      </button>
 
     </div>
 

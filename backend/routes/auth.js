@@ -4,6 +4,7 @@ const router = express.Router();
 
 const rateLimiter = require("../middleware/rateLimiter");
 const authMiddleware = require("../middleware/authMiddleware");
+const requireOwner = require("../middleware/requireOwner");
 
 
 const {
@@ -63,6 +64,7 @@ router.get(
 router.post(
   "/teammates",
   authMiddleware,
+  requireOwner,
   inviteTeammate
 );
 
@@ -70,6 +72,7 @@ router.post(
 router.delete(
   "/teammates/:id",
   authMiddleware,
+  requireOwner,
   removeTeammate
 );
 

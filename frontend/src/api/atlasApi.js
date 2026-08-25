@@ -250,7 +250,7 @@ export const getTeammates = () =>
 
 
 
-export const inviteTeammate = (name, email, password) =>
+export const inviteTeammate = (name, email, password, role) =>
 
   request("/auth/teammates", {
 
@@ -262,7 +262,9 @@ export const inviteTeammate = (name, email, password) =>
 
       email,
 
-      password
+      password,
+
+      role
 
     })
 

@@ -8,7 +8,8 @@ const createUser = async (
   business_id,
   name,
   email,
-  password
+  password,
+  role = "staff"
 ) => {
 
 
@@ -36,10 +37,11 @@ const createUser = async (
         business_id,
         name,
         email,
-        password
+        password,
+        role
       )
 
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
 
       `,
 
@@ -53,7 +55,9 @@ const createUser = async (
 
         normalizedEmail,
 
-        hashedPassword
+        hashedPassword,
+
+        role
 
       ],
 
@@ -294,7 +298,7 @@ const getUsersByBusiness = (business_id) => {
     db.all(
 
       `
-      SELECT id, name, email, created_at
+      SELECT id, name, email, role, created_at
       FROM users
       WHERE business_id = ?
       ORDER BY created_at ASC

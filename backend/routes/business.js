@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const requireOwner = require("../middleware/requireOwner");
 const rateLimiter = require("../middleware/rateLimiter");
 
 const {
@@ -20,7 +21,7 @@ router.post("/", createBusiness);
 router.get("/", authMiddleware, getBusinesses);
 
 
-router.put("/", authMiddleware, updateBusiness);
+router.put("/", authMiddleware, requireOwner, updateBusiness);
 
 
 router.delete(

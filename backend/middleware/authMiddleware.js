@@ -55,7 +55,7 @@ const authMiddleware = (req, res, next) => {
     db.get(
 
       `
-      SELECT id
+      SELECT id, role
       FROM users
       WHERE id = ? AND business_id = ?
       `,
@@ -82,7 +82,14 @@ const authMiddleware = (req, res, next) => {
 
         }
 
+        // Role is read fresh from the DB on every request rather than
+        // trusted from the JWT payload. Tokens here are long-lived and
+        // can't be revoked early, so baking role into the token would let
+        // a just-demoted staff member keep owner-level access until their
+        // token naturally expired. Reading it here means a role change
+        // takes effect on the user's very next request.
         req.user = decoded;
+        req.user.role = row.role;
 
         next();
 
