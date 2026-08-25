@@ -518,7 +518,8 @@ const createInvoiceCheckout = async (req, res) => {
       quote.items,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=1`,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=0`,
-      { quote_id: quote.id, business_id: business.id }
+      { quote_id: quote.id, business_id: business.id },
+      quote.discount_type ? { type: quote.discount_type, value: quote.discount_value } : null
 
     );
 

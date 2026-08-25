@@ -890,7 +890,7 @@ export const getQuote = (id) =>
 
 
 
-export const createQuote = (customer_id, type, notes, items) =>
+export const createQuote = (customer_id, type, notes, items, discount_type = null, discount_value = null) =>
 
   request("/quotes", {
 
@@ -904,7 +904,11 @@ export const createQuote = (customer_id, type, notes, items) =>
 
       notes,
 
-      items
+      items,
+
+      discount_type,
+
+      discount_value
 
     })
 

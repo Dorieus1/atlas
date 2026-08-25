@@ -1,5 +1,6 @@
 const {
   createQuote: createQuoteService,
+  calculateQuoteTotals,
   formatQuoteNumber,
   getQuotes: getQuotesService,
   getQuotesForExport: getQuotesForExportService,
@@ -72,6 +73,54 @@ function normalizeItems(items) {
 }
 
 
+// Validates a discount_type/discount_value pair against a subtotal that's
+// already known (the caller computes it from whatever line items will be
+// in effect - the new ones on a create/replace, or the existing ones on
+// an update that doesn't touch items). Returns an error string, or null
+// if the pair is fine.
+//
+// Both fields must be omitted/null together (no discount) or both
+// present - a type with no value (or vice versa) is a malformed request,
+// not something to silently coerce. A fixed discount that would exceed
+// the subtotal is rejected outright rather than clamped to it: clamping
+// would silently change what the business owner asked for into something
+// they didn't, for a feature that's directly about money.
+function validateDiscount(discount_type, discount_value, subtotal) {
+
+  const hasType = discount_type !== undefined && discount_type !== null && discount_type !== "";
+  const hasValue = discount_value !== undefined && discount_value !== null;
+
+  if (!hasType && !hasValue) {
+    return null;
+  }
+
+  if (hasType !== hasValue) {
+    return "discount_type and discount_value must both be provided, or both left out";
+  }
+
+  if (!["percent", "fixed"].includes(discount_type)) {
+    return "discount_type must be 'percent' or 'fixed'";
+  }
+
+  const value = Number(discount_value);
+
+  if (!Number.isFinite(value) || value < 0) {
+    return "discount_value must be a non-negative number";
+  }
+
+  if (discount_type === "percent" && value > 100) {
+    return "A percent discount can't be more than 100%";
+  }
+
+  if (discount_type === "fixed" && value > subtotal) {
+    return "A fixed discount can't be more than the subtotal";
+  }
+
+  return null;
+
+}
+
+
 // Attaches the formatted "Q-1001"/"INV-1002" display number to a quote
 // row (or every row in an array) before it goes out in a response.
 function withFormattedNumber(quoteOrQuotes) {
@@ -101,7 +150,9 @@ const createQuote = async (req, res) => {
       customer_id,
       type,
       notes,
-      items
+      items,
+      discount_type,
+      discount_value
     } = req.body;
 
     const business_id = req.user.business_id;
@@ -134,6 +185,20 @@ const createQuote = async (req, res) => {
 
     }
 
+    const normalizedItems = normalizeItems(items);
+
+    const { subtotal } = calculateQuoteTotals(normalizedItems, null, null);
+
+    const discountError = validateDiscount(discount_type, discount_value, subtotal);
+
+    if (discountError) {
+
+      return res.status(400).json({
+        error: discountError
+      });
+
+    }
+
     const customer = await getCustomerById(customer_id, business_id);
 
     if (!customer) {
@@ -154,10 +219,12 @@ const createQuote = async (req, res) => {
       customer_id,
       quoteType,
       notes,
-      normalizeItems(items),
+      normalizedItems,
       null,
       req.user.id,
-      actingUser ? actingUser.name : null
+      actingUser ? actingUser.name : null,
+      discount_type || null,
+      discount_value === undefined ? null : discount_value
     );
 
     res.status(201).json({
@@ -347,13 +414,89 @@ const updateQuote = async (req, res) => {
 
     const { id } = req.params;
     const business_id = req.user.business_id;
-    const { status, notes, type, items } = req.body;
+    const { status, notes, type, items, discount_type, discount_value } = req.body;
 
     if (status !== undefined && !VALID_STATUSES.includes(status)) {
 
       return res.status(400).json({
         error: "status must be one of: " + VALID_STATUSES.join(", ")
       });
+
+    }
+
+    if (type !== undefined && !VALID_TYPES.includes(type)) {
+
+      return res.status(400).json({
+        error: "type must be one of: " + VALID_TYPES.join(", ")
+      });
+
+    }
+
+    if (items !== undefined) {
+
+      const itemsError = validateItems(items);
+
+      if (itemsError) {
+
+        return res.status(400).json({
+          error: itemsError
+        });
+
+      }
+
+    }
+
+    // Whether discount_type/discount_value are being changed in this
+    // request at all - if neither is present, the stored discount (if
+    // any) is left exactly as-is.
+    const discountFieldsProvided = discount_type !== undefined || discount_value !== undefined;
+
+    // A discount's validity depends on the subtotal it's applied against,
+    // and a subtotal depends on which line items are in play. Whenever
+    // exactly one of {items, discount} is changing in this request, the
+    // OTHER one's current value has to come from the database so the
+    // discount is re-validated against the subtotal it will actually
+    // apply to once this update lands - not silently left in a state
+    // where a fixed discount now exceeds a shrunk set of items, or a
+    // brand-new discount is checked against stale items. When both (or
+    // neither) are changing together, everything needed is already in
+    // this request body and no extra read is needed.
+    let existingQuote = null;
+
+    if ((items !== undefined) !== discountFieldsProvided) {
+
+      existingQuote = await getQuoteByIdService(id, business_id);
+
+      if (!existingQuote) {
+
+        return res.status(404).json({
+          error: "Not found"
+        });
+
+      }
+
+    }
+
+    if (items !== undefined || discountFieldsProvided) {
+
+      const subtotal = items !== undefined
+        ? calculateQuoteTotals(normalizeItems(items), null, null).subtotal
+        : existingQuote.subtotal;
+
+      const effectiveDiscountType = discountFieldsProvided ? (discount_type || null) : existingQuote.discount_type;
+      const effectiveDiscountValue = discountFieldsProvided
+        ? (discount_value === undefined || discount_value === null ? null : discount_value)
+        : existingQuote.discount_value;
+
+      const discountError = validateDiscount(effectiveDiscountType, effectiveDiscountValue, subtotal);
+
+      if (discountError) {
+
+        return res.status(400).json({
+          error: discountError
+        });
+
+      }
 
     }
 
@@ -370,14 +513,6 @@ const updateQuote = async (req, res) => {
 
     if (type !== undefined) {
 
-      if (!VALID_TYPES.includes(type)) {
-
-        return res.status(400).json({
-          error: "type must be one of: " + VALID_TYPES.join(", ")
-        });
-
-      }
-
       fieldsToUpdate.type = type;
 
     }
@@ -385,6 +520,13 @@ const updateQuote = async (req, res) => {
     if (notes !== undefined) {
 
       fieldsToUpdate.notes = notes;
+
+    }
+
+    if (discountFieldsProvided) {
+
+      fieldsToUpdate.discount_type = discount_type || null;
+      fieldsToUpdate.discount_value = discount_value === undefined || discount_value === null ? null : Number(discount_value);
 
     }
 
@@ -403,16 +545,6 @@ const updateQuote = async (req, res) => {
     }
 
     if (items !== undefined) {
-
-      const itemsError = validateItems(items);
-
-      if (itemsError) {
-
-        return res.status(400).json({
-          error: itemsError
-        });
-
-      }
 
       const replaced = await replaceQuoteItemsService(id, business_id, normalizeItems(items));
 

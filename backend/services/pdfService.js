@@ -27,6 +27,16 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
+function formatDiscountLabel(quote) {
+
+  if (quote.discount_type === "percent") {
+    return `Discount (${quote.discount_value}%)`;
+  }
+
+  return `Discount (${formatMoney(quote.discount_value)} off)`;
+
+}
+
 
 function drawTableHeader(doc, y) {
 
@@ -158,7 +168,22 @@ function streamQuotePdf(res, quote, business) {
 
   });
 
-  if (y + 20 + 30 > bottomOf(doc)) {
+  // Only quotes with an actual discount get the Subtotal/Discount/Total
+  // breakdown - one that never had a discount keeps the exact single
+  // "Total" line this PDF has always shown, so existing quotes' PDFs
+  // don't suddenly grow a "Discount: $0.00" line that was never there.
+  const hasDiscount = !!quote.discount_type;
+
+  const DISCOUNT_LABEL_X = 250;
+  const DISCOUNT_LABEL_WIDTH = 210;
+  const BREAKDOWN_LINE_HEIGHT = 18;
+
+  // The "30" here is the same rough single-line height the page-break
+  // math always used for the Total line - two extra lines are added on
+  // top of it when a discount also needs to be drawn.
+  const totalsBlockHeight = hasDiscount ? (BREAKDOWN_LINE_HEIGHT * 2 + 30) : 30;
+
+  if (y + 20 + totalsBlockHeight > bottomOf(doc)) {
 
     doc.addPage();
     y = PAGE_MARGIN;
@@ -166,6 +191,30 @@ function streamQuotePdf(res, quote, business) {
   } else {
 
     y += 20;
+
+  }
+
+  if (hasDiscount) {
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(MUTED_COLOR)
+      .text("Subtotal", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+      .fillColor(INK_COLOR)
+      .text(formatMoney(quote.subtotal), COLUMNS.amount, y, { width: 65, align: "right" });
+
+    y += BREAKDOWN_LINE_HEIGHT;
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(MUTED_COLOR)
+      .text(formatDiscountLabel(quote), DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+      .fillColor(INK_COLOR)
+      .text(`-${formatMoney(quote.discount_amount)}`, COLUMNS.amount, y, { width: 65, align: "right" });
+
+    y += BREAKDOWN_LINE_HEIGHT;
 
   }
 
