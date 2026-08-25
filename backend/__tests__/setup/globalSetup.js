@@ -155,7 +155,9 @@ module.exports = async () => {
           end_time DATETIME,
           status TEXT DEFAULT 'scheduled',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          reminder_sent_at DATETIME
+          reminder_sent_at DATETIME,
+          recurrence_id TEXT,
+          recurrence_rule TEXT
         )
       `);
 

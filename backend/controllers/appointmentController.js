@@ -1,10 +1,15 @@
 const {
   createAppointment: createAppointmentService,
+  createRecurringAppointments: createRecurringAppointmentsService,
   getAppointmentById,
   getAppointments: getAppointmentsService,
   getAppointmentsByCustomer: getAppointmentsByCustomerService,
   updateAppointmentStatus: updateAppointmentStatusService,
-  deleteAppointment: deleteAppointmentService
+  updateAppointmentStatusForSeries: updateAppointmentStatusForSeriesService,
+  deleteAppointment: deleteAppointmentService,
+  deleteAppointmentForSeries: deleteAppointmentForSeriesService,
+  RECURRENCE_RULES,
+  MAX_RECURRING_OCCURRENCES
 } = require("../services/appointmentService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -28,7 +33,9 @@ const createAppointment = async (req, res) => {
       title,
       notes,
       start_time,
-      end_time
+      end_time,
+      recurrence,
+      occurrences
     } = req.body;
 
     const business_id = req.user.business_id;
@@ -84,6 +91,59 @@ const createAppointment = async (req, res) => {
         });
 
       }
+
+    }
+
+    // Recurrence is entirely optional - omitting it keeps this endpoint
+    // byte-for-byte the same single-appointment behavior it always had.
+    if (recurrence !== undefined && recurrence !== null && recurrence !== "") {
+
+      if (!RECURRENCE_RULES.has(recurrence)) {
+
+        return res.status(400).json({
+          error: "recurrence must be one of: " + [...RECURRENCE_RULES].join(", ")
+        });
+
+      }
+
+      const occurrenceCount = Number(occurrences);
+
+      if (!Number.isInteger(occurrenceCount) || occurrenceCount < 1) {
+
+        return res.status(400).json({
+          error: "occurrences must be a whole number of at least 1"
+        });
+
+      }
+
+      if (occurrenceCount > MAX_RECURRING_OCCURRENCES) {
+
+        return res.status(400).json({
+          error: `occurrences can't exceed ${MAX_RECURRING_OCCURRENCES}`
+        });
+
+      }
+
+      const { recurrence_id, ids } = await createRecurringAppointmentsService(
+
+        business_id,
+        customer_id || null,
+        title.trim(),
+        notes,
+        start_time,
+        end_time,
+        "scheduled",
+        recurrence,
+        occurrenceCount
+
+      );
+
+      return res.status(201).json({
+        id: ids[0],
+        ids,
+        recurrence_id,
+        message: `${ids.length} recurring appointments scheduled`
+      });
 
     }
 
@@ -179,7 +239,7 @@ const updateAppointmentStatus = async (req, res) => {
   try {
 
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, scope } = req.body;
 
     if (!VALID_STATUSES.includes(status)) {
 
@@ -191,11 +251,11 @@ const updateAppointmentStatus = async (req, res) => {
 
     const business_id = req.user.business_id;
 
-    const updated = await updateAppointmentStatusService(
-      id,
-      business_id,
-      status
-    );
+    // "future" is an explicit opt-in for a series - default behavior
+    // (omitted or "this") is untouched, single-row, exactly as before.
+    const updated = scope === "future"
+      ? await updateAppointmentStatusForSeriesService(id, business_id, status)
+      : await updateAppointmentStatusService(id, business_id, status);
 
     if (!updated) {
 
@@ -280,8 +340,13 @@ const deleteAppointment = async (req, res) => {
   try {
 
     const { id } = req.params;
+    const business_id = req.user.business_id;
 
-    const deleted = await deleteAppointmentService(id, req.user.business_id);
+    // Same explicit opt-in shape as the status update above - a plain
+    // DELETE with no body (or scope !== "future") stays single-row.
+    const deleted = req.body && req.body.scope === "future"
+      ? await deleteAppointmentForSeriesService(id, business_id)
+      : await deleteAppointmentService(id, business_id);
 
     if (!deleted) {
 
