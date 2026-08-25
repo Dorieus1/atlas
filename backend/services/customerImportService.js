@@ -1,6 +1,6 @@
 const { parse } = require("csv-parse/sync");
 
-const { createCustomer, getCustomerByEmail } = require("./customerService");
+const { createCustomer, getActiveCustomerByEmail } = require("./customerService");
 
 
 // The row cap covers only data rows (the header row doesn't count against
@@ -164,7 +164,11 @@ const importCustomersFromCsv = async (
 
     if (email) {
 
-      const existing = await getCustomerByEmail(business_id, email);
+      // Active-only: a trashed customer's email shouldn't count as "already
+      // exists" here, or re-importing a CSV would be the one path with no
+      // way to bring that customer back into the active list short of
+      // waiting out the 30-day purge or restoring them by hand.
+      const existing = await getActiveCustomerByEmail(business_id, email);
 
       if (existing) {
 

@@ -1,5 +1,5 @@
 const { getBusinessBySlug, getBusinessById } = require("../services/businessService");
-const { getCustomerById, getCustomerByEmail } = require("../services/customerService");
+const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail } = require("../services/emailService");
 const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber } = require("../services/quoteService");
@@ -73,7 +73,7 @@ const requestLogin = async (req, res) => {
 
     }
 
-    const customer = await getCustomerByEmail(business.id, email.trim());
+    const customer = await getActiveCustomerByEmail(business.id, email.trim());
 
     if (customer && customer.email) {
 
@@ -162,7 +162,7 @@ const verifyLogin = async (req, res) => {
 
     }
 
-    const customer = await getCustomerById(record.customer_id, business.id);
+    const customer = await getActiveCustomerById(record.customer_id, business.id);
 
     if (!customer) {
 
@@ -208,7 +208,7 @@ const getMe = async (req, res) => {
 
   try {
 
-    const customer = await getCustomerById(req.customer.customer_id, req.customer.business_id);
+    const customer = await getActiveCustomerById(req.customer.customer_id, req.customer.business_id);
 
     if (!customer) {
 
@@ -269,7 +269,7 @@ const requestAppointment = async (req, res) => {
 
     }
 
-    const customer = await getCustomerById(req.customer.customer_id, req.customer.business_id);
+    const customer = await getActiveCustomerById(req.customer.customer_id, req.customer.business_id);
 
     if (!customer) {
 

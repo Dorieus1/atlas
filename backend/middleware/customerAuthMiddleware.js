@@ -48,6 +48,7 @@ const customerAuthMiddleware = (req, res, next) => {
       SELECT id
       FROM customers
       WHERE id = ? AND business_id = ?
+      AND deleted_at IS NULL
       `,
 
       [decoded.customer_id, decoded.business_id],

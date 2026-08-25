@@ -204,6 +204,66 @@ const getCustomerByEmail = (business_id, email) => {
 
 
 
+// Trashed-customer-excluding variants of the two lookups above, for the
+// handful of call sites where a soft-deleted customer must be treated as
+// if they don't exist at all: the customer-portal auth gate, magic-link
+// login (both requesting one and consuming one), and CSV-import
+// duplicate detection (so re-importing a trashed customer's email
+// creates a fresh active record instead of being silently skipped as
+// "already exists"). getCustomerById/getCustomerByEmail stay unfiltered
+// for their many staff-facing callers, which intentionally can still
+// reach a trashed customer's existing record (see the customer-trash
+// feature's design notes).
+const getActiveCustomerById = (id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM customers
+      WHERE id = ?
+      AND business_id = ?
+      AND deleted_at IS NULL
+      `,
+
+      [id, business_id],
+
+      (err, row) => (err ? reject(err) : resolve(row))
+
+    );
+
+  });
+
+};
+
+const getActiveCustomerByEmail = (business_id, email) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM customers
+      WHERE business_id = ?
+      AND LOWER(email) = LOWER(?)
+      AND deleted_at IS NULL
+      `,
+
+      [business_id, email],
+
+      (err, row) => (err ? reject(err) : resolve(row))
+
+    );
+
+  });
+
+};
+
+
+
 // Attaches each customer's assigned tags (as a small [{id, name}] array) in
 // a single batch query instead of one query per customer.
 const attachTagsToCustomers = async (customers, business_id) => {
@@ -537,6 +597,8 @@ module.exports = {
   createCustomer,
   getCustomerById,
   getCustomerByEmail,
+  getActiveCustomerById,
+  getActiveCustomerByEmail,
   getCustomersByBusiness,
   deleteCustomer,
   restoreCustomer,
