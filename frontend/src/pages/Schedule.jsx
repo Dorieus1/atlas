@@ -9,7 +9,8 @@ import {
   Check,
   Trash2,
   CalendarDays,
-  AlertTriangle
+  AlertTriangle,
+  Repeat
 } from "lucide-react";
 
 import {
@@ -31,6 +32,16 @@ const STATUS_STYLES = {
   completed: "bg-green-500/20 text-green-400",
   cancelled: "bg-slate-500/20 text-slate-400"
 };
+
+const RECURRENCE_LABELS = {
+  weekly: "1 week",
+  biweekly: "2 weeks",
+  monthly: "1 month"
+};
+
+// Kept in sync with MAX_RECURRING_OCCURRENCES in
+// backend/services/appointmentService.js.
+const MAX_RECURRING_OCCURRENCES = 24;
 
 
 function sameDay(a, b) {
@@ -98,6 +109,8 @@ function Schedule() {
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("09:00");
   const [formNotes, setFormNotes] = useState("");
+  const [formRecurrence, setFormRecurrence] = useState("none");
+  const [formOccurrences, setFormOccurrences] = useState(4);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -106,7 +119,12 @@ function Schedule() {
   const [actionSuccess, setActionSuccess] = useState("");
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+  const [deleteScope, setDeleteScope] = useState("this");
   const [deletingId, setDeletingId] = useState(null);
+
+  // Which scheduled appointment (if any) is currently showing the
+  // "this one" vs "this and future" choice before it gets cancelled.
+  const [cancelPromptId, setCancelPromptId] = useState(null);
 
 
   const loadAppointments = async () => {
@@ -150,6 +168,8 @@ function Schedule() {
     setFormNotes("");
     setFormDate(toDateKey(date));
     setFormTime("09:00");
+    setFormRecurrence("none");
+    setFormOccurrences(4);
     setShowForm(true);
 
   };
@@ -164,6 +184,19 @@ function Schedule() {
 
     if (!formDate) {
       setFormError("Pick a date.");
+      return;
+    }
+
+    const isRecurring = formRecurrence !== "none";
+    const occurrenceCount = Number(formOccurrences);
+
+    if (isRecurring && (!Number.isInteger(occurrenceCount) || occurrenceCount < 1)) {
+      setFormError("Enter how many times this should repeat.");
+      return;
+    }
+
+    if (isRecurring && occurrenceCount > MAX_RECURRING_OCCURRENCES) {
+      setFormError(`A repeating appointment can't have more than ${MAX_RECURRING_OCCURRENCES} occurrences.`);
       return;
     }
 
@@ -184,7 +217,9 @@ function Schedule() {
         formTitle.trim(),
         formNotes.trim() || null,
         startTime,
-        null
+        null,
+        isRecurring ? formRecurrence : undefined,
+        isRecurring ? occurrenceCount : undefined
       );
 
       setShowForm(false);
@@ -205,14 +240,15 @@ function Schedule() {
   };
 
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id, status, scope) => {
 
     try {
 
       setActionError("");
       setActionSuccess("");
+      setCancelPromptId(null);
 
-      const result = await updateAppointmentStatus(id, status);
+      const result = await updateAppointmentStatus(id, status, scope);
 
       if (result?.draft_invoice_id) {
         setActionSuccess({ message: "Marked complete — a draft invoice was created for this job.", showQuotesLink: true });
@@ -234,15 +270,16 @@ function Schedule() {
   };
 
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, scope) => {
 
     setDeletingId(id);
 
     try {
 
       setActionError("");
-      await deleteAppointment(id);
+      await deleteAppointment(id, scope);
       setConfirmingDeleteId(null);
+      setDeleteScope("this");
       await loadAppointments();
 
     } catch (error) {
@@ -484,6 +521,13 @@ function Schedule() {
                         </p>
                       )}
 
+                      {appt.recurrence_id && (
+                        <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+                          <Repeat size={11} />
+                          Repeats {RECURRENCE_LABELS[appt.recurrence_rule] || appt.recurrence_rule}
+                        </p>
+                      )}
+
                     </div>
 
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status]}`}>
@@ -526,7 +570,7 @@ function Schedule() {
                       </>
                     )}
 
-                    {appt.status === "scheduled" && (
+                    {appt.status === "scheduled" && cancelPromptId !== appt.id && (
                       <>
                         <button
                           onClick={() => handleStatusChange(appt.id, "completed")}
@@ -537,7 +581,13 @@ function Schedule() {
                         </button>
 
                         <button
-                          onClick={() => handleStatusChange(appt.id, "cancelled")}
+                          onClick={() => {
+                            if (appt.recurrence_id) {
+                              setCancelPromptId(appt.id);
+                            } else {
+                              handleStatusChange(appt.id, "cancelled");
+                            }
+                          }}
                           className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
                         >
                           Cancel
@@ -545,12 +595,68 @@ function Schedule() {
                       </>
                     )}
 
-                    {confirmingDeleteId === appt.id ? (
+                    {cancelPromptId === appt.id && (
 
-                      <div className="ml-auto flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+
+                        <span className="text-[11px] text-slate-500">
+                          Cancel:
+                        </span>
 
                         <button
-                          onClick={() => handleDelete(appt.id)}
+                          onClick={() => handleStatusChange(appt.id, "cancelled", "this")}
+                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                        >
+                          This one
+                        </button>
+
+                        <button
+                          onClick={() => handleStatusChange(appt.id, "cancelled", "future")}
+                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                        >
+                          This & future
+                        </button>
+
+                        <button
+                          onClick={() => setCancelPromptId(null)}
+                          className="rounded-lg px-2 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-ink-700"
+                          aria-label="Nevermind"
+                        >
+                          <X size={13} />
+                        </button>
+
+                      </div>
+
+                    )}
+
+                    {confirmingDeleteId === appt.id ? (
+
+                      <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+
+                        {appt.recurrence_id && (
+
+                          <div className="flex items-center gap-1.5">
+
+                            <button
+                              onClick={() => setDeleteScope("this")}
+                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "this" ? "bg-brand-600 text-white" : "bg-ink-700 text-slate-300 hover:bg-ink-600"}`}
+                            >
+                              This one
+                            </button>
+
+                            <button
+                              onClick={() => setDeleteScope("future")}
+                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "future" ? "bg-brand-600 text-white" : "bg-ink-700 text-slate-300 hover:bg-ink-600"}`}
+                            >
+                              This & future
+                            </button>
+
+                          </div>
+
+                        )}
+
+                        <button
+                          onClick={() => handleDelete(appt.id, appt.recurrence_id ? deleteScope : undefined)}
                           disabled={deletingId === appt.id}
                           className="rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-medium transition hover:bg-red-500 disabled:opacity-50"
                         >
@@ -558,7 +664,10 @@ function Schedule() {
                         </button>
 
                         <button
-                          onClick={() => setConfirmingDeleteId(null)}
+                          onClick={() => {
+                            setConfirmingDeleteId(null);
+                            setDeleteScope("this");
+                          }}
                           disabled={deletingId === appt.id}
                           className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600 disabled:opacity-50"
                         >
@@ -664,6 +773,40 @@ function Schedule() {
                 />
 
               </div>
+
+              <div className="flex gap-3">
+
+                <select
+                  value={formRecurrence}
+                  onChange={(e) => setFormRecurrence(e.target.value)}
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                >
+                  <option value="none">Does not repeat</option>
+                  <option value="weekly">Repeats weekly</option>
+                  <option value="biweekly">Repeats every 2 weeks</option>
+                  <option value="monthly">Repeats monthly</option>
+                </select>
+
+                {formRecurrence !== "none" && (
+                  <input
+                    type="number"
+                    min="1"
+                    max={MAX_RECURRING_OCCURRENCES}
+                    value={formOccurrences}
+                    onChange={(e) => setFormOccurrences(e.target.value)}
+                    placeholder="Times"
+                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  />
+                )}
+
+              </div>
+
+              {formRecurrence !== "none" && (
+                <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Repeat size={12} />
+                  Creates {formOccurrences || 0} appointments, {RECURRENCE_LABELS[formRecurrence]} apart (max {MAX_RECURRING_OCCURRENCES}).
+                </p>
+              )}
 
               <textarea
                 placeholder="Notes (optional)"

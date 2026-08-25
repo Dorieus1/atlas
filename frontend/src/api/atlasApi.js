@@ -754,7 +754,11 @@ export const createAppointment = (
 
   start_time,
 
-  end_time
+  end_time,
+
+  recurrence,
+
+  occurrences
 
 ) =>
 
@@ -772,7 +776,11 @@ export const createAppointment = (
 
       start_time,
 
-      end_time
+      end_time,
+
+      recurrence,
+
+      occurrences
 
     })
 
@@ -780,23 +788,29 @@ export const createAppointment = (
 
 
 
-export const updateAppointmentStatus = (id, status) =>
+// scope: "this" (default, single row) or "future" (this and every later
+// occurrence in the same recurring series).
+export const updateAppointmentStatus = (id, status, scope) =>
 
   request(`/appointments/${id}`, {
 
     method:"PATCH",
 
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, scope })
 
   });
 
 
 
-export const deleteAppointment = (id) =>
+// scope: "this" (default, single row) or "future" (this and every later
+// occurrence in the same recurring series).
+export const deleteAppointment = (id, scope) =>
 
   request(`/appointments/${id}`, {
 
-    method:"DELETE"
+    method:"DELETE",
+
+    body: JSON.stringify({ scope })
 
   });
 
