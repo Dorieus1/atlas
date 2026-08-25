@@ -1,6 +1,7 @@
 const {
   createQuote: createQuoteService,
   calculateQuoteTotals,
+  applyDiscount,
   formatQuoteNumber,
   getQuotes: getQuotesService,
   getQuotesForExport: getQuotesForExportService,
@@ -121,6 +122,48 @@ function validateDiscount(discount_type, discount_value, subtotal) {
 }
 
 
+// Same both-or-neither shape as validateDiscount above, but checked
+// against the quote's TOTAL (after any discount is applied) rather than
+// its subtotal - a deposit is up-front money toward what the customer
+// will actually owe, so it can never exceed that. The caller computes
+// that total from whatever items/discount will be in effect once this
+// request lands, same reasoning as validateDiscount's subtotal argument.
+function validateDeposit(deposit_type, deposit_value, total) {
+
+  const hasType = deposit_type !== undefined && deposit_type !== null && deposit_type !== "";
+  const hasValue = deposit_value !== undefined && deposit_value !== null;
+
+  if (!hasType && !hasValue) {
+    return null;
+  }
+
+  if (hasType !== hasValue) {
+    return "deposit_type and deposit_value must both be provided, or both left out";
+  }
+
+  if (!["percent", "fixed"].includes(deposit_type)) {
+    return "deposit_type must be 'percent' or 'fixed'";
+  }
+
+  const value = Number(deposit_value);
+
+  if (!Number.isFinite(value) || value < 0) {
+    return "deposit_value must be a non-negative number";
+  }
+
+  if (deposit_type === "percent" && value > 100) {
+    return "A percent deposit can't be more than 100%";
+  }
+
+  if (deposit_type === "fixed" && value > total) {
+    return "A fixed deposit can't be more than the quote's total";
+  }
+
+  return null;
+
+}
+
+
 // Attaches the formatted "Q-1001"/"INV-1002" display number to a quote
 // row (or every row in an array) before it goes out in a response.
 function withFormattedNumber(quoteOrQuotes) {
@@ -152,7 +195,9 @@ const createQuote = async (req, res) => {
       notes,
       items,
       discount_type,
-      discount_value
+      discount_value,
+      deposit_type,
+      deposit_value
     } = req.body;
 
     const business_id = req.user.business_id;
@@ -199,6 +244,21 @@ const createQuote = async (req, res) => {
 
     }
 
+    // The deposit is checked against the total, which needs the discount
+    // factored in first - applyDiscount() rather than a second call to
+    // calculateQuoteTotals() since the items are already summed above.
+    const { total } = applyDiscount(subtotal, discount_type || null, discount_value === undefined ? null : discount_value);
+
+    const depositError = validateDeposit(deposit_type, deposit_value, total);
+
+    if (depositError) {
+
+      return res.status(400).json({
+        error: depositError
+      });
+
+    }
+
     const customer = await getCustomerById(customer_id, business_id);
 
     if (!customer) {
@@ -224,7 +284,9 @@ const createQuote = async (req, res) => {
       req.user.id,
       actingUser ? actingUser.name : null,
       discount_type || null,
-      discount_value === undefined ? null : discount_value
+      discount_value === undefined ? null : discount_value,
+      deposit_type || null,
+      deposit_value === undefined ? null : deposit_value
     );
 
     res.status(201).json({
@@ -414,7 +476,7 @@ const updateQuote = async (req, res) => {
 
     const { id } = req.params;
     const business_id = req.user.business_id;
-    const { status, notes, type, items, discount_type, discount_value } = req.body;
+    const { status, notes, type, items, discount_type, discount_value, deposit_type, deposit_value } = req.body;
 
     if (status !== undefined && !VALID_STATUSES.includes(status)) {
 
@@ -446,24 +508,27 @@ const updateQuote = async (req, res) => {
 
     }
 
-    // Whether discount_type/discount_value are being changed in this
-    // request at all - if neither is present, the stored discount (if
-    // any) is left exactly as-is.
+    // Whether discount_type/discount_value, or deposit_type/deposit_value,
+    // are being changed in this request at all - if a pair is absent, the
+    // stored value (if any) is left exactly as-is.
     const discountFieldsProvided = discount_type !== undefined || discount_value !== undefined;
+    const depositFieldsProvided = deposit_type !== undefined || deposit_value !== undefined;
 
     // A discount's validity depends on the subtotal it's applied against,
-    // and a subtotal depends on which line items are in play. Whenever
-    // exactly one of {items, discount} is changing in this request, the
-    // OTHER one's current value has to come from the database so the
-    // discount is re-validated against the subtotal it will actually
-    // apply to once this update lands - not silently left in a state
-    // where a fixed discount now exceeds a shrunk set of items, or a
-    // brand-new discount is checked against stale items. When both (or
-    // neither) are changing together, everything needed is already in
-    // this request body and no extra read is needed.
+    // and a deposit's validity depends on the TOTAL (the subtotal minus
+    // that discount) - so touching items, a discount, or a deposit can
+    // each affect whether the others are still valid. Whenever any of
+    // the three is changing in this request, whichever of the others
+    // ISN'T also in this request body has to come from the database so
+    // everything is re-validated against what it will actually apply to
+    // once this update lands - not silently left in a state where, say,
+    // a shrunk set of items no longer fits an existing fixed discount, or
+    // a bigger discount shrinks the total below an existing fixed
+    // deposit. When none of the three are changing, nothing here runs
+    // and no extra read happens.
     let existingQuote = null;
 
-    if ((items !== undefined) !== discountFieldsProvided) {
+    if (items !== undefined || discountFieldsProvided || depositFieldsProvided) {
 
       existingQuote = await getQuoteByIdService(id, business_id);
 
@@ -474,10 +539,6 @@ const updateQuote = async (req, res) => {
         });
 
       }
-
-    }
-
-    if (items !== undefined || discountFieldsProvided) {
 
       const subtotal = items !== undefined
         ? calculateQuoteTotals(normalizeItems(items), null, null).subtotal
@@ -494,6 +555,23 @@ const updateQuote = async (req, res) => {
 
         return res.status(400).json({
           error: discountError
+        });
+
+      }
+
+      const { total } = applyDiscount(subtotal, effectiveDiscountType, effectiveDiscountValue);
+
+      const effectiveDepositType = depositFieldsProvided ? (deposit_type || null) : existingQuote.deposit_type;
+      const effectiveDepositValue = depositFieldsProvided
+        ? (deposit_value === undefined || deposit_value === null ? null : deposit_value)
+        : existingQuote.deposit_value;
+
+      const depositError = validateDeposit(effectiveDepositType, effectiveDepositValue, total);
+
+      if (depositError) {
+
+        return res.status(400).json({
+          error: depositError
         });
 
       }
@@ -527,6 +605,13 @@ const updateQuote = async (req, res) => {
 
       fieldsToUpdate.discount_type = discount_type || null;
       fieldsToUpdate.discount_value = discount_value === undefined || discount_value === null ? null : Number(discount_value);
+
+    }
+
+    if (depositFieldsProvided) {
+
+      fieldsToUpdate.deposit_type = deposit_type || null;
+      fieldsToUpdate.deposit_value = deposit_value === undefined || deposit_value === null ? null : Number(deposit_value);
 
     }
 

@@ -2,7 +2,7 @@ const { getBusinessBySlug, getBusinessById } = require("../services/businessServ
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail } = require("../services/emailService");
-const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit } = require("../services/quoteService");
 const { getAppointmentsByCustomer, createAppointment } = require("../services/appointmentService");
 const { checkWithinBusinessHours } = require("../services/businessHoursService");
 const { getPhotosByCustomer } = require("../services/photoService");
@@ -15,6 +15,31 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 
 const MAX_TITLE_LENGTH = 200;
+const MAX_APPROVAL_NAME_LENGTH = 200;
+
+
+// Maps a quote's current status to the specific reason it can't be
+// accepted/declined right now, for the 400 both endpoints below return
+// when status isn't 'sent' - a draft was never sent to the customer, and
+// an already-decided (or already-paid) quote shouldn't be re-actioned.
+function wrongQuoteStatusError(quote) {
+
+  if (quote.status === "accepted") {
+    return "This has already been accepted";
+  }
+
+  if (quote.status === "declined") {
+    return "This has already been declined";
+  }
+
+  if (quote.status === "paid") {
+    return "This has already been paid";
+  }
+
+  // draft, or any other non-"sent" status.
+  return "This hasn't been sent to you yet";
+
+}
 
 
 const getPortalBusinessHandler = async (req, res) => {
@@ -518,7 +543,7 @@ const createInvoiceCheckout = async (req, res) => {
       quote.items,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=1`,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=0`,
-      { quote_id: quote.id, business_id: business.id },
+      { quote_id: quote.id, business_id: business.id, payment_type: "invoice" },
       quote.discount_type ? { type: quote.discount_type, value: quote.discount_value } : null
 
     );
@@ -532,6 +557,283 @@ const createInvoiceCheckout = async (req, res) => {
   } catch (error) {
 
     console.error("PORTAL CHECKOUT ERROR:", error);
+
+    res.status(500).json({
+      error: error.message || "Couldn't start checkout. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const acceptQuote = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const { name } = req.body;
+    const business_id = req.customer.business_id;
+
+    if (!name || !name.trim()) {
+
+      return res.status(400).json({
+        error: "Please type your name to approve this"
+      });
+
+    }
+
+    if (name.trim().length > MAX_APPROVAL_NAME_LENGTH) {
+
+      return res.status(400).json({
+        error: "That name is too long"
+      });
+
+    }
+
+    const quote = await getQuoteById(id, business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    // Only a quote actually sent to this customer can be accepted - not a
+    // draft they were never meant to see, and not one already decided
+    // (accepted/declined) or already paid. Checked here, not just hidden
+    // in the UI, since this is what puts a name on the approval record.
+    if (quote.status !== "sent") {
+
+      return res.status(400).json({
+        error: wrongQuoteStatusError(quote)
+      });
+
+    }
+
+    const approvedName = name.trim();
+
+    await updateQuoteFields(id, business_id, {
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      accepted_by_name: approvedName
+    });
+
+    // Best-effort - the customer's approval is already saved above, so a
+    // notification hiccup must never make that look like it failed.
+    try {
+
+      await createNotification(
+
+        business_id,
+
+        "quote_accepted",
+
+        `✅ ${approvedName} accepted a ${quote.type}`,
+
+        quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null,
+
+        "/quotes"
+
+      );
+
+    } catch (notificationError) {
+
+      console.error("QUOTE ACCEPT NOTIFICATION FAILED:", notificationError);
+
+    }
+
+    res.json({ message: "Accepted" });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const declineQuote = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.customer.business_id;
+
+    const quote = await getQuoteById(id, business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    if (quote.status !== "sent") {
+
+      return res.status(400).json({
+        error: wrongQuoteStatusError(quote)
+      });
+
+    }
+
+    await updateQuoteFields(id, business_id, {
+      status: "declined",
+      declined_at: new Date().toISOString()
+    });
+
+    try {
+
+      const customer = await getActiveCustomerById(req.customer.customer_id, business_id);
+
+      await createNotification(
+
+        business_id,
+
+        "quote_declined",
+
+        `❌ ${customer?.name || "A customer"} declined a ${quote.type}`,
+
+        quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null,
+
+        "/quotes"
+
+      );
+
+    } catch (notificationError) {
+
+      console.error("QUOTE DECLINE NOTIFICATION FAILED:", notificationError);
+
+    }
+
+    res.json({ message: "Declined" });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+// The deposit equivalent of createInvoiceCheckout above, reusing the same
+// createCheckoutSession() Stripe integration but with a single synthetic
+// line item representing just the deposit amount - NOT the quote's real
+// items array, which would charge the full total. The session's metadata
+// is tagged payment_type: 'deposit' so the webhook (stripeWebhookController)
+// can tell this apart from a full invoice/quote payment and only set
+// deposit_paid_at, never status/paid_at.
+const createDepositCheckout = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.customer.business_id;
+
+    const business = await getBusinessById(business_id);
+
+    if (!business) {
+
+      return res.status(404).json({
+        error: "Business not found"
+      });
+
+    }
+
+    if (!business.stripe_account_id || !business.stripe_onboarded) {
+
+      return res.status(400).json({
+        error: "Online payment isn't set up for this business yet"
+      });
+
+    }
+
+    const quote = await getQuoteById(id, business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    if (!quote.deposit_type || quote.deposit_value === null || quote.deposit_value === undefined) {
+
+      return res.status(400).json({
+        error: "No deposit is set up for this"
+      });
+
+    }
+
+    if (quote.deposit_paid_at) {
+
+      return res.status(400).json({
+        error: "The deposit has already been paid"
+      });
+
+    }
+
+    // A deposit only makes sense once the customer has actually agreed to
+    // the job - see the matching status check on acceptQuote above.
+    if (quote.status !== "accepted") {
+
+      return res.status(400).json({
+        error: "This can't be paid until you accept it"
+      });
+
+    }
+
+    const depositAmount = calculateDeposit(quote.total, quote.deposit_type, quote.deposit_value);
+
+    const label = quote.type === "invoice" ? "Invoice" : "Quote";
+    const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null;
+
+    // A single synthetic line item standing in for the deposit itself,
+    // not quote.items - Checkout Sessions charge whatever line items
+    // they're given, so this is what keeps the charge at the deposit
+    // amount instead of the full quote total.
+    const depositItems = [{
+      description: `Deposit for ${label}${numberPart ? ` ${numberPart}` : ""}`,
+      quantity: 1,
+      unit_price: depositAmount
+    }];
+
+    const session = await createCheckoutSession(
+
+      business.stripe_account_id,
+      depositItems,
+      `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=1`,
+      `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=0`,
+      { quote_id: quote.id, business_id: business.id, payment_type: "deposit" }
+
+    );
+
+    await updateQuoteFields(quote.id, business_id, {
+      stripe_checkout_session_id: session.id
+    });
+
+    res.json({ url: session.url });
+
+  } catch (error) {
+
+    console.error("PORTAL DEPOSIT CHECKOUT ERROR:", error);
 
     res.status(500).json({
       error: error.message || "Couldn't start checkout. Please try again."
@@ -593,6 +895,12 @@ module.exports = {
   downloadMyQuotePdf,
 
   createInvoiceCheckout,
+
+  acceptQuote,
+
+  declineQuote,
+
+  createDepositCheckout,
 
   getMyPhotos
 

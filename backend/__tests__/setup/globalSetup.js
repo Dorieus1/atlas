@@ -193,7 +193,13 @@ module.exports = async () => {
           created_by_user_id TEXT,
           created_by_name TEXT,
           discount_type TEXT,
-          discount_value REAL
+          discount_value REAL,
+          accepted_at DATETIME,
+          accepted_by_name TEXT,
+          declined_at DATETIME,
+          deposit_type TEXT,
+          deposit_value REAL,
+          deposit_paid_at DATETIME
         )
       `);
 

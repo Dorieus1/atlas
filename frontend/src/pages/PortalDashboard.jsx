@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { CalendarDays, FileText, Camera, LogOut, Plus, X, CreditCard, Download } from "lucide-react";
+import { CalendarDays, FileText, Camera, LogOut, Plus, X, CreditCard, Download, Check, Ban } from "lucide-react";
 
 import {
   getPortalMe,
@@ -8,6 +8,9 @@ import {
   requestPortalAppointment,
   getPortalQuotes,
   createInvoiceCheckout,
+  acceptPortalQuote,
+  declinePortalQuote,
+  createDepositCheckout,
   downloadPortalQuotePdf,
   getPortalPhotos,
   getPortalBusiness,
@@ -82,6 +85,12 @@ function PortalDashboard() {
   const [payError, setPayError] = useState("");
 
   const [downloadingId, setDownloadingId] = useState(null);
+
+  const [acceptingQuote, setAcceptingQuote] = useState(null);
+  const [approvalName, setApprovalName] = useState("");
+  const [decisionError, setDecisionError] = useState("");
+  const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+  const [decliningId, setDecliningId] = useState(null);
 
 
   useEffect(() => {
@@ -217,6 +226,97 @@ function PortalDashboard() {
     } catch (error) {
 
       console.error("PORTAL CHECKOUT ERROR:", error);
+      setPayError(error.message || "Couldn't start checkout. Please try again.");
+      setPayingId(null);
+
+    }
+
+  };
+
+
+  const openAcceptConfirm = (quote) => {
+
+    setDecisionError("");
+    setApprovalName("");
+    setAcceptingQuote(quote);
+
+  };
+
+
+  const handleConfirmAccept = async () => {
+
+    if (!acceptingQuote) return;
+
+    if (!approvalName.trim()) {
+      setDecisionError("Type your name to approve this.");
+      return;
+    }
+
+    setDecisionSubmitting(true);
+    setDecisionError("");
+
+    try {
+
+      await acceptPortalQuote(acceptingQuote.id, approvalName.trim());
+
+      setAcceptingQuote(null);
+
+      const myQuotes = await getPortalQuotes();
+      setQuotes(myQuotes);
+
+    } catch (error) {
+
+      console.error("ACCEPT QUOTE ERROR:", error);
+      setDecisionError(error.message || "Couldn't save that. Please try again.");
+
+    } finally {
+
+      setDecisionSubmitting(false);
+
+    }
+
+  };
+
+
+  const handleDecline = async (quoteId) => {
+
+    setPayError("");
+    setDecliningId(quoteId);
+
+    try {
+
+      await declinePortalQuote(quoteId);
+
+      const myQuotes = await getPortalQuotes();
+      setQuotes(myQuotes);
+
+    } catch (error) {
+
+      console.error("DECLINE QUOTE ERROR:", error);
+      setPayError(error.message || "Couldn't save that. Please try again.");
+
+    } finally {
+
+      setDecliningId(null);
+
+    }
+
+  };
+
+
+  const handlePayDeposit = async (quoteId) => {
+
+    setPayError("");
+    setPayingId(quoteId);
+
+    try {
+
+      const { url } = await createDepositCheckout(quoteId);
+      window.location.href = url;
+
+    } catch (error) {
+
+      console.error("PORTAL DEPOSIT CHECKOUT ERROR:", error);
       setPayError(error.message || "Couldn't start checkout. Please try again.");
       setPayingId(null);
 
@@ -407,63 +507,131 @@ function PortalDashboard() {
                 {quotes.map((quote) => {
 
                   const payable = quote.type === "invoice" && (quote.status === "sent" || quote.status === "accepted");
+                  const decidable = quote.status === "sent";
+                  const depositPayable = quote.deposit_type && quote.status === "accepted" && !quote.deposit_paid_at;
 
                   return (
 
                     <div
                       key={quote.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-800 p-3"
+                      className="flex flex-col gap-3 rounded-xl border border-ink-800 p-3"
                     >
 
-                      <div className="min-w-0">
-                        <p className="truncate font-medium capitalize">
-                          {quote.type}
-                          {quoteDisplayNumber(quote) && (
-                            <span className="ml-1.5 text-slate-500">
-                              {quoteDisplayNumber(quote)}
-                            </span>
-                          )}
-                        </p>
-                        {quote.discount_type ? (
-                          <p className="text-xs text-slate-500">
-                            <span className="mr-1.5 line-through">{formatMoney(quote.subtotal)}</span>
-                            {formatMoney(quote.total)}
-                            <span className="ml-1.5 text-green-400">
-                              ({quote.discount_type === "percent" ? `${quote.discount_value}% off` : `${formatMoney(quote.discount_value)} off`})
-                            </span>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+
+                        <div className="min-w-0">
+                          <p className="truncate font-medium capitalize">
+                            {quote.type}
+                            {quoteDisplayNumber(quote) && (
+                              <span className="ml-1.5 text-slate-500">
+                                {quoteDisplayNumber(quote)}
+                              </span>
+                            )}
                           </p>
-                        ) : (
-                          <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
-                        )}
+                          {quote.discount_type ? (
+                            <p className="text-xs text-slate-500">
+                              <span className="mr-1.5 line-through">{formatMoney(quote.subtotal)}</span>
+                              {formatMoney(quote.total)}
+                              <span className="ml-1.5 text-green-400">
+                                ({quote.discount_type === "percent" ? `${quote.discount_value}% off` : `${formatMoney(quote.discount_value)} off`})
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                          )}
+
+                          {quote.status === "accepted" && quote.accepted_by_name && (
+                            <p className="mt-1 text-xs text-green-400">
+                              Approved by {quote.accepted_by_name} on {formatDate(quote.accepted_at)}
+                            </p>
+                          )}
+
+                          {quote.status === "declined" && quote.declined_at && (
+                            <p className="mt-1 text-xs text-red-400">
+                              Declined on {formatDate(quote.declined_at)}
+                            </p>
+                          )}
+
+                          {quote.deposit_type && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              {quote.deposit_paid_at
+                                ? `Deposit of ${formatMoney(quote.deposit_amount)} paid`
+                                : `Deposit of ${formatMoney(quote.deposit_amount)} due on approval`}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
+                            {quote.status}
+                          </span>
+
+                          <button
+                            onClick={() => handleDownload(quote.id)}
+                            disabled={downloadingId === quote.id}
+                            aria-label="Download PDF"
+                            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
+                          >
+                            <Download size={13} />
+                          </button>
+
+                          {payable && (
+                            <button
+                              onClick={() => handlePay(quote.id)}
+                              disabled={payingId === quote.id}
+                              className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                            >
+                              <CreditCard size={13} />
+                              {payingId === quote.id ? "Redirecting..." : `Pay ${formatMoney(quote.total)}`}
+                            </button>
+                          )}
+
+                        </div>
+
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
+                      {decidable && (
 
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
-                          {quote.status}
-                        </span>
+                        <div className="flex items-center gap-2 border-t border-ink-800 pt-3">
 
-                        <button
-                          onClick={() => handleDownload(quote.id)}
-                          disabled={downloadingId === quote.id}
-                          aria-label="Download PDF"
-                          className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
-                        >
-                          <Download size={13} />
-                        </button>
-
-                        {payable && (
                           <button
-                            onClick={() => handlePay(quote.id)}
+                            onClick={() => openAcceptConfirm(quote)}
+                            className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-500"
+                          >
+                            <Check size={13} />
+                            Accept
+                          </button>
+
+                          <button
+                            onClick={() => handleDecline(quote.id)}
+                            disabled={decliningId === quote.id}
+                            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
+                          >
+                            <Ban size={13} />
+                            {decliningId === quote.id ? "Declining..." : "Decline"}
+                          </button>
+
+                        </div>
+
+                      )}
+
+                      {depositPayable && (
+
+                        <div className="border-t border-ink-800 pt-3">
+
+                          <button
+                            onClick={() => handlePayDeposit(quote.id)}
                             disabled={payingId === quote.id}
                             className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
                           >
                             <CreditCard size={13} />
-                            {payingId === quote.id ? "Redirecting..." : `Pay ${formatMoney(quote.total)}`}
+                            {payingId === quote.id ? "Redirecting..." : `Pay Deposit ${formatMoney(quote.deposit_amount)}`}
                           </button>
-                        )}
 
-                      </div>
+                        </div>
+
+                      )}
 
                     </div>
 
@@ -637,6 +805,72 @@ function PortalDashboard() {
               alt={activePhoto.caption || "Job photo"}
               className="max-h-[70vh] w-full object-contain"
             />
+
+          </div>
+
+        </div>
+
+      )}
+
+      {acceptingQuote && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setAcceptingQuote(null)}
+        >
+
+          <div
+            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Approve this {acceptingQuote.type}
+              </h3>
+
+              <button
+                onClick={() => setAcceptingQuote(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Type your name below as your approval record. This isn't a legal
+              signature — it just lets {business?.name || "the business"} know
+              you're good to go.
+            </p>
+
+            {decisionError && (
+              <p className="mt-3 text-sm text-red-400">
+                {decisionError}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3">
+
+              <input
+                placeholder="Your full name"
+                value={approvalName}
+                onChange={(e) => setApprovalName(e.target.value)}
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+              />
+
+              <button
+                onClick={handleConfirmAccept}
+                disabled={decisionSubmitting}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-500 disabled:opacity-50"
+              >
+                <Check size={16} />
+                {decisionSubmitting ? "Saving..." : "Confirm approval"}
+              </button>
+
+            </div>
 
           </div>
 

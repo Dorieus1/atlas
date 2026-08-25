@@ -15,6 +15,9 @@ const {
   getMyQuotes,
   downloadMyQuotePdf,
   createInvoiceCheckout,
+  acceptQuote,
+  declineQuote,
+  createDepositCheckout,
   getMyPhotos
 } = require("../controllers/portalController");
 
@@ -59,6 +62,24 @@ router.post(
   "/account/quotes/:id/checkout",
   customerAuthMiddleware,
   createInvoiceCheckout
+);
+
+router.post(
+  "/account/quotes/:id/accept",
+  customerAuthMiddleware,
+  acceptQuote
+);
+
+router.post(
+  "/account/quotes/:id/decline",
+  customerAuthMiddleware,
+  declineQuote
+);
+
+router.post(
+  "/account/quotes/:id/deposit-checkout",
+  customerAuthMiddleware,
+  createDepositCheckout
 );
 
 router.get(

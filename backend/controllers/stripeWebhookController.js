@@ -1,5 +1,5 @@
 const { constructWebhookEvent } = require("../services/stripeService");
-const { markQuotePaid } = require("../services/quotePaymentService");
+const { markQuotePaid, markQuoteDepositPaid } = require("../services/quotePaymentService");
 
 
 // No auth here - Stripe calls this directly. The signature check below is
@@ -29,11 +29,24 @@ const handleStripeWebhook = async (req, res) => {
     if (event.type === "checkout.session.completed") {
 
       const session = event.data.object;
-      const { quote_id, business_id } = session.metadata || {};
+      const { quote_id, business_id, payment_type } = session.metadata || {};
 
       if (quote_id && business_id) {
 
-        await markQuotePaid(quote_id, business_id);
+        // A deposit Checkout Session is tagged payment_type: 'deposit' in
+        // its metadata (see portalController.createDepositCheckout); any
+        // other value - including a session created before this field
+        // existed, which simply won't have it - is the existing full
+        // invoice/quote payment flow and must behave exactly as before.
+        if (payment_type === "deposit") {
+
+          await markQuoteDepositPaid(quote_id, business_id);
+
+        } else {
+
+          await markQuotePaid(quote_id, business_id);
+
+        }
 
       }
 
