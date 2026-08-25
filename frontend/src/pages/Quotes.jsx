@@ -43,6 +43,33 @@ function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
 }
 
+// Mirrors the backend's calculateQuoteTotals() (backend/services/
+// quoteService.js) so the form can show a live Subtotal/Discount/Total
+// breakdown as the user types - the actual, authoritative numbers still
+// come back from the server on save/reload, this is just for preview.
+function calculateTotals(items, discountType, discountValue) {
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
+    0
+  );
+
+  let discount_amount = 0;
+
+  const value = Number(discountValue);
+
+  if (discountType === "percent" && Number.isFinite(value)) {
+    discount_amount = subtotal * (value / 100);
+  } else if (discountType === "fixed" && Number.isFinite(value)) {
+    discount_amount = value;
+  }
+
+  const total = subtotal - discount_amount;
+
+  return { subtotal, discount_amount, total };
+
+}
+
 
 function Quotes() {
 
@@ -62,6 +89,8 @@ function Quotes() {
   const [formCustomerId, setFormCustomerId] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState([emptyItem()]);
+  const [formDiscountType, setFormDiscountType] = useState("");
+  const [formDiscountValue, setFormDiscountValue] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -147,6 +176,8 @@ function Quotes() {
     setFormCustomerId("");
     setFormNotes("");
     setFormItems([emptyItem()]);
+    setFormDiscountType("");
+    setFormDiscountValue("");
     setFormError("");
     setDraftSummary("");
     setShowForm(true);
@@ -212,10 +243,7 @@ function Quotes() {
   };
 
 
-  const formTotal = formItems.reduce(
-    (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
-    0
-  );
+  const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue);
 
 
   const handleCreate = async () => {
@@ -243,6 +271,29 @@ function Quotes() {
       return;
     }
 
+    if (formDiscountType) {
+
+      const value = Number(formDiscountValue);
+
+      if (!Number.isFinite(value) || value < 0) {
+        setFormError("Enter a valid discount amount.");
+        return;
+      }
+
+      if (formDiscountType === "percent" && value > 100) {
+        setFormError("A percent discount can't be more than 100%.");
+        return;
+      }
+
+      const cleanSubtotal = cleanItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+
+      if (formDiscountType === "fixed" && value > cleanSubtotal) {
+        setFormError("The discount can't be more than the subtotal.");
+        return;
+      }
+
+    }
+
     if (savingRef.current) {
       return;
     }
@@ -253,7 +304,15 @@ function Quotes() {
 
     try {
 
-      await createQuote(formCustomerId, "quote", formNotes.trim() || null, cleanItems);
+      await createQuote(
+        formCustomerId,
+        "quote",
+        formNotes.trim() || null,
+        cleanItems,
+        formDiscountType || null,
+        formDiscountType ? Number(formDiscountValue) : null
+      );
+
       setShowForm(false);
       await loadQuotes();
 
@@ -678,11 +737,64 @@ function Quotes() {
                 className="h-16 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
               />
 
-              <div className="flex items-center justify-between rounded-lg bg-ink-800 px-4 py-3">
-                <span className="text-sm text-slate-400">Total</span>
-                <span className="font-display text-xl font-bold">
-                  {formatMoney(formTotal)}
-                </span>
+              <div className="flex items-center gap-2">
+
+                <select
+                  value={formDiscountType}
+                  onChange={(e) => {
+                    setFormDiscountType(e.target.value);
+                    if (!e.target.value) setFormDiscountValue("");
+                  }}
+                  className="rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                >
+                  <option value="">No discount</option>
+                  <option value="percent">% off</option>
+                  <option value="fixed">$ off</option>
+                </select>
+
+                {formDiscountType && (
+                  <input
+                    type="number"
+                    min="0"
+                    max={formDiscountType === "percent" ? 100 : undefined}
+                    step="0.01"
+                    placeholder={formDiscountType === "percent" ? "e.g. 15" : "e.g. 20.00"}
+                    value={formDiscountValue}
+                    onChange={(e) => setFormDiscountValue(e.target.value)}
+                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                  />
+                )}
+
+              </div>
+
+              <div className="flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
+
+                {formDiscountType && (
+
+                  <>
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>Subtotal</span>
+                      <span>{formatMoney(formTotals.subtotal)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>
+                        Discount
+                        {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
+                      </span>
+                      <span>-{formatMoney(formTotals.discount_amount)}</span>
+                    </div>
+                  </>
+
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Total</span>
+                  <span className="font-display text-xl font-bold">
+                    {formatMoney(formTotals.total)}
+                  </span>
+                </div>
+
               </div>
 
               <button
@@ -811,11 +923,36 @@ function Quotes() {
                   </p>
                 )}
 
-                <div className="mt-4 flex items-center justify-between rounded-lg bg-ink-800 px-4 py-3">
-                  <span className="text-sm text-slate-400">Total</span>
-                  <span className="font-display text-xl font-bold">
-                    {formatMoney(activeQuote.total)}
-                  </span>
+                <div className="mt-4 flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
+
+                  {activeQuote.discount_type && (
+
+                    <>
+                      <div className="flex items-center justify-between text-sm text-slate-400">
+                        <span>Subtotal</span>
+                        <span>{formatMoney(activeQuote.subtotal)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-slate-400">
+                        <span>
+                          Discount
+                          {activeQuote.discount_type === "percent"
+                            ? ` (${activeQuote.discount_value}%)`
+                            : ` (${formatMoney(activeQuote.discount_value)} off)`}
+                        </span>
+                        <span>-{formatMoney(activeQuote.discount_amount)}</span>
+                      </div>
+                    </>
+
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-400">Total</span>
+                    <span className="font-display text-xl font-bold">
+                      {formatMoney(activeQuote.total)}
+                    </span>
+                  </div>
+
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">

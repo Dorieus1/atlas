@@ -67,6 +67,55 @@ const getAsync = (sql, params = []) => {
 // opened in serialized mode. See that file for the full explanation.
 
 
+// Avoids floating point noise (0.1 + 0.2 style errors) leaking into a
+// dollar amount that gets shown to a customer or charged via Stripe.
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+
+// The discount-amount math on its own, given a subtotal that's already
+// known - used by the list endpoints below, which compute their subtotal
+// with a SQL SUM rather than loading every quote's line items into JS.
+// calculateQuoteTotals() (below) is the items-array-shaped wrapper around
+// this same math, so there is still only one place the percent-vs-fixed
+// logic itself lives.
+const applyDiscount = (subtotal, discount_type, discount_value) => {
+
+  let discount_amount = 0;
+
+  if (discount_type === "percent" && discount_value !== null && discount_value !== undefined) {
+    discount_amount = round2(subtotal * (Number(discount_value) / 100));
+  } else if (discount_type === "fixed" && discount_value !== null && discount_value !== undefined) {
+    discount_amount = round2(Number(discount_value));
+  }
+
+  const total = round2(subtotal - discount_amount);
+
+  return { discount_amount, total };
+
+};
+
+
+// THE single source of truth for turning a quote's line items plus its
+// optional discount into { subtotal, discount_amount, total }. Every
+// place in the app that shows or charges a quote's total - the API
+// response, the quotes list, the CSV export, the PDF, and the Stripe
+// Checkout Session - has to go through this (or applyDiscount() above,
+// when only a pre-summed subtotal is available) so a discount can never
+// be applied inconsistently between two of those places.
+const calculateQuoteTotals = (items, discount_type, discount_value) => {
+
+  const subtotal = round2(
+    (items || []).reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+  );
+
+  const { discount_amount, total } = applyDiscount(subtotal, discount_type, discount_value);
+
+  return { subtotal, discount_amount, total };
+
+};
+
+
+
 // "Q-1001" / "INV-1002" - the human-readable form of a quote/invoice's
 // sequential quote_number. Centralized here so the type-prefix convention
 // lives in one place instead of being re-implemented in the API responses,
@@ -136,7 +185,9 @@ const createQuote = async (
   items,
   appointment_id = null,
   created_by_user_id = null,
-  created_by_name = null
+  created_by_name = null,
+  discount_type = null,
+  discount_value = null
 
 ) => {
 
@@ -159,8 +210,8 @@ const createQuote = async (
 
         `
         INSERT INTO quotes
-        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name, discount_type, discount_value)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
 
         [
@@ -172,7 +223,9 @@ const createQuote = async (
           appointment_id,
           quote_number,
           created_by_user_id || null,
-          created_by_name || null
+          created_by_name || null,
+          discount_type || null,
+          discount_value === undefined || discount_value === null ? null : Number(discount_value)
         ]
 
       );
@@ -230,15 +283,15 @@ const getQuoteByAppointmentId = (appointment_id, business_id) => {
 
 
 
-const getQuotes = (business_id) => {
+const getQuotes = async (business_id) => {
 
-  return allAsync(
+  const rows = await allAsync(
 
     `
     SELECT
       quotes.*,
       customers.name AS customer_name,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS total
+      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
     FROM quotes
     LEFT JOIN customers ON customers.id = quotes.customer_id
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
@@ -251,6 +304,15 @@ const getQuotes = (business_id) => {
 
   );
 
+  return rows.map((row) => {
+
+    const subtotal = round2(row.subtotal);
+    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+
+    return { ...row, subtotal, discount_amount, total };
+
+  });
+
 };
 
 
@@ -259,7 +321,7 @@ const getQuotes = (business_id) => {
 // (bookkeeping needs a way to reach the customer, not just their name) and
 // optional type/status filtering so an accountant can pull just invoices,
 // or just paid ones, instead of the whole history every time.
-const getQuotesForExport = (business_id, { type, status } = {}) => {
+const getQuotesForExport = async (business_id, { type, status } = {}) => {
 
   const conditions = ["quotes.business_id = ?"];
   const params = [business_id];
@@ -274,14 +336,14 @@ const getQuotesForExport = (business_id, { type, status } = {}) => {
     params.push(status);
   }
 
-  return allAsync(
+  const rows = await allAsync(
 
     `
     SELECT
       quotes.*,
       customers.name AS customer_name,
       customers.email AS customer_email,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS total
+      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
     FROM quotes
     LEFT JOIN customers ON customers.id = quotes.customer_id
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
@@ -293,6 +355,15 @@ const getQuotesForExport = (business_id, { type, status } = {}) => {
     params
 
   );
+
+  return rows.map((row) => {
+
+    const subtotal = round2(row.subtotal);
+    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+
+    return { ...row, subtotal, discount_amount, total };
+
+  });
 
 };
 
@@ -323,14 +394,14 @@ const getQuoteItemsForQuoteIds = async (quoteIds) => {
 
 
 
-const getQuotesByCustomer = (customer_id, business_id) => {
+const getQuotesByCustomer = async (customer_id, business_id) => {
 
-  return allAsync(
+  const rows = await allAsync(
 
     `
     SELECT
       quotes.*,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS total
+      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
     FROM quotes
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
     WHERE quotes.customer_id = ?
@@ -342,6 +413,15 @@ const getQuotesByCustomer = (customer_id, business_id) => {
     [customer_id, business_id]
 
   );
+
+  return rows.map((row) => {
+
+    const subtotal = round2(row.subtotal);
+    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+
+    return { ...row, subtotal, discount_amount, total };
+
+  });
 
 };
 
@@ -384,10 +464,11 @@ const getQuoteById = async (id, business_id) => {
 
   quote.items = items;
 
-  quote.total = items.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
-    0
-  );
+  const totals = calculateQuoteTotals(items, quote.discount_type, quote.discount_value);
+
+  quote.subtotal = totals.subtotal;
+  quote.discount_amount = totals.discount_amount;
+  quote.total = totals.total;
 
   return quote;
 
@@ -551,6 +632,10 @@ const deleteQuote = async (id, business_id) => {
 module.exports = {
 
   createQuote,
+
+  calculateQuoteTotals,
+
+  applyDiscount,
 
   formatQuoteNumber,
 

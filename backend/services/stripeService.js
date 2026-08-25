@@ -122,17 +122,58 @@ const getAccountStatus = async (stripeAccountId) => {
 // A direct charge on the connected account: created "as" that account
 // (via the stripeAccount option), so Stripe settles the funds straight
 // into the business's own balance, not the platform's.
+//
+// `discount`, when given, is { type: 'percent' | 'fixed', value: number }
+// straight from the quote's own discount_type/discount_value columns -
+// see quoteService.calculateQuoteTotals for where those come from. It is
+// applied here as a real Stripe Checkout discount, NOT by shrinking the
+// individual line-item prices below: Checkout's `discounts` param only
+// accepts a reference to a `coupon` (or `promotion_code`) id, there's no
+// inline percent_off/amount_off shape on the session itself (confirmed
+// against the installed SDK - node_modules/stripe/cjs/resources/Checkout/
+// Sessions.d.ts's SessionCreateParams.Discount interface only has
+// `coupon?: string` / `promotion_code?: string`, and Coupons.d.ts's
+// CouponCreateParams is what actually carries `percent_off`/`amount_off`).
+// So a fresh one-time Coupon representing *this* invoice's discount is
+// created first (duration: "once", so it's spent the moment this specific
+// session redeems it - not a standing coupon a customer could look up or
+// reuse elsewhere), then referenced by id in `discounts`. Stripe applies
+// it as its own visible discount line at checkout and computes the
+// charged total itself from the full-price line items minus that coupon -
+// exactly matching what the customer sees as the quote's total in the app.
 const createCheckoutSession = async (
 
   stripeAccountId,
   items,
   successUrl,
   cancelUrl,
-  metadata
+  metadata,
+  discount = null
 
 ) => {
 
   const stripe = getStripeClient();
+
+  const requestOptions = {
+    stripeAccount: stripeAccountId
+  };
+
+  let discounts;
+
+  if (discount && discount.type && discount.value !== null && discount.value !== undefined) {
+
+    const couponParams = discount.type === "percent"
+      ? { percent_off: discount.value, duration: "once" }
+      : { amount_off: Math.round(discount.value * 100), currency: "usd", duration: "once" };
+
+    // Created on the connected account (same requestOptions as the
+    // session below) - a coupon is a per-account resource, and this
+    // session is itself created as that account.
+    const coupon = await stripe.coupons.create(couponParams, requestOptions);
+
+    discounts = [{ coupon: coupon.id }];
+
+  }
 
   const session = await stripe.checkout.sessions.create(
 
@@ -152,15 +193,15 @@ const createCheckoutSession = async (
 
       })),
 
+      ...(discounts ? { discounts } : {}),
+
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata
 
     },
 
-    {
-      stripeAccount: stripeAccountId
-    }
+    requestOptions
 
   );
 

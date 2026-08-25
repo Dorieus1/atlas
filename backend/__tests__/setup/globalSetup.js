@@ -185,7 +185,9 @@ module.exports = async () => {
           reminder_count INTEGER NOT NULL DEFAULT 0,
           quote_number INTEGER,
           created_by_user_id TEXT,
-          created_by_name TEXT
+          created_by_name TEXT,
+          discount_type TEXT,
+          discount_value REAL
         )
       `);
 

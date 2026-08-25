@@ -2,6 +2,7 @@ const mockAccountsCreate = jest.fn().mockResolvedValue({ id: "acct_test123" });
 const mockAccountsRetrieve = jest.fn().mockResolvedValue({ charges_enabled: true, details_submitted: true });
 const mockAccountLinksCreate = jest.fn().mockResolvedValue({ url: "https://connect.stripe.com/setup/test" });
 const mockCheckoutSessionsCreate = jest.fn().mockResolvedValue({ id: "cs_test_123", url: "https://checkout.stripe.com/pay/test" });
+const mockCouponsCreate = jest.fn().mockResolvedValue({ id: "coupon_test_123" });
 const mockWebhooksConstructEvent = jest.fn();
 
 jest.mock("stripe", () => {
@@ -30,6 +31,10 @@ jest.mock("stripe", () => {
       }
     },
 
+    coupons: {
+      create: (...args) => mockCouponsCreate(...args)
+    },
+
     webhooks: {
       constructEvent: (...args) => mockWebhooksConstructEvent(...args)
     }
@@ -43,5 +48,6 @@ global.__mockStripe = {
   accountsRetrieve: mockAccountsRetrieve,
   accountLinksCreate: mockAccountLinksCreate,
   checkoutSessionsCreate: mockCheckoutSessionsCreate,
+  couponsCreate: mockCouponsCreate,
   webhooksConstructEvent: mockWebhooksConstructEvent
 };

@@ -424,7 +424,17 @@ function PortalDashboard() {
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                        {quote.discount_type ? (
+                          <p className="text-xs text-slate-500">
+                            <span className="mr-1.5 line-through">{formatMoney(quote.subtotal)}</span>
+                            {formatMoney(quote.total)}
+                            <span className="ml-1.5 text-green-400">
+                              ({quote.discount_type === "percent" ? `${quote.discount_value}% off` : `${formatMoney(quote.discount_value)} off`})
+                            </span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                        )}
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
