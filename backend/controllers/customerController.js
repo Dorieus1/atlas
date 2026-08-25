@@ -1,3 +1,5 @@
+const multer = require("multer");
+
 const {
   createCustomer: createCustomerService,
   getCustomerById: getCustomerByIdService,
@@ -9,10 +11,28 @@ const {
   removeCustomerTag: removeCustomerTagService
 } = require("../services/customerService");
 
+const { importCustomersFromCsv } = require("../services/customerImportService");
+
 const { getUserById } = require("../services/authService");
 const {
   getTagById: getTagByIdService
 } = require("../services/tagService");
+
+
+// memoryStorage, not diskStorage like photoController - an import only
+// needs the file's contents once to parse it; nothing needs to persist to
+// disk afterward, so there's nothing to clean up either.
+const MAX_IMPORT_FILE_SIZE = 2 * 1024 * 1024;
+
+const csvUpload = multer({
+
+  storage: multer.memoryStorage(),
+
+  limits: {
+    fileSize: MAX_IMPORT_FILE_SIZE
+  }
+
+}).single("file");
 
 
 
@@ -522,6 +542,67 @@ const updateCustomer = async (req, res) => {
 
 
 
+const importCustomers = (req, res) => {
+
+  csvUpload(req, res, async (err) => {
+
+    if (err) {
+
+      const message = err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE"
+        ? "That file is too large. Please upload a CSV under 2MB."
+        : err.message || "Couldn't upload that file.";
+
+      return res.status(400).json({ error: message });
+
+    }
+
+    try {
+
+      if (!req.file) {
+
+        return res.status(400).json({
+          error: "No CSV file was uploaded"
+        });
+
+      }
+
+      const business_id = req.user.business_id;
+
+      const actingUser = await getUserById(req.user.id, business_id);
+
+      const summary = await importCustomersFromCsv(
+        business_id,
+        req.file.buffer,
+        req.user.id,
+        actingUser ? actingUser.name : null
+      );
+
+      res.json(summary);
+
+    } catch (error) {
+
+      if (error.statusCode) {
+
+        return res.status(error.statusCode).json({
+          error: error.message
+        });
+
+      }
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "Something went wrong. Please try again."
+      });
+
+    }
+
+  });
+
+};
+
+
+
 module.exports = {
 
 
@@ -537,7 +618,9 @@ module.exports = {
 
   addCustomerTag,
 
-  removeCustomerTag
+  removeCustomerTag,
+
+  importCustomers
 
 
 };

@@ -17,7 +17,8 @@ const {
   deleteCustomer,
   updateCustomer,
   addCustomerTag,
-  removeCustomerTag
+  removeCustomerTag,
+  importCustomers
 
 } = require("../controllers/customerController");
 
@@ -28,6 +29,17 @@ router.post(
   "/",
   authMiddleware,
   createCustomer
+);
+
+
+
+// Registered before "/:id" is reached by any GET, but since this is a
+// literal path segment ("/import") rather than a param, it can't be
+// shadowed by "/:id" regardless of order.
+router.post(
+  "/import",
+  authMiddleware,
+  importCustomers
 );
 
 

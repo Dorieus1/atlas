@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
-import { getCustomers, getTags } from "../api/atlasApi";
+import { Users, X, Upload } from "lucide-react";
+import { getCustomers, getTags, importCustomersCsv } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
 import EmptyState from "../components/EmptyState";
 import { downloadCSV } from "../utils/csv";
@@ -19,6 +19,14 @@ function Customers() {
   const [tags, setTags] = useState([]);
 
   const [tagFilter, setTagFilter] = useState("");
+
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importResult, setImportResult] = useState(null);
+
+  const fileInputRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -127,6 +135,67 @@ function Customers() {
   };
 
 
+  const openImport = () => {
+
+    setImportFile(null);
+    setImportError("");
+    setImportResult(null);
+    setShowImport(true);
+
+  };
+
+
+  const closeImport = () => {
+
+    if (importing) {
+      return;
+    }
+
+    setShowImport(false);
+
+  };
+
+
+  const runImport = async () => {
+
+    if (!importFile) {
+
+      setImportError("Choose a CSV file first.");
+      return;
+
+    }
+
+    setImporting(true);
+    setImportError("");
+
+    try {
+
+      const result = await importCustomersCsv(importFile);
+
+      setImportResult(result);
+      setImportFile(null);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      await loadCustomers();
+
+    } catch (error) {
+
+      console.error("CUSTOMER IMPORT ERROR:", error);
+
+      setImportError(error.message || "Import failed. Please try again.");
+
+    } finally {
+
+      setImporting(false);
+
+    }
+
+  };
+
+
   return (
 
     <div className="p-8">
@@ -151,21 +220,37 @@ function Customers() {
 
         </div>
 
-        {customers.length > 0 && (
+        <div className="flex gap-2">
 
           <button
 
-            onClick={exportCSV}
+            onClick={openImport}
 
             className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
 
           >
 
-            ⬇️ Export CSV
+            ⬆️ Import CSV
 
           </button>
 
-        )}
+          {customers.length > 0 && (
+
+            <button
+
+              onClick={exportCSV}
+
+              className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
+
+            >
+
+              ⬇️ Export CSV
+
+            </button>
+
+          )}
+
+        </div>
 
       </div>
 
@@ -359,6 +444,166 @@ function Customers() {
 
 
       </div>
+
+
+      {showImport && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeImport}
+        >
+
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Import Customers from CSV
+              </h3>
+
+              <button
+                onClick={closeImport}
+                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                aria-label="Close"
+                disabled={importing}
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Upload a CSV with a header row. We'll match columns named
+              "Name" (or "Full Name" / "Customer Name"), "Email" (or "Email
+              Address"), and "Phone" (or "Phone Number" / "Mobile"). Rows
+              matching an existing customer's email are skipped, not
+              overwritten.
+            </p>
+
+            <div className="mt-4">
+
+              <input
+
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                disabled={importing}
+                onChange={(e) => setImportFile(e.target.files[0] || null)}
+
+                className="
+                  w-full
+                  text-sm
+                  text-slate-300
+                  file:mr-3
+                  file:rounded-lg
+                  file:border-0
+                  file:bg-brand-600
+                  file:px-3
+                  file:py-2
+                  file:text-sm
+                  file:font-semibold
+                  file:text-white
+                  hover:file:bg-brand-500
+                "
+
+              />
+
+            </div>
+
+            {importError && (
+
+              <p className="mt-3 text-sm text-red-400">
+                {importError}
+              </p>
+
+            )}
+
+            {importResult && (
+
+              <div className="mt-4 space-y-2 rounded-lg border border-ink-700 bg-ink-800/60 p-4 text-sm">
+
+                <p className="font-semibold text-white">
+                  Processed {importResult.total_rows} row{importResult.total_rows === 1 ? "" : "s"}
+                </p>
+
+                <p className="text-emerald-400">
+                  {importResult.created} customer{importResult.created === 1 ? "" : "s"} created
+                </p>
+
+                <p className="text-amber-400">
+                  {importResult.skipped_duplicates.length} skipped as duplicate{importResult.skipped_duplicates.length === 1 ? "" : "s"}
+                </p>
+
+                {importResult.skipped_duplicates.length > 0 && (
+
+                  <ul className="ml-4 list-disc text-slate-400">
+                    {importResult.skipped_duplicates.map((dup, i) => (
+                      <li key={i}>{dup.name} ({dup.email}) — row {dup.row}</li>
+                    ))}
+                  </ul>
+
+                )}
+
+                <p className="text-amber-400">
+                  {importResult.skipped_missing_name.length} skipped for missing a name
+                </p>
+
+                {importResult.skipped_missing_name.length > 0 && (
+
+                  <ul className="ml-4 list-disc text-slate-400">
+                    {importResult.skipped_missing_name.map((missing, i) => (
+                      <li key={i}>Row {missing.row}</li>
+                    ))}
+                  </ul>
+
+                )}
+
+              </div>
+
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+
+              <button
+                onClick={closeImport}
+                disabled={importing}
+                className="rounded-lg border border-ink-700 px-4 py-2 text-sm hover:bg-ink-800"
+              >
+                {importResult ? "Close" : "Cancel"}
+              </button>
+
+              <button
+                onClick={runImport}
+                disabled={importing || !importFile}
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  rounded-lg
+                  bg-brand-600
+                  px-4
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-white
+                  hover:bg-brand-500
+                  disabled:opacity-50
+                "
+              >
+                <Upload size={15} />
+                {importing ? "Importing..." : "Import"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
 
     </div>
