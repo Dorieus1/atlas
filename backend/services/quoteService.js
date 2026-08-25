@@ -241,7 +241,7 @@ const updateQuoteFields = async (id, business_id, fields) => {
 
   const existing = await getAsync(
 
-    `SELECT id FROM quotes WHERE id = ? AND business_id = ?`,
+    `SELECT id, sent_at FROM quotes WHERE id = ? AND business_id = ?`,
 
     [id, business_id]
 
@@ -251,10 +251,20 @@ const updateQuoteFields = async (id, business_id, fields) => {
     return false;
   }
 
+  const fieldsWithTimestamps = { ...fields };
+
+  // First time a quote/invoice transitions to "sent", stamp sent_at - this
+  // is what the invoice-reminder job uses to know when the 3-day countdown
+  // to a first reminder starts. Only set it once; re-saving an already-sent
+  // quote must not push the clock forward.
+  if (fieldsWithTimestamps.status === "sent" && !existing.sent_at) {
+    fieldsWithTimestamps.sent_at = new Date().toISOString();
+  }
+
   const setClauses = [];
   const values = [];
 
-  for (const [key, value] of Object.entries(fields)) {
+  for (const [key, value] of Object.entries(fieldsWithTimestamps)) {
     setClauses.push(`${key} = ?`);
     values.push(value);
   }
