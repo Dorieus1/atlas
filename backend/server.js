@@ -152,6 +152,16 @@ if (require.main === module) {
 
       }, 30 * 60 * 1000);
 
+      const { sendDailyDigests } = require("./services/dailyDigestService");
+
+      sendDailyDigests().catch((err) => console.error("DAILY DIGESTS FAILED:", err));
+
+      setInterval(() => {
+
+        sendDailyDigests().catch((err) => console.error("DAILY DIGESTS FAILED:", err));
+
+      }, 30 * 60 * 1000);
+
       app.listen(PORT,()=>{
 
         console.log(
