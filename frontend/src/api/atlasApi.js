@@ -366,6 +366,42 @@ export const deleteCustomer = (id) =>
 
 
 
+export const importCustomersCsv = async (file) => {
+
+  const token = localStorage.getItem("token");
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await fetch(`${API}/customers/import`, {
+
+    method: "POST",
+
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+
+    body: formData
+
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+
+    handleSessionExpired(response);
+
+    throw new Error(data.error || "Import failed");
+
+  }
+
+  return data;
+
+};
+
+
+
 export const updateCustomerInfo = (
 
   id,
