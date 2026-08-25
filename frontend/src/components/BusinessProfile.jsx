@@ -14,6 +14,25 @@ const DAYS = [
 const DEFAULT_OPEN = "09:00";
 const DEFAULT_CLOSE = "17:00";
 
+// A practical, not-exhaustive list of IANA zones - the major US/Canada
+// zones plus a handful of other common ones. Matches this product's
+// existing US-centric assumptions elsewhere (e.g. Stripe identity is
+// hardcoded to country "us"). "" means "not set" (defaults to UTC).
+const TIMEZONE_OPTIONS = [
+  { value: "", label: "Not set (UTC)" },
+  { value: "America/New_York", label: "Eastern Time (US & Canada)" },
+  { value: "America/Chicago", label: "Central Time (US & Canada)" },
+  { value: "America/Denver", label: "Mountain Time (US & Canada)" },
+  { value: "America/Phoenix", label: "Arizona (no DST)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "America/Toronto", label: "Eastern Time (Toronto)" },
+  { value: "America/Vancouver", label: "Pacific Time (Vancouver)" },
+  { value: "Europe/London", label: "London" },
+  { value: "UTC", label: "UTC" },
+];
+
 // business.business_hours comes back from the API as a JSON string (or
 // null if the business hasn't configured hours yet). Parsed into a plain
 // { mon: {open, close} | null, ... } object for the form to edit.
@@ -46,6 +65,7 @@ function BusinessProfile({ business }) {
     industry: "",
     services: "",
     review_link: "",
+    timezone: "",
   });
 
   // null means "hours not configured" (nothing enforced). Once the owner
@@ -76,6 +96,7 @@ function BusinessProfile({ business }) {
         industry: business.industry || "",
         services: business.services || "",
         review_link: business.review_link || "",
+        timezone: business.timezone || "",
 
       });
 
@@ -429,6 +450,37 @@ function BusinessProfile({ business }) {
             ? "Customers requesting an appointment through your portal will only be able to pick a time within these hours."
             : "Not set - customers can request an appointment at any time."}
         </p>
+
+        <div className="mb-3">
+
+          <label className="block text-sm text-slate-400 mb-1">
+            Timezone
+          </label>
+
+          <select
+            value={form.timezone}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                timezone: e.target.value
+              })
+            }
+            className="w-full bg-ink-800 text-white border border-ink-700 rounded-lg p-3"
+          >
+
+            {TIMEZONE_OPTIONS.map(({ value, label }) => (
+              <option key={value || "unset"} value={value}>
+                {label}
+              </option>
+            ))}
+
+          </select>
+
+          <p className="text-xs text-slate-500 mt-1">
+            Business hours above are enforced in this timezone.
+          </p>
+
+        </div>
 
         {hoursEnabled && (
 
