@@ -15,6 +15,31 @@ const createCustomer = async (app, authHeader, name) => {
 };
 
 
+// Knowledge-gap detection runs detached from the chat response (it's a
+// second OpenAI call and must never delay the customer's reply), so a
+// gap this test expects to exist may not be saved yet the instant the
+// chat request resolves. Poll briefly instead of asserting immediately.
+const waitForGaps = async (app, authHeader, { minLength = 1, timeout = 1000, interval = 20 } = {}) => {
+
+  const start = Date.now();
+
+  while (true) {
+
+    const res = await request(app)
+      .get("/api/knowledge-gaps")
+      .set("Authorization", authHeader);
+
+    if (res.body.length >= minLength || Date.now() - start > timeout) {
+      return res;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
+  }
+
+};
+
+
 describe("Self-improving knowledge base (knowledge gaps)", () => {
 
   beforeEach(() => {
@@ -46,9 +71,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     expect(chat.status).toBe(200);
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     expect(gaps.status).toBe(200);
     expect(gaps.body.length).toBe(1);
@@ -135,9 +158,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "Do you do emergency calls?" });
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     const gapId = gaps.body[0].id;
 
@@ -184,9 +205,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "Some question" });
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     const approve = await request(app)
       .post(`/api/knowledge-gaps/${gaps.body[0].id}/approve`)
@@ -226,9 +245,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "Some question" });
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     const dismiss = await request(app)
       .post(`/api/knowledge-gaps/${gaps.body[0].id}/dismiss`)
@@ -279,9 +296,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     expect(bList.body.length).toBe(0);
 
-    const aList = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", bizA.authHeader);
+    const aList = await waitForGaps(app, bizA.authHeader);
 
     const gapId = aList.body[0].id;
 

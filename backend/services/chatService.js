@@ -116,50 +116,54 @@ const processChatMessage = async (customer, business, message) => {
 
   }
 
-  // A second, independent best-effort pass - kept in its own try/catch
-  // so a failure here (or in the block above) never affects the other.
-  // The reply has already been generated and saved either way; this
-  // only ever adds a suggestion for the owner to review later, never
-  // changes what the customer already received.
-  try {
+  // Knowledge-gap detection is a second, full OpenAI round-trip - the
+  // slowest thing in this whole pipeline. It's fired off without
+  // awaiting (own try/catch, own error path) so it can never delay the
+  // reply the customer is actually waiting on; the reply above is
+  // already generated and saved either way, and this only ever adds a
+  // suggestion for the owner to review later.
+  runKnowledgeGapDetection(business_id, customer_id, message, reply, knowledge).catch(
 
-    const gap = await detectKnowledgeGap(message, reply, knowledge);
+    (gapError) => console.error("KNOWLEDGE GAP DETECTION FAILED:", gapError)
 
-    if (gap.hasGap && gap.suggestedTitle && gap.suggestedContent) {
-
-      await createKnowledgeGap(
-
-        business_id,
-        customer_id,
-        message,
-        gap.suggestedTitle,
-        gap.suggestedContent
-
-      );
-
-      await createNotification(
-
-        business_id,
-
-        "knowledge_gap",
-
-        `🧠 Atlas wasn't sure how to answer a question`,
-
-        gap.suggestedTitle,
-
-        "/knowledge"
-
-      );
-
-    }
-
-  } catch (gapError) {
-
-    console.error("KNOWLEDGE GAP DETECTION FAILED:", gapError);
-
-  }
+  );
 
   return { reply, memories_used: memories };
+
+};
+
+
+const runKnowledgeGapDetection = async (business_id, customer_id, message, reply, knowledge) => {
+
+  const gap = await detectKnowledgeGap(message, reply, knowledge);
+
+  if (gap.hasGap && gap.suggestedTitle && gap.suggestedContent) {
+
+    await createKnowledgeGap(
+
+      business_id,
+      customer_id,
+      message,
+      gap.suggestedTitle,
+      gap.suggestedContent
+
+    );
+
+    await createNotification(
+
+      business_id,
+
+      "knowledge_gap",
+
+      `🧠 Atlas wasn't sure how to answer a question`,
+
+      gap.suggestedTitle,
+
+      "/knowledge"
+
+    );
+
+  }
 
 };
 
