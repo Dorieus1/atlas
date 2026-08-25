@@ -107,6 +107,31 @@ const runOAuthRoundTrip = async (authHeader) => {
 };
 
 
+// Appointment-to-Google-Calendar sync is detached, not awaited in the
+// request path (it must never add Google's own latency to an appointment
+// response) - so a test needs to poll for the mocked call / DB write to
+// actually land instead of asserting immediately after the HTTP response
+// returns. Same reasoning and shape as knowledgeGaps.test.js's
+// waitForGaps() for the equally-detached knowledge-gap detection.
+const waitFor = async (checkFn, { timeout = 1000, interval = 20 } = {}) => {
+
+  const start = Date.now();
+
+  while (true) {
+
+    const result = await checkFn();
+
+    if (result || Date.now() - start > timeout) {
+      return result;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
+  }
+
+};
+
+
 beforeEach(() => {
 
   global.__mockGoogleCalendar.generateAuthUrl.mockClear();
@@ -277,13 +302,20 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
       .send({ title: "Roof inspection", start_time: "2026-09-01T15:00:00.000Z" });
 
     expect(res.status).toBe(201);
+
+    await waitFor(() => global.__mockGoogleCalendar.eventsInsert.mock.calls.length > 0);
+
     expect(global.__mockGoogleCalendar.eventsInsert).toHaveBeenCalledTimes(1);
 
     const insertArgs = global.__mockGoogleCalendar.eventsInsert.mock.calls[0][0];
     expect(insertArgs.calendarId).toBe("primary");
     expect(insertArgs.requestBody.summary).toBe("Roof inspection");
 
-    const row = await getAsync("SELECT google_event_id FROM appointments WHERE id = ?", [res.body.id]);
+    const row = await waitFor(async () => {
+      const r = await getAsync("SELECT google_event_id FROM appointments WHERE id = ?", [res.body.id]);
+      return r.google_event_id ? r : null;
+    });
+
     expect(row.google_event_id).toBe("gcal_event_test_123");
 
   });
@@ -299,6 +331,13 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
       .send({ title: "Gutter cleaning", start_time: "2026-09-02T15:00:00.000Z" });
 
     expect(res.status).toBe(201);
+
+    // Nothing to poll for here (this asserts an absence) - a short fixed
+    // wait is the right tool instead of waitFor, just enough for any
+    // stray detached call to have had a chance to fire if the code were
+    // wrong.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     expect(global.__mockGoogleCalendar.eventsInsert).not.toHaveBeenCalled();
 
     const row = await getAsync("SELECT google_event_id FROM appointments WHERE id = ?", [res.body.id]);
@@ -340,6 +379,13 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
       .set("Authorization", owner.authHeader)
       .send({ title: "Window replacement", start_time: "2026-09-04T15:00:00.000Z" });
 
+    // The create's own sync must finish and set google_event_id before
+    // the update below has anything to update.
+    await waitFor(async () => {
+      const r = await getAsync("SELECT google_event_id FROM appointments WHERE id = ?", [created.body.id]);
+      return r.google_event_id ? r : null;
+    });
+
     global.__mockGoogleCalendar.eventsUpdate.mockClear();
 
     const updated = await request(app)
@@ -348,6 +394,9 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
       .send({ status: "completed" });
 
     expect(updated.status).toBe(200);
+
+    await waitFor(() => global.__mockGoogleCalendar.eventsUpdate.mock.calls.length > 0);
+
     expect(global.__mockGoogleCalendar.eventsUpdate).toHaveBeenCalledTimes(1);
 
     const updateArgs = global.__mockGoogleCalendar.eventsUpdate.mock.calls[0][0];
@@ -366,11 +415,21 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
       .set("Authorization", owner.authHeader)
       .send({ title: "Deck staining", start_time: "2026-09-05T15:00:00.000Z" });
 
+    // The create's own sync must finish and set google_event_id before
+    // there's anything for the delete below to push a delete for.
+    await waitFor(async () => {
+      const r = await getAsync("SELECT google_event_id FROM appointments WHERE id = ?", [created.body.id]);
+      return r.google_event_id ? r : null;
+    });
+
     const deleted = await request(app)
       .delete(`/api/appointments/${created.body.id}`)
       .set("Authorization", owner.authHeader);
 
     expect(deleted.status).toBe(200);
+
+    await waitFor(() => global.__mockGoogleCalendar.eventsDelete.mock.calls.length > 0);
+
     expect(global.__mockGoogleCalendar.eventsDelete).toHaveBeenCalledTimes(1);
 
     const deleteArgs = global.__mockGoogleCalendar.eventsDelete.mock.calls[0][0];
@@ -396,12 +455,18 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.ids).toHaveLength(3);
+
+    await waitFor(() => global.__mockGoogleCalendar.eventsInsert.mock.calls.length >= 3);
+
     expect(global.__mockGoogleCalendar.eventsInsert).toHaveBeenCalledTimes(3);
 
-    const rows = await allAsync(
-      `SELECT google_event_id FROM appointments WHERE id IN (?, ?, ?)`,
-      res.body.ids
-    );
+    const rows = await waitFor(async () => {
+      const r = await allAsync(
+        `SELECT google_event_id FROM appointments WHERE id IN (?, ?, ?)`,
+        res.body.ids
+      );
+      return r.every((row) => row.google_event_id) ? r : null;
+    });
 
     expect(rows).toHaveLength(3);
     for (const row of rows) {

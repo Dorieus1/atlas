@@ -362,7 +362,13 @@ const createAppointment = async (
 
   );
 
-  await pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time, end_time });
+  // Detached, not awaited - this is a best-effort side effect and must
+  // never add Google Calendar's own latency to the response for an
+  // appointment that's already successfully saved. The function already
+  // has its own internal try/catch and logs on failure; the .catch()
+  // here is just a safety net against anything outside that.
+  pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time, end_time })
+    .catch((err) => console.error("GOOGLE CALENDAR SYNC (create) FAILED:", err));
 
   return id;
 
@@ -433,8 +439,13 @@ const createRecurringAppointments = async (
 
     // Occurrences are independent rows once created, so each one gets its
     // own Google Calendar event - this falls out naturally from being
-    // inside the same loop that creates the rows.
-    await pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time: occStart, end_time: occEnd });
+    // inside the same loop that creates the rows. Detached, not awaited
+    // (same reasoning as createAppointment above) - a series of N
+    // occurrences must never make the response wait on N sequential
+    // Google API round-trips for a side effect that's supposed to be
+    // invisible to the caller.
+    pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time: occStart, end_time: occEnd })
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (create) FAILED:", err));
 
     ids.push(id);
 
@@ -590,8 +601,10 @@ const updateAppointmentStatus = async (id, business_id, status) => {
 
   if (updated) {
 
-    const appt = await getAppointmentById(id, business_id);
-    await pushAppointmentUpdateToGoogle(appt);
+    // Detached, not awaited - same reasoning as createAppointment.
+    getAppointmentById(id, business_id)
+      .then((appt) => pushAppointmentUpdateToGoogle(appt))
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (update) FAILED:", err));
 
   }
 
@@ -640,7 +653,11 @@ const deleteAppointment = async (id, business_id) => {
   });
 
   if (deleted && appt) {
-    await pushAppointmentDeleteToGoogle(appt);
+
+    // Detached, not awaited - same reasoning as createAppointment.
+    pushAppointmentDeleteToGoogle(appt)
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (delete) FAILED:", err));
+
   }
 
   return deleted;
@@ -717,9 +734,11 @@ const updateAppointmentStatusForSeries = async (id, business_id, status) => {
 
     });
 
-    for (const row of affected) {
-      await pushAppointmentUpdateToGoogle(row);
-    }
+    // Detached, not awaited - and fired concurrently rather than one at a
+    // time, so a "this & future" update on a long series never makes the
+    // response wait on N sequential Google API round-trips.
+    Promise.all(affected.map((row) => pushAppointmentUpdateToGoogle(row)))
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (series update) FAILED:", err));
 
   }
 
@@ -794,9 +813,12 @@ const deleteAppointmentForSeries = async (id, business_id) => {
   });
 
   if (changes > 0) {
-    for (const row of affected) {
-      await pushAppointmentDeleteToGoogle(row);
-    }
+
+    // Detached, not awaited - and fired concurrently, same reasoning as
+    // updateAppointmentStatusForSeries above.
+    Promise.all(affected.map((row) => pushAppointmentDeleteToGoogle(row)))
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (series delete) FAILED:", err));
+
   }
 
   return changes;
