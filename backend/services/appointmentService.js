@@ -90,6 +90,17 @@ function timeRange(appt) {
 // and completed jobs don't occupy a slot, so they're never considered).
 // O(n^2) over the active subset, which is fine at the scale a single
 // local business's calendar actually reaches.
+//
+// Conflicts are scoped per-assignee, not per-business: two appointments
+// only count as conflicting if they're assigned to the SAME person, or
+// if EITHER one is unassigned. An unassigned appointment still stands in
+// for "the business" as one undifferentiated resource, so it conflicts
+// with anything else unassigned (or with anyone) at an overlapping time -
+// that's what keeps a business that never uses the assignment feature
+// seeing identical conflict behavior to before it existed (every
+// appointment defaults to unassigned, so every pair is still checked
+// exactly as before). Two appointments assigned to two different named
+// people never conflict, no matter how much their times overlap.
 function attachConflicts(appointments) {
 
   const active = appointments.filter((appt) => CONFLICTABLE_STATUSES.has(appt.status));
@@ -105,6 +116,14 @@ function attachConflicts(appointments) {
     const conflicts = active.some((other) => {
 
       if (other.id === appt.id) {
+        return false;
+      }
+
+      if (
+        appt.assigned_user_id &&
+        other.assigned_user_id &&
+        appt.assigned_user_id !== other.assigned_user_id
+      ) {
         return false;
       }
 
@@ -138,7 +157,8 @@ function insertAppointmentRow(
   recurrence_id,
   recurrence_rule,
   created_by_user_id,
-  created_by_name
+  created_by_name,
+  assigned_user_id
 
 ) {
 
@@ -164,10 +184,11 @@ function insertAppointmentRow(
         recurrence_id,
         recurrence_rule,
         created_by_user_id,
-        created_by_name
+        created_by_name,
+        assigned_user_id
       )
 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -183,7 +204,8 @@ function insertAppointmentRow(
         recurrence_id || null,
         recurrence_rule || null,
         created_by_user_id || null,
-        created_by_name || null
+        created_by_name || null,
+        assigned_user_id || null
 
       ],
 
@@ -342,7 +364,8 @@ const createAppointment = async (
   end_time,
   status = "scheduled",
   created_by_user_id = null,
-  created_by_name = null
+  created_by_name = null,
+  assigned_user_id = null
 
 ) => {
 
@@ -358,7 +381,8 @@ const createAppointment = async (
     null,
     null,
     created_by_user_id,
-    created_by_name
+    created_by_name,
+    assigned_user_id
 
   );
 
@@ -400,7 +424,8 @@ const createRecurringAppointments = async (
   recurrence,
   occurrences,
   created_by_user_id = null,
-  created_by_name = null
+  created_by_name = null,
+  assigned_user_id = null
 
 ) => {
 
@@ -419,8 +444,9 @@ const createRecurringAppointments = async (
       ? new Date(new Date(occStart).getTime() + durationMs).toISOString()
       : null;
 
-    // Every occurrence in the series shares the same creator/name - it's
-    // one act of scheduling by one person, not N separate ones.
+    // Every occurrence in the series shares the same creator/name and the
+    // same assignee - it's one act of scheduling by one person, not N
+    // separate ones.
     const id = await insertAppointmentRow(
 
       business_id,
@@ -433,7 +459,8 @@ const createRecurringAppointments = async (
       recurrence_id,
       recurrence,
       created_by_user_id,
-      created_by_name
+      created_by_name,
+      assigned_user_id
 
     );
 
@@ -564,22 +591,41 @@ const getAppointmentById = (id, business_id) => {
 
 
 
-const updateAppointmentStatus = async (id, business_id, status) => {
+// `assigned_user_id` is optional and, when omitted (left `undefined`),
+// leaves the existing assignment completely untouched - every pre-
+// existing caller of this function (including updateAppointmentStatus
+// ForSeries' single-row fallback below) only ever passes `status`, so
+// this keeps their SQL and behavior byte-for-byte identical. Pass an
+// explicit value (a user id, or `null` to unassign) to also reassign the
+// appointment as part of the same status update - this is the
+// "reassignment" path, reusing the existing PATCH rather than adding a
+// new endpoint.
+const updateAppointmentStatus = async (id, business_id, status, assigned_user_id) => {
 
+  const reassigning = assigned_user_id !== undefined;
 
   const updated = await new Promise((resolve, reject) => {
 
 
     db.run(
 
-      `
-      UPDATE appointments
-      SET status = ?
-      WHERE id = ?
-      AND business_id = ?
-      `,
+      reassigning
+        ? `
+          UPDATE appointments
+          SET status = ?, assigned_user_id = ?
+          WHERE id = ?
+          AND business_id = ?
+          `
+        : `
+          UPDATE appointments
+          SET status = ?
+          WHERE id = ?
+          AND business_id = ?
+          `,
 
-      [status, id, business_id],
+      reassigning
+        ? [status, assigned_user_id, id, business_id]
+        : [status, id, business_id],
 
       function (err) {
 

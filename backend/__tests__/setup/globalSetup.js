@@ -169,7 +169,8 @@ module.exports = async () => {
           recurrence_rule TEXT,
           created_by_user_id TEXT,
           created_by_name TEXT,
-          google_event_id TEXT
+          google_event_id TEXT,
+          assigned_user_id TEXT
         )
       `);
 

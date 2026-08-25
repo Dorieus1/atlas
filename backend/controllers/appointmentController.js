@@ -37,7 +37,8 @@ const createAppointment = async (req, res) => {
       start_time,
       end_time,
       recurrence,
-      occurrences
+      occurrences,
+      assigned_user_id
     } = req.body;
 
     const business_id = req.user.business_id;
@@ -96,6 +97,23 @@ const createAppointment = async (req, res) => {
 
     }
 
+    // Same pattern as customer_id above - assignment isn't gated by
+    // role, so any user belonging to the business (owner or staff) is a
+    // valid assignee.
+    if (assigned_user_id) {
+
+      const assignee = await getUserById(assigned_user_id, business_id);
+
+      if (!assignee) {
+
+        return res.status(400).json({
+          error: "Assignee not found"
+        });
+
+      }
+
+    }
+
     // Snapshot the acting user's current name at creation time - see the
     // matching comment in customerController.createCustomer for why this
     // isn't a live join to `users`.
@@ -145,7 +163,8 @@ const createAppointment = async (req, res) => {
         recurrence,
         occurrenceCount,
         createdByUserId,
-        createdByName
+        createdByName,
+        assigned_user_id || null
 
       );
 
@@ -168,7 +187,8 @@ const createAppointment = async (req, res) => {
       end_time,
       "scheduled",
       createdByUserId,
-      createdByName
+      createdByName,
+      assigned_user_id || null
 
     );
 
@@ -253,7 +273,7 @@ const updateAppointmentStatus = async (req, res) => {
   try {
 
     const { id } = req.params;
-    const { status, scope } = req.body;
+    const { status, scope, assigned_user_id } = req.body;
 
     if (!VALID_STATUSES.includes(status)) {
 
@@ -265,11 +285,35 @@ const updateAppointmentStatus = async (req, res) => {
 
     const business_id = req.user.business_id;
 
+    // Reassignment rides along on this same PATCH rather than a new
+    // endpoint - `assigned_user_id` is optional, and its mere presence in
+    // the request body (even as `null`, to unassign) is what opts in;
+    // omitting it entirely leaves the existing assignment untouched, same
+    // pattern as the customer_id/assigned_user_id validation on create.
+    const hasAssignedUserId = Object.prototype.hasOwnProperty.call(req.body, "assigned_user_id");
+
+    if (hasAssignedUserId && assigned_user_id) {
+
+      const assignee = await getUserById(assigned_user_id, business_id);
+
+      if (!assignee) {
+
+        return res.status(400).json({
+          error: "Assignee not found"
+        });
+
+      }
+
+    }
+
     // "future" is an explicit opt-in for a series - default behavior
     // (omitted or "this") is untouched, single-row, exactly as before.
+    // Reassignment only applies to that single-row path - reassigning an
+    // entire future series isn't part of this task, so scope="future"
+    // continues to only ever touch status, exactly as before.
     const updated = scope === "future"
       ? await updateAppointmentStatusForSeriesService(id, business_id, status)
-      : await updateAppointmentStatusService(id, business_id, status);
+      : await updateAppointmentStatusService(id, business_id, status, hasAssignedUserId ? assigned_user_id : undefined);
 
     if (!updated) {
 
