@@ -156,6 +156,26 @@ if (require.main === module) {
 
       }, 30 * 60 * 1000);
 
+      const { sendQuoteReminders } = require("./services/quoteReminderService");
+
+      sendQuoteReminders().catch((err) => console.error("QUOTE REMINDERS FAILED:", err));
+
+      setInterval(() => {
+
+        sendQuoteReminders().catch((err) => console.error("QUOTE REMINDERS FAILED:", err));
+
+      }, 30 * 60 * 1000);
+
+      const { sendLeadFollowUps } = require("./services/leadFollowUpService");
+
+      sendLeadFollowUps().catch((err) => console.error("LEAD FOLLOW-UPS FAILED:", err));
+
+      setInterval(() => {
+
+        sendLeadFollowUps().catch((err) => console.error("LEAD FOLLOW-UPS FAILED:", err));
+
+      }, 30 * 60 * 1000);
+
       const { sendDailyDigests } = require("./services/dailyDigestService");
 
       sendDailyDigests().catch((err) => console.error("DAILY DIGESTS FAILED:", err));
