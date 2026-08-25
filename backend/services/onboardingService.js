@@ -18,7 +18,7 @@ const getOnboardingStatus = async (business_id) => {
   const [hasCustomer, hasKnowledge, hasConversation, business] = await Promise.all([
 
     countAsync(
-      `SELECT COUNT(*) AS count FROM customers WHERE business_id = ?`,
+      `SELECT COUNT(*) AS count FROM customers WHERE business_id = ? AND deleted_at IS NULL`,
       [business_id]
     ),
 
@@ -31,7 +31,7 @@ const getOnboardingStatus = async (business_id) => {
       `
       SELECT COUNT(*) AS count
       FROM conversations
-      WHERE customer_id IN (SELECT id FROM customers WHERE business_id = ?)
+      WHERE customer_id IN (SELECT id FROM customers WHERE business_id = ? AND deleted_at IS NULL)
       `,
       [business_id]
     ),

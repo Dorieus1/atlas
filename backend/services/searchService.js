@@ -37,6 +37,7 @@ const search = async (business_id, query) => {
       SELECT id, name, email, phone
       FROM customers
       WHERE business_id = ?
+      AND deleted_at IS NULL
       AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)
       ORDER BY created_at DESC
       LIMIT ${RESULTS_PER_TYPE}

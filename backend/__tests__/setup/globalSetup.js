@@ -54,7 +54,8 @@ module.exports = async () => {
           phone TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           created_by_user_id TEXT,
-          created_by_name TEXT
+          created_by_name TEXT,
+          deleted_at DATETIME
         )
       `);
 

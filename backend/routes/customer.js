@@ -15,6 +15,8 @@ const {
   getCustomerById,
   getCustomersByBusiness,
   deleteCustomer,
+  getTrashedCustomers,
+  restoreCustomer,
   updateCustomer,
   addCustomerTag,
   removeCustomerTag,
@@ -52,6 +54,16 @@ router.get(
 
 
 
+// Registered ahead of GET "/:id" so "trash" is never swallowed as an
+// :id value.
+router.get(
+  "/trash",
+  authMiddleware,
+  getTrashedCustomers
+);
+
+
+
 router.get(
   "/:id",
   authMiddleware,
@@ -64,6 +76,14 @@ router.delete(
   "/:id",
   authMiddleware,
   deleteCustomer
+);
+
+
+
+router.post(
+  "/:id/restore",
+  authMiddleware,
+  restoreCustomer
 );
 
 

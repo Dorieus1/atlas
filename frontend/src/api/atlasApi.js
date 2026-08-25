@@ -402,6 +402,21 @@ export const importCustomersCsv = async (file) => {
 
 
 
+export const getTrashedCustomers = () =>
+
+  request("/customers/trash");
+
+
+
+export const restoreCustomer = (id) =>
+
+  request(`/customers/${id}/restore`, {
+
+    method: "POST"
+
+  });
+
+
 export const updateCustomerInfo = (
 
   id,

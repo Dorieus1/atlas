@@ -63,7 +63,7 @@ const getAnalytics = async (business_id) => {
     monthlyRows
   ] = await Promise.all([
 
-    getAsync(`SELECT COUNT(*) as count FROM customers WHERE business_id = ?`, [business_id]),
+    getAsync(`SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND deleted_at IS NULL`, [business_id]),
 
     getAsync(`SELECT COUNT(*) as count FROM leads WHERE business_id = ?`, [business_id]),
 

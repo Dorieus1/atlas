@@ -126,7 +126,7 @@ describe("Customers", () => {
 
   });
 
-  test("deleting a customer cascades to their notes, leads, and tasks", async () => {
+  test("deleting a customer moves them to the trash without touching their notes", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "CustCascade");
 
@@ -140,7 +140,7 @@ describe("Customers", () => {
     await request(app)
       .post("/api/notes")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, note: "a note that should be deleted" });
+      .send({ customer_id: customerId, note: "a note that should survive" });
 
     const del = await request(app)
       .delete(`/api/customers/${customerId}`)
@@ -148,22 +148,29 @@ describe("Customers", () => {
 
     expect(del.status).toBe(200);
 
+    // A direct GET by id still works for a trashed customer - it just no
+    // longer shows up in the main list (see the "no longer appears in the
+    // normal list" coverage in customerTrash.test.js).
     const getDeleted = await request(app)
       .get(`/api/customers/${customerId}`)
       .set("Authorization", authHeader);
 
-    expect(getDeleted.status).toBe(404);
+    expect(getDeleted.status).toBe(200);
+    expect(getDeleted.body.deleted_at).toBeTruthy();
 
     const notesAfter = await request(app)
       .get(`/api/notes/${customerId}`)
       .set("Authorization", authHeader);
 
-    // the customer no longer exists, so notes lookup should 404 too
-    expect(notesAfter.status).toBe(404);
+    // Soft delete doesn't cascade - the note is still exactly where it
+    // was. Permanent removal only happens once the trash's 30-day window
+    // expires (see backend/__tests__/customerTrash.test.js).
+    expect(notesAfter.status).toBe(200);
+    expect(notesAfter.body).toHaveLength(1);
 
   });
 
-  test("deleting a customer really does remove every related row from every table, not just the ones an API route happens to expose", async () => {
+  test("deleting a customer leaves every related row in every table alone - soft delete cascades nothing", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "CustCascadeDeep");
 
@@ -177,17 +184,17 @@ describe("Customers", () => {
     await request(app)
       .post("/api/notes")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, note: "should be gone" });
+      .send({ customer_id: customerId, note: "should survive" });
 
     await request(app)
       .post("/api/tasks")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, title: "should be gone" });
+      .send({ customer_id: customerId, title: "should survive" });
 
     await request(app)
       .post("/api/memories")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, memory: "should be gone" });
+      .send({ customer_id: customerId, memory: "should survive" });
 
     await request(app)
       .post("/api/chat")
@@ -212,7 +219,7 @@ describe("Customers", () => {
         );
       });
 
-      expect(rows).toHaveLength(0);
+      expect(rows.length).toBeGreaterThan(0);
 
     }
 

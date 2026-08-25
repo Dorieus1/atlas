@@ -125,7 +125,7 @@ describe("Review Requests", () => {
 
   });
 
-  test("deleting a customer also removes their review request history", async () => {
+  test("deleting a customer moves them to the trash without touching their review request history", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ReviewCascade");
     const customerId = await createCustomer(app, authHeader, { name: "Cascade Customer", email: "cascade@test.com" });
@@ -141,6 +141,9 @@ describe("Review Requests", () => {
       .delete(`/api/customers/${customerId}`)
       .set("Authorization", authHeader);
 
+    // Soft delete doesn't cascade - the review request row is only
+    // removed once the customer is permanently purged after 30 days in
+    // the trash (see backend/__tests__/customerTrash.test.js).
     const remaining = await new Promise((resolve, reject) => {
       db.all(
         "SELECT id FROM review_requests WHERE customer_id = ?",
@@ -149,7 +152,7 @@ describe("Review Requests", () => {
       );
     });
 
-    expect(remaining.length).toBe(0);
+    expect(remaining.length).toBe(1);
 
   });
 
