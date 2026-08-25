@@ -679,7 +679,10 @@ function Schedule() {
                     ) : (
 
                       <button
-                        onClick={() => setConfirmingDeleteId(appt.id)}
+                        onClick={() => {
+                          setConfirmingDeleteId(appt.id);
+                          setDeleteScope("this");
+                        }}
                         aria-label="Delete appointment"
                         className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
                       >
