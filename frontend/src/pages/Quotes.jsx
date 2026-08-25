@@ -43,30 +43,42 @@ function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
 }
 
+// Mirrors the backend's percent-or-fixed arithmetic (backend/services/
+// quoteService.js's calculatePercentOrFixed(), shared by applyDiscount()
+// and calculateDeposit()) so the form can show a live preview as the user
+// types - the actual, authoritative numbers still come back from the
+// server on save/reload, this is just for preview.
+function calculatePercentOrFixed(base, type, value) {
+
+  const numericValue = Number(value);
+
+  if (type === "percent" && Number.isFinite(numericValue)) {
+    return base * (numericValue / 100);
+  }
+
+  if (type === "fixed" && Number.isFinite(numericValue)) {
+    return numericValue;
+  }
+
+  return 0;
+
+}
+
 // Mirrors the backend's calculateQuoteTotals() (backend/services/
-// quoteService.js) so the form can show a live Subtotal/Discount/Total
-// breakdown as the user types - the actual, authoritative numbers still
-// come back from the server on save/reload, this is just for preview.
-function calculateTotals(items, discountType, discountValue) {
+// quoteService.js) so the form can show a live Subtotal/Discount/Deposit/
+// Total breakdown as the user types.
+function calculateTotals(items, discountType, discountValue, depositType, depositValue) {
 
   const subtotal = items.reduce(
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
     0
   );
 
-  let discount_amount = 0;
-
-  const value = Number(discountValue);
-
-  if (discountType === "percent" && Number.isFinite(value)) {
-    discount_amount = subtotal * (value / 100);
-  } else if (discountType === "fixed" && Number.isFinite(value)) {
-    discount_amount = value;
-  }
-
+  const discount_amount = calculatePercentOrFixed(subtotal, discountType, discountValue);
   const total = subtotal - discount_amount;
+  const deposit_amount = calculatePercentOrFixed(total, depositType, depositValue);
 
-  return { subtotal, discount_amount, total };
+  return { subtotal, discount_amount, total, deposit_amount };
 
 }
 
@@ -91,6 +103,8 @@ function Quotes() {
   const [formItems, setFormItems] = useState([emptyItem()]);
   const [formDiscountType, setFormDiscountType] = useState("");
   const [formDiscountValue, setFormDiscountValue] = useState("");
+  const [formDepositType, setFormDepositType] = useState("");
+  const [formDepositValue, setFormDepositValue] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -178,6 +192,8 @@ function Quotes() {
     setFormItems([emptyItem()]);
     setFormDiscountType("");
     setFormDiscountValue("");
+    setFormDepositType("");
+    setFormDepositValue("");
     setFormError("");
     setDraftSummary("");
     setShowForm(true);
@@ -243,7 +259,7 @@ function Quotes() {
   };
 
 
-  const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue);
+  const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue, formDepositType, formDepositValue);
 
 
   const handleCreate = async () => {
@@ -271,6 +287,8 @@ function Quotes() {
       return;
     }
 
+    const cleanSubtotal = cleanItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+
     if (formDiscountType) {
 
       const value = Number(formDiscountValue);
@@ -285,10 +303,35 @@ function Quotes() {
         return;
       }
 
-      const cleanSubtotal = cleanItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-
       if (formDiscountType === "fixed" && value > cleanSubtotal) {
         setFormError("The discount can't be more than the subtotal.");
+        return;
+      }
+
+    }
+
+    if (formDepositType) {
+
+      const value = Number(formDepositValue);
+
+      if (!Number.isFinite(value) || value < 0) {
+        setFormError("Enter a valid deposit amount.");
+        return;
+      }
+
+      if (formDepositType === "percent" && value > 100) {
+        setFormError("A percent deposit can't be more than 100%.");
+        return;
+      }
+
+      // Checked against the TOTAL (after any discount), not the raw
+      // subtotal - a deposit is up-front money toward what the customer
+      // will actually owe. Mirrors the backend's calculateTotals() above.
+      const cleanDiscountAmount = calculatePercentOrFixed(cleanSubtotal, formDiscountType, formDiscountValue);
+      const cleanTotal = cleanSubtotal - cleanDiscountAmount;
+
+      if (formDepositType === "fixed" && value > cleanTotal) {
+        setFormError("The deposit can't be more than the total.");
         return;
       }
 
@@ -310,7 +353,9 @@ function Quotes() {
         formNotes.trim() || null,
         cleanItems,
         formDiscountType || null,
-        formDiscountType ? Number(formDiscountValue) : null
+        formDiscountType ? Number(formDiscountValue) : null,
+        formDepositType || null,
+        formDepositType ? Number(formDepositValue) : null
       );
 
       setShowForm(false);
@@ -767,6 +812,36 @@ function Quotes() {
 
               </div>
 
+              <div className="flex items-center gap-2">
+
+                <select
+                  value={formDepositType}
+                  onChange={(e) => {
+                    setFormDepositType(e.target.value);
+                    if (!e.target.value) setFormDepositValue("");
+                  }}
+                  className="rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                >
+                  <option value="">No deposit</option>
+                  <option value="percent">% deposit</option>
+                  <option value="fixed">$ deposit</option>
+                </select>
+
+                {formDepositType && (
+                  <input
+                    type="number"
+                    min="0"
+                    max={formDepositType === "percent" ? 100 : undefined}
+                    step="0.01"
+                    placeholder={formDepositType === "percent" ? "e.g. 25" : "e.g. 100.00"}
+                    value={formDepositValue}
+                    onChange={(e) => setFormDepositValue(e.target.value)}
+                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                  />
+                )}
+
+              </div>
+
               <div className="flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
 
                 {formDiscountType && (
@@ -794,6 +869,16 @@ function Quotes() {
                     {formatMoney(formTotals.total)}
                   </span>
                 </div>
+
+                {formDepositType && (
+                  <div className="flex items-center justify-between text-sm text-slate-400">
+                    <span>
+                      Deposit due on approval
+                      {formDepositType === "percent" && formDepositValue ? ` (${formDepositValue}%)` : ""}
+                    </span>
+                    <span>{formatMoney(formTotals.deposit_amount)}</span>
+                  </div>
+                )}
 
               </div>
 
@@ -839,6 +924,16 @@ function Quotes() {
                 {activeQuote.created_by_name && (
                   <p className="mt-0.5 text-xs text-slate-500">
                     Added by {activeQuote.created_by_name}
+                  </p>
+                )}
+                {activeQuote.status === "accepted" && activeQuote.accepted_by_name && (
+                  <p className="mt-0.5 text-xs text-green-400">
+                    Approved by {activeQuote.accepted_by_name} on {new Date(activeQuote.accepted_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                )}
+                {activeQuote.status === "declined" && activeQuote.declined_at && (
+                  <p className="mt-0.5 text-xs text-red-400">
+                    Declined on {new Date(activeQuote.declined_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   </p>
                 )}
               </div>
@@ -952,6 +1047,23 @@ function Quotes() {
                       {formatMoney(activeQuote.total)}
                     </span>
                   </div>
+
+                  {activeQuote.deposit_type && (
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>
+                        Deposit
+                        {activeQuote.deposit_type === "percent"
+                          ? ` (${activeQuote.deposit_value}%)`
+                          : ` (${formatMoney(activeQuote.deposit_value)})`}
+                      </span>
+                      <span className={activeQuote.deposit_paid_at ? "text-green-400" : ""}>
+                        {formatMoney(activeQuote.deposit_amount)}
+                        {activeQuote.deposit_paid_at
+                          ? ` · paid ${new Date(activeQuote.deposit_paid_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                          : " · not yet paid"}
+                      </span>
+                    </div>
+                  )}
 
                 </div>
 

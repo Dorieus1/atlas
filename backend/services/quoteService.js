@@ -72,6 +72,26 @@ const getAsync = (sql, params = []) => {
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 
+// The "percent-or-fixed dollar amount of some base number" arithmetic on
+// its own - both a discount (a slice of the subtotal) and a deposit (a
+// slice of the total) are shaped this way, so this is the one place that
+// math lives rather than having applyDiscount() and calculateDeposit()
+// below each reimplement it.
+const calculatePercentOrFixed = (base, type, value) => {
+
+  if (type === "percent" && value !== null && value !== undefined) {
+    return round2(base * (Number(value) / 100));
+  }
+
+  if (type === "fixed" && value !== null && value !== undefined) {
+    return round2(Number(value));
+  }
+
+  return 0;
+
+};
+
+
 // The discount-amount math on its own, given a subtotal that's already
 // known - used by the list endpoints below, which compute their subtotal
 // with a SQL SUM rather than loading every quote's line items into JS.
@@ -80,17 +100,23 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 // logic itself lives.
 const applyDiscount = (subtotal, discount_type, discount_value) => {
 
-  let discount_amount = 0;
-
-  if (discount_type === "percent" && discount_value !== null && discount_value !== undefined) {
-    discount_amount = round2(subtotal * (Number(discount_value) / 100));
-  } else if (discount_type === "fixed" && discount_value !== null && discount_value !== undefined) {
-    discount_amount = round2(Number(discount_value));
-  }
-
+  const discount_amount = calculatePercentOrFixed(subtotal, discount_type, discount_value);
   const total = round2(subtotal - discount_amount);
 
   return { discount_amount, total };
+
+};
+
+
+// The deposit-amount math, given a quote's final total (after any
+// discount) that's already known. A deposit is taken against the total,
+// not the subtotal - it's "up-front money toward what the customer will
+// actually owe", so a discount has to be baked in first. Shares its
+// percent-vs-fixed arithmetic with applyDiscount() above via
+// calculatePercentOrFixed() rather than reimplementing it.
+const calculateDeposit = (total, deposit_type, deposit_value) => {
+
+  return calculatePercentOrFixed(total, deposit_type, deposit_value);
 
 };
 
@@ -187,7 +213,9 @@ const createQuote = async (
   created_by_user_id = null,
   created_by_name = null,
   discount_type = null,
-  discount_value = null
+  discount_value = null,
+  deposit_type = null,
+  deposit_value = null
 
 ) => {
 
@@ -210,8 +238,8 @@ const createQuote = async (
 
         `
         INSERT INTO quotes
-        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name, discount_type, discount_value)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name, discount_type, discount_value, deposit_type, deposit_value)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
 
         [
@@ -225,7 +253,9 @@ const createQuote = async (
           created_by_user_id || null,
           created_by_name || null,
           discount_type || null,
-          discount_value === undefined || discount_value === null ? null : Number(discount_value)
+          discount_value === undefined || discount_value === null ? null : Number(discount_value),
+          deposit_type || null,
+          deposit_value === undefined || deposit_value === null ? null : Number(deposit_value)
         ]
 
       );
@@ -308,8 +338,9 @@ const getQuotes = async (business_id) => {
 
     const subtotal = round2(row.subtotal);
     const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total };
+    return { ...row, subtotal, discount_amount, total, deposit_amount };
 
   });
 
@@ -360,8 +391,9 @@ const getQuotesForExport = async (business_id, { type, status } = {}) => {
 
     const subtotal = round2(row.subtotal);
     const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total };
+    return { ...row, subtotal, discount_amount, total, deposit_amount };
 
   });
 
@@ -418,8 +450,9 @@ const getQuotesByCustomer = async (customer_id, business_id) => {
 
     const subtotal = round2(row.subtotal);
     const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total };
+    return { ...row, subtotal, discount_amount, total, deposit_amount };
 
   });
 
@@ -469,6 +502,7 @@ const getQuoteById = async (id, business_id) => {
   quote.subtotal = totals.subtotal;
   quote.discount_amount = totals.discount_amount;
   quote.total = totals.total;
+  quote.deposit_amount = calculateDeposit(totals.total, quote.deposit_type, quote.deposit_value);
 
   return quote;
 
@@ -636,6 +670,8 @@ module.exports = {
   calculateQuoteTotals,
 
   applyDiscount,
+
+  calculateDeposit,
 
   formatQuoteNumber,
 

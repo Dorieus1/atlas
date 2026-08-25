@@ -890,7 +890,16 @@ export const getQuote = (id) =>
 
 
 
-export const createQuote = (customer_id, type, notes, items, discount_type = null, discount_value = null) =>
+export const createQuote = (
+  customer_id,
+  type,
+  notes,
+  items,
+  discount_type = null,
+  discount_value = null,
+  deposit_type = null,
+  deposit_value = null
+) =>
 
   request("/quotes", {
 
@@ -908,7 +917,11 @@ export const createQuote = (customer_id, type, notes, items, discount_type = nul
 
       discount_type,
 
-      discount_value
+      discount_value,
+
+      deposit_type,
+
+      deposit_value
 
     })
 
@@ -1246,6 +1259,22 @@ export const getPortalQuotes = () =>
 
 export const createInvoiceCheckout = (quoteId) =>
   portalRequest(`/portal/account/quotes/${quoteId}/checkout`, {
+    method:"POST"
+  });
+
+export const acceptPortalQuote = (quoteId, name) =>
+  portalRequest(`/portal/account/quotes/${quoteId}/accept`, {
+    method:"POST",
+    body: JSON.stringify({ name })
+  });
+
+export const declinePortalQuote = (quoteId) =>
+  portalRequest(`/portal/account/quotes/${quoteId}/decline`, {
+    method:"POST"
+  });
+
+export const createDepositCheckout = (quoteId) =>
+  portalRequest(`/portal/account/quotes/${quoteId}/deposit-checkout`, {
     method:"POST"
   });
 
