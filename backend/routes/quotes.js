@@ -7,6 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   createQuote,
   getQuotes,
+  exportQuotesCsv,
   getCustomerQuotes,
   getQuote,
   updateQuote,
@@ -25,6 +26,15 @@ router.get(
   "/",
   authMiddleware,
   getQuotes
+);
+
+// Must be registered before the /:id route below - Express matches
+// routes in order, and "export.csv" would otherwise be swallowed as an
+// :id value.
+router.get(
+  "/export.csv",
+  authMiddleware,
+  exportQuotesCsv
 );
 
 router.get(
