@@ -811,7 +811,9 @@ export const createAppointment = (
 
   recurrence,
 
-  occurrences
+  occurrences,
+
+  assigned_user_id
 
 ) =>
 
@@ -833,7 +835,9 @@ export const createAppointment = (
 
       recurrence,
 
-      occurrences
+      occurrences,
+
+      assigned_user_id
 
     })
 
@@ -843,13 +847,18 @@ export const createAppointment = (
 
 // scope: "this" (default, single row) or "future" (this and every later
 // occurrence in the same recurring series).
-export const updateAppointmentStatus = (id, status, scope) =>
+// assigned_user_id: omit entirely to leave the existing assignment
+// untouched (JSON.stringify drops an `undefined` value, so the default
+// here reproduces that "don't touch it" behavior); pass a user id to
+// reassign, or null to unassign. Only applies to the single-row (non-
+// "future") path - see the matching comment in appointmentController.js.
+export const updateAppointmentStatus = (id, status, scope, assigned_user_id) =>
 
   request(`/appointments/${id}`, {
 
     method:"PATCH",
 
-    body: JSON.stringify({ status, scope })
+    body: JSON.stringify({ status, scope, assigned_user_id })
 
   });
 

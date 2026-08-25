@@ -10,7 +10,8 @@ import {
   Trash2,
   CalendarDays,
   AlertTriangle,
-  Repeat
+  Repeat,
+  User
 } from "lucide-react";
 
 import {
@@ -18,7 +19,8 @@ import {
   createAppointment,
   updateAppointmentStatus,
   deleteAppointment,
-  getCustomers
+  getCustomers,
+  getTeammates
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
@@ -93,8 +95,30 @@ function Schedule() {
 
   const [appointments, setAppointments] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [teammates, setTeammates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  // Who to show appointments for: "all", "unassigned", or a specific
+  // teammate's user id. Defaults to "all" and is switched to "just me"
+  // below, once the teammate list has loaded, if the signed-in user
+  // turns out to be staff (not owner) - see the effect below for why.
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const defaultFilterApplied = useRef(false);
+
+  const currentUserId = (() => {
+
+    try {
+
+      return JSON.parse(localStorage.getItem("user") || "{}").id;
+
+    } catch {
+
+      return null;
+
+    }
+
+  })();
 
   const [viewMonth, setViewMonth] = useState(() => {
     const now = linkedDate || new Date();
@@ -106,6 +130,7 @@ function Schedule() {
 
   const [formTitle, setFormTitle] = useState("");
   const [formCustomerId, setFormCustomerId] = useState("");
+  const [formAssignedUserId, setFormAssignedUserId] = useState("");
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("09:00");
   const [formNotes, setFormNotes] = useState("");
@@ -157,7 +182,35 @@ function Schedule() {
       .then(setCustomers)
       .catch((error) => console.error("CUSTOMERS LOAD ERROR:", error));
 
+    getTeammates()
+      .then(setTeammates)
+      .catch((error) => console.error("TEAMMATES LOAD ERROR:", error));
+
   }, []);
+
+
+  // A reasonable default for a staff (non-owner) user is "just my jobs" -
+  // this is the filter they'll want almost every time they open their
+  // schedule. It's only a default, though: the dropdown below still lets
+  // any staff member switch to "All" and see the whole team's schedule,
+  // it's never hidden from them. Applied exactly once, the first time the
+  // teammate list finishes loading, so it never overrides a filter the
+  // user has since chosen themselves.
+  useEffect(() => {
+
+    if (defaultFilterApplied.current || teammates.length === 0) {
+      return;
+    }
+
+    defaultFilterApplied.current = true;
+
+    const currentUser = teammates.find((t) => t.id === currentUserId);
+
+    if (currentUser?.role === "staff") {
+      setAssigneeFilter(currentUserId);
+    }
+
+  }, [teammates, currentUserId]);
 
 
   const openFormForDate = (date) => {
@@ -165,6 +218,7 @@ function Schedule() {
     setFormError("");
     setFormTitle("");
     setFormCustomerId("");
+    setFormAssignedUserId("");
     setFormNotes("");
     setFormDate(toDateKey(date));
     setFormTime("09:00");
@@ -219,7 +273,8 @@ function Schedule() {
         startTime,
         null,
         isRecurring ? formRecurrence : undefined,
-        isRecurring ? occurrenceCount : undefined
+        isRecurring ? occurrenceCount : undefined,
+        formAssignedUserId || null
       );
 
       setShowForm(false);
@@ -270,6 +325,27 @@ function Schedule() {
   };
 
 
+  const handleReassign = async (appt, newAssignedUserId) => {
+
+    try {
+
+      setActionError("");
+      // Passing the appointment's own current status keeps this a pure
+      // reassignment - the PATCH endpoint always requires a status, but
+      // re-sending the one it already has leaves it unchanged.
+      await updateAppointmentStatus(appt.id, appt.status, undefined, newAssignedUserId || null);
+      await loadAppointments();
+
+    } catch (error) {
+
+      console.error("REASSIGN APPOINTMENT ERROR:", error);
+      setActionError("Couldn't reassign that appointment. Please try again.");
+
+    }
+
+  };
+
+
   const handleDelete = async (id, scope) => {
 
     setDeletingId(id);
@@ -299,9 +375,25 @@ function Schedule() {
   const monthDays = buildMonthGrid(viewMonth);
   const today = new Date();
 
+  const teammatesById = Object.fromEntries(teammates.map((t) => [t.id, t]));
+
+  const visibleAppointments = appointments.filter((appt) => {
+
+    if (assigneeFilter === "all") {
+      return true;
+    }
+
+    if (assigneeFilter === "unassigned") {
+      return !appt.assigned_user_id;
+    }
+
+    return appt.assigned_user_id === assigneeFilter;
+
+  });
+
   const appointmentsByDay = {};
 
-  appointments.forEach((appt) => {
+  visibleAppointments.forEach((appt) => {
     const key = toDateKey(new Date(appt.start_time));
     if (!appointmentsByDay[key]) {
       appointmentsByDay[key] = [];
@@ -330,13 +422,34 @@ function Schedule() {
           </p>
         </div>
 
-        <button
-          onClick={() => openFormForDate(selectedDate)}
-          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500"
-        >
-          <Plus size={17} />
-          New Appointment
-        </button>
+        <div className="flex items-center gap-2">
+
+          {teammates.length > 1 && (
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              aria-label="Filter by assignee"
+              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+            >
+              <option value="all">Everyone</option>
+              <option value="unassigned">Unassigned</option>
+              {teammates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.id === currentUserId ? `${t.name} (me)` : t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
+            onClick={() => openFormForDate(selectedDate)}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500"
+          >
+            <Plus size={17} />
+            New Appointment
+          </button>
+
+        </div>
 
       </div>
 
@@ -447,6 +560,7 @@ function Schedule() {
                     {dayAppointments.slice(0, 2).map((appt) => (
                       <span
                         key={appt.id}
+                        title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
                         className="truncate rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300"
                       >
                         {appt.title}
@@ -532,6 +646,23 @@ function Schedule() {
                         <p className="mt-1 text-[11px] text-slate-500">
                           Added by {appt.created_by_name}
                         </p>
+                      )}
+
+                      {teammates.length > 1 && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <User size={11} className="shrink-0 text-slate-500" />
+                          <select
+                            value={appt.assigned_user_id || ""}
+                            onChange={(e) => handleReassign(appt, e.target.value)}
+                            aria-label="Assigned to"
+                            className="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[11px] text-slate-300 focus:border-ink-600 focus:outline-none"
+                          >
+                            <option value="">Unassigned</option>
+                            {teammates.map((t) => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
 
                     </div>
@@ -764,6 +895,20 @@ function Schedule() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              {teammates.length > 1 && (
+                <select
+                  value={formAssignedUserId}
+                  onChange={(e) => setFormAssignedUserId(e.target.value)}
+                  aria-label="Assign to"
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                >
+                  <option value="">Unassigned</option>
+                  {teammates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              )}
 
               <div className="flex gap-3">
 
