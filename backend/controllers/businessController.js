@@ -1,6 +1,7 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 const { generateUniqueSlug } = require("../services/businessService");
+const { validateBusinessHours } = require("../services/businessHoursService");
 
 
 
@@ -143,7 +144,8 @@ const updateBusiness = (req, res) => {
     address,
     industry,
     services,
-    review_link
+    review_link,
+    business_hours
 
   } = req.body;
 
@@ -155,6 +157,17 @@ const updateBusiness = (req, res) => {
 
     return res.status(400).json({
       error: "Business name is required"
+    });
+
+  }
+
+
+  const hoursCheck = validateBusinessHours(business_hours);
+
+  if (!hoursCheck.valid) {
+
+    return res.status(400).json({
+      error: hoursCheck.error
     });
 
   }
@@ -173,7 +186,8 @@ const updateBusiness = (req, res) => {
       address = ?,
       industry = ?,
       services = ?,
-      review_link = ?
+      review_link = ?,
+      business_hours = ?
 
     WHERE id = ?
 
@@ -188,6 +202,7 @@ const updateBusiness = (req, res) => {
       industry,
       services,
       review_link,
+      hoursCheck.normalized ? JSON.stringify(hoursCheck.normalized) : null,
       id
 
     ],

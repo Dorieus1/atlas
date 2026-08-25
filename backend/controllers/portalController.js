@@ -4,6 +4,7 @@ const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../s
 const { sendEmail } = require("../services/emailService");
 const { getQuotesByCustomer, getQuoteById, updateQuoteFields } = require("../services/quoteService");
 const { getAppointmentsByCustomer, createAppointment } = require("../services/appointmentService");
+const { checkWithinBusinessHours } = require("../services/businessHoursService");
 const { getPhotosByCustomer } = require("../services/photoService");
 const { createNotification } = require("../services/notificationService");
 const { createCheckoutSession } = require("../services/stripeService");
@@ -274,6 +275,31 @@ const requestAppointment = async (req, res) => {
 
       return res.status(404).json({
         error: "We couldn't find your account"
+      });
+
+    }
+
+    const business = await getBusinessById(req.customer.business_id);
+
+    if (!business) {
+
+      return res.status(404).json({
+        error: "We couldn't find that business"
+      });
+
+    }
+
+    // Only the customer-facing self-service path is checked against
+    // configured hours - staff creating/scheduling appointments directly
+    // (appointmentController) can still override for exceptions. A
+    // business with no hours configured (business_hours is NULL) is
+    // never blocked here.
+    const hoursCheck = checkWithinBusinessHours(business.business_hours, start_time);
+
+    if (!hoursCheck.allowed) {
+
+      return res.status(400).json({
+        error: hoursCheck.error
       });
 
     }

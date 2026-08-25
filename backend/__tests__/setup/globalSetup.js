@@ -37,7 +37,8 @@ module.exports = async () => {
           slug TEXT,
           onboarding_dismissed INTEGER DEFAULT 0,
           stripe_account_id TEXT,
-          stripe_onboarded INTEGER DEFAULT 0
+          stripe_onboarded INTEGER DEFAULT 0,
+          business_hours TEXT
         )
       `);
 
