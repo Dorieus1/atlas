@@ -64,6 +64,7 @@ const stripeConnectRoutes = require("./routes/stripeConnect");
 const searchRoutes = require("./routes/search");
 const knowledgeGapRoutes = require("./routes/knowledgeGaps");
 const savedLineItemRoutes = require("./routes/savedLineItems");
+const tagRoutes = require("./routes/tags");
 
 app.use("/api/business", businessRoutes);
 app.use("/api/customers", customerRoutes);
@@ -95,6 +96,7 @@ app.use("/api/stripe/connect", stripeConnectRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/knowledge-gaps", knowledgeGapRoutes);
 app.use("/api/saved-line-items", savedLineItemRoutes);
+app.use("/api/tags", tagRoutes);
 
 app.get("/", (req,res)=>{
 

@@ -30,6 +30,30 @@ const runAsync = (sql, params = []) => {
 
 
 
+const allAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.all(sql, params, (err, rows) => {
+
+      if (err) {
+
+        reject(err);
+
+      } else {
+
+        resolve(rows);
+
+      }
+
+    });
+
+  });
+
+};
+
+
+
 const createCustomer = (
 
   business_id,
@@ -184,48 +208,178 @@ const getCustomerByEmail = (business_id, email) => {
 
 
 
-const getCustomersByBusiness = (business_id)=>{
+// Attaches each customer's assigned tags (as a small [{id, name}] array) in
+// a single batch query instead of one query per customer.
+const attachTagsToCustomers = async (customers, business_id) => {
 
+  if (customers.length === 0) {
 
-  return new Promise((resolve,reject)=>{
+    return customers;
 
+  }
 
-    db.all(
+  const rows = await allAsync(
 
-      `
-      SELECT *
-      FROM customers
-      WHERE business_id = ?
-      ORDER BY created_at DESC
-      `,
+    `
+    SELECT
+      customer_tags.customer_id AS customer_id,
+      tags.id AS id,
+      tags.name AS name
+    FROM customer_tags
+    JOIN tags ON tags.id = customer_tags.tag_id
+    WHERE customer_tags.business_id = ?
+    `,
 
-      [
-        business_id
-      ],
+    [business_id]
 
+  );
 
-      (err,rows)=>{
+  const byCustomer = {};
 
+  rows.forEach((row) => {
 
-        if(err){
+    if (!byCustomer[row.customer_id]) {
+      byCustomer[row.customer_id] = [];
+    }
 
-          reject(err);
-
-        } else {
-
-          resolve(rows);
-
-        }
-
-
-      }
-
-
-    );
-
+    byCustomer[row.customer_id].push({
+      id: row.id,
+      name: row.name
+    });
 
   });
 
+  return customers.map((customer) => ({
+    ...customer,
+    tags: byCustomer[customer.id] || []
+  }));
+
+};
+
+
+
+const getCustomersByBusiness = async (business_id, tag_id) => {
+
+
+  const customers = await new Promise((resolve, reject) => {
+
+    if (tag_id) {
+
+      db.all(
+
+        `
+        SELECT DISTINCT customers.*
+        FROM customers
+        JOIN customer_tags ON customer_tags.customer_id = customers.id
+        WHERE customers.business_id = ?
+        AND customer_tags.business_id = ?
+        AND customer_tags.tag_id = ?
+        ORDER BY customers.created_at DESC
+        `,
+
+        [business_id, business_id, tag_id],
+
+        (err, rows) => {
+
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+
+        }
+
+      );
+
+    } else {
+
+      db.all(
+
+        `
+        SELECT *
+        FROM customers
+        WHERE business_id = ?
+        ORDER BY created_at DESC
+        `,
+
+        [business_id],
+
+        (err, rows) => {
+
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+
+        }
+
+      );
+
+    }
+
+  });
+
+  return attachTagsToCustomers(customers, business_id);
+
+
+};
+
+
+
+const getCustomerTags = (customer_id, business_id) => {
+
+  return allAsync(
+
+    `
+    SELECT tags.id, tags.name
+    FROM customer_tags
+    JOIN tags ON tags.id = customer_tags.tag_id
+    WHERE customer_tags.customer_id = ?
+    AND customer_tags.business_id = ?
+    ORDER BY tags.name ASC
+    `,
+
+    [customer_id, business_id]
+
+  );
+
+};
+
+
+
+const addCustomerTag = (customer_id, tag_id, business_id) => {
+
+  return runAsync(
+
+    `
+    INSERT OR IGNORE INTO customer_tags
+    (customer_id, tag_id, business_id)
+    VALUES (?, ?, ?)
+    `,
+
+    [customer_id, tag_id, business_id]
+
+  );
+
+};
+
+
+
+const removeCustomerTag = (customer_id, tag_id, business_id) => {
+
+  return runAsync(
+
+    `
+    DELETE FROM customer_tags
+    WHERE customer_id = ?
+    AND tag_id = ?
+    AND business_id = ?
+    `,
+
+    [customer_id, tag_id, business_id]
+
+  );
 
 };
 
@@ -298,6 +452,8 @@ const deleteCustomer = async (
     await runAsync(`DELETE FROM review_requests WHERE customer_id = ?`, [id]);
 
     await runAsync(`DELETE FROM portal_login_tokens WHERE customer_id = ?`, [id]);
+
+    await runAsync(`DELETE FROM customer_tags WHERE customer_id = ?`, [id]);
 
     const result = await runAsync(
 
@@ -404,5 +560,8 @@ module.exports = {
   getCustomerByEmail,
   getCustomersByBusiness,
   deleteCustomer,
-  updateCustomer
+  updateCustomer,
+  getCustomerTags,
+  addCustomerTag,
+  removeCustomerTag
 };
