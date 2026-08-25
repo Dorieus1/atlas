@@ -294,7 +294,7 @@ const requestAppointment = async (req, res) => {
     // (appointmentController) can still override for exceptions. A
     // business with no hours configured (business_hours is NULL) is
     // never blocked here.
-    const hoursCheck = checkWithinBusinessHours(business.business_hours, start_time);
+    const hoursCheck = checkWithinBusinessHours(business.business_hours, start_time, business.timezone);
 
     if (!hoursCheck.allowed) {
 

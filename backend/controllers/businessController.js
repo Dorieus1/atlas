@@ -1,7 +1,7 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 const { generateUniqueSlug } = require("../services/businessService");
-const { validateBusinessHours } = require("../services/businessHoursService");
+const { validateBusinessHours, isValidTimezone } = require("../services/businessHoursService");
 
 
 
@@ -145,7 +145,8 @@ const updateBusiness = (req, res) => {
     industry,
     services,
     review_link,
-    business_hours
+    business_hours,
+    timezone
 
   } = req.body;
 
@@ -173,6 +174,18 @@ const updateBusiness = (req, res) => {
   }
 
 
+  // Empty string is treated the same as null/undefined - "not set" (UTC).
+  const normalizedTimezone = timezone ? timezone : null;
+
+  if (!isValidTimezone(normalizedTimezone)) {
+
+    return res.status(400).json({
+      error: `"${timezone}" isn't a recognized timezone. Use a standard IANA name, e.g. "America/New_York".`
+    });
+
+  }
+
+
 
   db.run(
 
@@ -187,7 +200,8 @@ const updateBusiness = (req, res) => {
       industry = ?,
       services = ?,
       review_link = ?,
-      business_hours = ?
+      business_hours = ?,
+      timezone = ?
 
     WHERE id = ?
 
@@ -203,6 +217,7 @@ const updateBusiness = (req, res) => {
       services,
       review_link,
       hoursCheck.normalized ? JSON.stringify(hoursCheck.normalized) : null,
+      normalizedTimezone,
       id
 
     ],
