@@ -1,4 +1,5 @@
 const PDFDocument = require("pdfkit");
+const { formatQuoteNumber } = require("./quoteService");
 
 const BRAND_COLOR = "#f97316";
 const INK_COLOR = "#0f1117";
@@ -68,6 +69,7 @@ function streamQuotePdf(res, quote, business) {
   doc.pipe(res);
 
   const documentLabel = quote.type === "invoice" ? "Invoice" : "Quote";
+  const documentNumber = formatQuoteNumber(quote.type, quote.quote_number);
 
   doc
     .font("Helvetica-Bold")
@@ -85,7 +87,11 @@ function streamQuotePdf(res, quote, business) {
     .font("Helvetica-Bold")
     .fontSize(18)
     .fillColor(BRAND_COLOR)
-    .text(documentLabel.toUpperCase(), 50, 115);
+    .text(
+      documentNumber ? `${documentLabel.toUpperCase()}  ${documentNumber}` : documentLabel.toUpperCase(),
+      50,
+      115
+    );
 
   const statusLabel = STATUS_LABELS[quote.status] || quote.status.toUpperCase();
 

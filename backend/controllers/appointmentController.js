@@ -288,7 +288,7 @@ const updateAppointmentStatus = async (req, res) => {
 
           } else {
 
-            draftInvoiceId = await createQuote(
+            const draftInvoice = await createQuote(
 
               business_id,
 
@@ -303,6 +303,8 @@ const updateAppointmentStatus = async (req, res) => {
               id
 
             );
+
+            draftInvoiceId = draftInvoice.id;
 
           }
 

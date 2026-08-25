@@ -17,6 +17,7 @@ import {
 import Logo from "../components/Logo";
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
 const STATUS_STYLES = {
@@ -415,7 +416,14 @@ function PortalDashboard() {
                     >
 
                       <div className="min-w-0">
-                        <p className="truncate font-medium capitalize">{quote.type}</p>
+                        <p className="truncate font-medium capitalize">
+                          {quote.type}
+                          {quoteDisplayNumber(quote) && (
+                            <span className="ml-1.5 text-slate-500">
+                              {quoteDisplayNumber(quote)}
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
                       </div>
 
