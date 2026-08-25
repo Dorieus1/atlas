@@ -1,9 +1,5 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
-const fs = require("fs");
-const path = require("path");
-const { UPLOAD_DIR } = require("./photoService");
-const { withTransaction } = require("../../database/transactionQueue");
 
 
 const runAsync = (sql, params = []) => {
@@ -274,6 +270,7 @@ const getCustomersByBusiness = async (business_id, tag_id) => {
         WHERE customers.business_id = ?
         AND customer_tags.business_id = ?
         AND customer_tags.tag_id = ?
+        AND customers.deleted_at IS NULL
         ORDER BY customers.created_at DESC
         `,
 
@@ -299,6 +296,7 @@ const getCustomersByBusiness = async (business_id, tag_id) => {
         SELECT *
         FROM customers
         WHERE business_id = ?
+        AND deleted_at IS NULL
         ORDER BY created_at DESC
         `,
 
@@ -385,6 +383,18 @@ const removeCustomerTag = (customer_id, tag_id, business_id) => {
 
 
 
+// Soft delete: moves the customer into the trash instead of destroying
+// anything. Nothing else is touched here - no notes, conversations,
+// appointments, quotes, photos, etc. are cascaded - because the customer
+// isn't actually gone yet and may still be restored. Permanent removal
+// (the old cascade this function used to perform inline) now happens
+// only in backend/services/customerPurgeService.js, once a trashed
+// customer has sat untouched for 30 days.
+//
+// Scoped to deleted_at IS NULL so this can't "re-trash" (and bump the
+// timestamp on) a customer that's already in the trash - that request
+// is treated as a 404 by the controller, same as a customer that never
+// existed.
 const deleteCustomer = async (
 
   id,
@@ -392,107 +402,76 @@ const deleteCustomer = async (
 
 ) => {
 
+  const result = await runAsync(
 
-  const customer = await getCustomerById(id, business_id);
+    `
+    UPDATE customers
+    SET deleted_at = ?
+    WHERE id = ?
+    AND business_id = ?
+    AND deleted_at IS NULL
+    `,
 
-  if (!customer) {
+    [new Date().toISOString(), id, business_id]
 
-    return false;
+  );
 
-  }
+  return result.changes > 0;
 
-  const photos = await new Promise((resolve, reject) => {
-
-    db.all(
-      `SELECT filename FROM photos WHERE customer_id = ? AND business_id = ?`,
-      [id, business_id],
-      (err, rows) => (err ? reject(err) : resolve(rows))
-    );
-
-  });
+};
 
 
-  // A real transaction, not just sequential statements: if any one of
-  // these deletes fails partway through, everything rolls back together
-  // instead of leaving the customer gone but some of their notes,
-  // leads, or other records silently orphaned behind in the database.
-  // Routed through withTransaction so this can never collide with a
-  // BEGIN/COMMIT block running concurrently in another service (e.g. a
-  // quote being created at the same instant) - see
-  // database/transactionQueue.js.
-  return withTransaction(async () => {
 
-  await runAsync("BEGIN TRANSACTION");
+// Clears deleted_at, pulling a trashed customer back out of the trash.
+// Scoped to deleted_at IS NOT NULL so restoring a customer that was
+// never trashed (or a bogus id, or another business's customer) is a
+// 404, not a silent no-op success.
+const restoreCustomer = async (
 
-  try {
+  id,
+  business_id
 
-    await runAsync(`DELETE FROM notes WHERE customer_id = ?`, [id]);
+) => {
 
-    await runAsync(`DELETE FROM conversations WHERE customer_id = ?`, [id]);
+  const result = await runAsync(
 
-    await runAsync(`DELETE FROM memories WHERE customer_id = ?`, [id]);
+    `
+    UPDATE customers
+    SET deleted_at = NULL
+    WHERE id = ?
+    AND business_id = ?
+    AND deleted_at IS NOT NULL
+    `,
 
-    await runAsync(`DELETE FROM activities WHERE customer_id = ?`, [id]);
+    [id, business_id]
 
-    await runAsync(`DELETE FROM leads WHERE customer_id = ?`, [id]);
+  );
 
-    await runAsync(`DELETE FROM tasks WHERE customer_id = ?`, [id]);
+  return result.changes > 0;
 
-    await runAsync(`DELETE FROM appointments WHERE customer_id = ?`, [id]);
+};
 
-    await runAsync(
-      `DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE customer_id = ?)`,
-      [id]
-    );
 
-    await runAsync(`DELETE FROM quotes WHERE customer_id = ?`, [id]);
 
-    await runAsync(`DELETE FROM photos WHERE customer_id = ?`, [id]);
+// This business's trashed customers, most-recently-deleted first, for
+// the "Trash" view. Deliberately a separate query from
+// getCustomersByBusiness rather than a flag on it - trash is a distinct
+// view, not just another filter on the normal customer list.
+const getTrashedCustomersByBusiness = (business_id) => {
 
-    await runAsync(`DELETE FROM review_requests WHERE customer_id = ?`, [id]);
+  return allAsync(
 
-    await runAsync(`DELETE FROM portal_login_tokens WHERE customer_id = ?`, [id]);
+    `
+    SELECT *
+    FROM customers
+    WHERE business_id = ?
+    AND deleted_at IS NOT NULL
+    ORDER BY deleted_at DESC
+    `,
 
-    await runAsync(`DELETE FROM customer_tags WHERE customer_id = ?`, [id]);
+    [business_id]
 
-    const result = await runAsync(
-
-      `
-      DELETE FROM customers
-      WHERE id = ?
-      AND business_id = ?
-      `,
-
-      [id, business_id]
-
-    );
-
-    await runAsync("COMMIT");
-
-    photos.forEach((photo) => {
-
-      fs.unlink(path.join(UPLOAD_DIR, photo.filename), (err) => {
-
-        if (err && err.code !== "ENOENT") {
-          console.error("Failed to remove photo file:", err.message);
-        }
-
-      });
-
-    });
-
-    return result.changes > 0;
-
-  } catch (err) {
-
-    await runAsync("ROLLBACK").catch(() => {});
-
-    throw err;
-
-  }
-
-  });
-
+  );
 
 };
 
@@ -560,6 +539,8 @@ module.exports = {
   getCustomerByEmail,
   getCustomersByBusiness,
   deleteCustomer,
+  restoreCustomer,
+  getTrashedCustomersByBusiness,
   updateCustomer,
   getCustomerTags,
   addCustomerTag,

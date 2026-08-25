@@ -164,6 +164,21 @@ if (require.main === module) {
 
       }, 30 * 60 * 1000);
 
+      // Permanently purges customers that have sat in the trash for more
+      // than 30 days (see customerPurgeService.js). A 30-day window has
+      // no need for frequent polling, so this runs every 6 hours -
+      // matching the backup job's cadence just above - rather than the
+      // 30-minute interval used for the time-sensitive reminder jobs.
+      const { purgeOldTrashedCustomers } = require("./services/customerPurgeService");
+
+      purgeOldTrashedCustomers().catch((err) => console.error("CUSTOMER PURGE FAILED:", err));
+
+      setInterval(() => {
+
+        purgeOldTrashedCustomers().catch((err) => console.error("CUSTOMER PURGE FAILED:", err));
+
+      }, 6 * 60 * 60 * 1000);
+
       app.listen(PORT,()=>{
 
         console.log(

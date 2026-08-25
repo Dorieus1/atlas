@@ -13,6 +13,7 @@ import {
   updateLeadStatus,
   getBusinesses,
   deleteCustomer,
+  restoreCustomer,
   updateCustomerInfo,
   getTags,
   createTag,
@@ -58,6 +59,8 @@ function CustomerProfile() {
   const [customerEditError, setCustomerEditError] = useState("");
   const [savingCustomerEdit, setSavingCustomerEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
   const [allTags, setAllTags] = useState([]);
   const [tagsError, setTagsError] = useState("");
   const [selectedTagToAdd, setSelectedTagToAdd] = useState("");
@@ -533,6 +536,37 @@ function CustomerProfile() {
 
 
 
+  const handleRestoreCustomer = async () => {
+
+    setRestoring(true);
+
+    setRestoreError("");
+
+    try {
+
+      await restoreCustomer(id);
+
+      setCustomer({ ...customer, deleted_at: null });
+
+    } catch (err) {
+
+      console.error(
+        "CUSTOMER RESTORE ERROR:",
+        err
+      );
+
+      setRestoreError("Failed to restore customer. Please try again.");
+
+    } finally {
+
+      setRestoring(false);
+
+    }
+
+  };
+
+
+
   const startEditCustomer = () => {
 
     setEditCustomerName(customer.name || "");
@@ -651,6 +685,60 @@ function CustomerProfile() {
   return (
 
     <div className="p-8 space-y-8">
+
+
+      {customer.deleted_at && (
+
+        <div className="
+          flex
+          flex-wrap
+          items-center
+          justify-between
+          gap-3
+          bg-amber-500/10
+          border
+          border-amber-500/40
+          rounded-xl
+          p-4
+        ">
+
+          <p className="text-amber-300 text-sm">
+
+            🗑️ This customer is in the trash. They'll be permanently deleted 30 days after being moved here, unless restored.
+
+          </p>
+
+          <div className="flex items-center gap-3">
+
+            <button
+
+              onClick={handleRestoreCustomer}
+
+              disabled={restoring}
+
+              className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+
+            >
+
+              {restoring ? "Restoring..." : "Restore Customer"}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {restoreError && (
+
+        <p className="text-red-400 text-sm">
+
+          {restoreError}
+
+        </p>
+
+      )}
 
 
       {/* CUSTOMER HEADER */}
@@ -795,13 +883,13 @@ function CustomerProfile() {
 
         <div>
 
-          {confirmingDelete ? (
+          {customer.deleted_at ? null : confirmingDelete ? (
 
             <div className="flex flex-wrap items-center gap-3">
 
               <span className="text-slate-300 text-sm">
 
-                Delete this customer and all their notes, conversations, and history?
+                Move this customer to trash? They'll be permanently deleted after 30 days, and can be restored any time before then.
 
               </span>
 
@@ -815,7 +903,7 @@ function CustomerProfile() {
 
               >
 
-                {deleting ? "Deleting..." : "Confirm Delete"}
+                {deleting ? "Moving to trash..." : "Move to Trash"}
 
               </button>
 
@@ -845,7 +933,7 @@ function CustomerProfile() {
 
             >
 
-              Delete Customer
+              Move to Trash
 
             </button>
 

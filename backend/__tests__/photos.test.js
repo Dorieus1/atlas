@@ -151,7 +151,7 @@ describe("Photos", () => {
 
   });
 
-  test("deleting a customer also removes their photos from disk", async () => {
+  test("deleting a customer moves them to the trash without touching their photos on disk", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "PhotoCustomerCascade");
     const customerId = await createCustomer(app, authHeader, "Cascade Customer");
@@ -174,7 +174,10 @@ describe("Photos", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(fs.existsSync(path.join(UPLOAD_DIR, storedFilename))).toBe(false);
+    // Soft delete doesn't cascade - the file on disk is only removed
+    // once the customer is permanently purged after 30 days in the
+    // trash (see backend/__tests__/customerTrash.test.js).
+    expect(fs.existsSync(path.join(UPLOAD_DIR, storedFilename))).toBe(true);
 
   });
 

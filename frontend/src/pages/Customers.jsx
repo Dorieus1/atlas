@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
-import { getCustomers, getTags } from "../api/atlasApi";
+import { Users, Trash2 } from "lucide-react";
+import { getCustomers, getTags, getTrashedCustomers, restoreCustomer } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
 import EmptyState from "../components/EmptyState";
 import { downloadCSV } from "../utils/csv";
@@ -19,6 +19,16 @@ function Customers() {
   const [tags, setTags] = useState([]);
 
   const [tagFilter, setTagFilter] = useState("");
+
+  const [showTrash, setShowTrash] = useState(false);
+
+  const [trashedCustomers, setTrashedCustomers] = useState([]);
+
+  const [trashError, setTrashError] = useState("");
+
+  const [restoringId, setRestoringId] = useState(null);
+
+  const restoringRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -74,12 +84,65 @@ function Customers() {
 
 
 
+  const loadTrash = async () => {
+
+    try {
+
+      const data = await getTrashedCustomers();
+      setTrashedCustomers(data);
+      setTrashError("");
+
+    } catch (error) {
+
+      console.error("TRASH LOAD ERROR:", error);
+      setTrashError("Couldn't load the trash. Please refresh to try again.");
+
+    }
+
+  };
+
+
+
+  const handleRestore = async (id) => {
+
+    if (restoringRef.current) {
+
+      return;
+
+    }
+
+    restoringRef.current = id;
+
+    setRestoringId(id);
+
+    try {
+
+      await restoreCustomer(id);
+      await Promise.all([loadCustomers(), loadTrash()]);
+
+    } catch (error) {
+
+      console.error("RESTORE ERROR:", error);
+      setTrashError("Failed to restore customer. Please try again.");
+
+    } finally {
+
+      restoringRef.current = null;
+      setRestoringId(null);
+
+    }
+
+  };
+
+
+
 
   useEffect(() => {
 
 
     loadCustomers();
     loadTags();
+    loadTrash();
 
 
   }, []);
@@ -151,25 +214,157 @@ function Customers() {
 
         </div>
 
-        {customers.length > 0 && (
+        <div className="flex flex-wrap gap-3">
 
           <button
 
-            onClick={exportCSV}
+            onClick={() => setShowTrash((prev) => !prev)}
 
-            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
+            className="
+              flex
+              items-center
+              gap-1.5
+              bg-ink-800
+              hover:bg-ink-700
+              border
+              border-ink-700
+              px-4
+              py-2
+              rounded-lg
+              text-sm
+            "
 
           >
 
-            ⬇️ Export CSV
+            <Trash2 size={16} />
+
+            {showTrash ? "Back to Customers" : `View Trash (${trashedCustomers.length})`}
 
           </button>
 
-        )}
+          {customers.length > 0 && !showTrash && (
+
+            <button
+
+              onClick={exportCSV}
+
+              className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
+
+            >
+
+              ⬇️ Export CSV
+
+            </button>
+
+          )}
+
+        </div>
 
       </div>
 
 
+      {showTrash ? (
+
+        <div className="mt-8">
+
+          <p className="text-sm text-slate-500 mb-4">
+
+            Trashed customers are permanently deleted 30 days after being moved here. Restore one to bring it back to your active customer list.
+
+          </p>
+
+          {trashError && (
+
+            <p className="text-red-400">
+
+              {trashError}
+
+            </p>
+
+          )}
+
+          {trashedCustomers.length === 0 && !trashError ? (
+
+            <EmptyState
+              icon={Trash2}
+              title="Trash is empty"
+              description="Customers you delete show up here for 30 days before being permanently removed."
+            />
+
+          ) : (
+
+            <div className="grid gap-4">
+
+              {trashedCustomers.map((customer) => (
+
+                <div
+
+                  key={customer.id}
+
+                  className="
+                    flex
+                    flex-wrap
+                    items-center
+                    justify-between
+                    gap-3
+                    border
+                    border-ink-700
+                    bg-ink-900/60
+                    rounded-xl
+                    p-5
+                  "
+
+                >
+
+                  <div>
+
+                    <h2 className="text-xl font-bold">
+
+                      {customer.name}
+
+                    </h2>
+
+                    <p className="text-slate-300">
+
+                      {customer.email}
+
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+
+                      Deleted {new Date(customer.deleted_at).toLocaleDateString()}
+
+                    </p>
+
+                  </div>
+
+                  <button
+
+                    onClick={() => handleRestore(customer.id)}
+
+                    disabled={restoringId === customer.id}
+
+                    className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+
+                  >
+
+                    {restoringId === customer.id ? "Restoring..." : "Restore"}
+
+                  </button>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+      ) : (
+
+      <>
 
       <CustomerForm
 
@@ -359,6 +554,10 @@ function Customers() {
 
 
       </div>
+
+      </>
+
+      )}
 
 
     </div>

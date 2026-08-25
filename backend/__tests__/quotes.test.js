@@ -255,7 +255,7 @@ describe("Quotes and Invoices", () => {
 
   });
 
-  test("deleting a customer also removes their quotes and line items", async () => {
+  test("deleting a customer moves them to the trash without touching their quotes and line items", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "QuoteCustomerCascade");
     const customerId = await createCustomer(app, authHeader, "Cascade Customer");
@@ -269,11 +269,14 @@ describe("Quotes and Invoices", () => {
       .delete(`/api/customers/${customerId}`)
       .set("Authorization", authHeader);
 
+    // Soft delete doesn't cascade - the quote is only removed once the
+    // customer is permanently purged after 30 days in the trash (see
+    // backend/__tests__/customerTrash.test.js).
     const list = await request(app)
       .get("/api/quotes")
       .set("Authorization", authHeader);
 
-    expect(list.body.length).toBe(0);
+    expect(list.body.length).toBe(1);
 
   });
 

@@ -409,7 +409,7 @@ describe("Customer portal", () => {
   });
 
 
-  test("deleting a customer also removes their portal login tokens", async () => {
+  test("deleting a customer moves them to the trash without touching their portal login tokens", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "PortalCascade");
     const slug = await getSlug(authHeader);
@@ -427,6 +427,9 @@ describe("Customer portal", () => {
       .delete(`/api/customers/${customerRes.body.id}`)
       .set("Authorization", authHeader);
 
+    // Soft delete doesn't cascade - the token row is only removed once
+    // the customer is permanently purged after 30 days in the trash
+    // (see backend/__tests__/customerTrash.test.js).
     const remaining = await new Promise((resolve, reject) => {
       db.all(
         "SELECT id FROM portal_login_tokens WHERE customer_id = ?",
@@ -435,7 +438,7 @@ describe("Customer portal", () => {
       );
     });
 
-    expect(remaining.length).toBe(0);
+    expect(remaining.length).toBe(1);
 
   });
 

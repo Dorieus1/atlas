@@ -3,6 +3,8 @@ const {
   getCustomerById: getCustomerByIdService,
   getCustomersByBusiness: getCustomersByBusinessService,
   deleteCustomer: deleteCustomerService,
+  restoreCustomer: restoreCustomerService,
+  getTrashedCustomersByBusiness: getTrashedCustomersByBusinessService,
   updateCustomer: updateCustomerService,
   getCustomerTags: getCustomerTagsService,
   addCustomerTag: addCustomerTagService,
@@ -417,7 +419,103 @@ const deleteCustomer = async (req, res) => {
     res.json({
 
       message:
-      "Customer deleted"
+      "Customer moved to trash"
+
+    });
+
+
+
+  } catch(error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: "Something went wrong. Please try again."
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const getTrashedCustomers = async (req, res) => {
+
+
+  try {
+
+
+    const customers =
+      await getTrashedCustomersByBusinessService(
+
+        req.user.business_id
+
+      );
+
+
+    res.json(customers);
+
+
+
+  } catch(error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: "Something went wrong. Please try again."
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const restoreCustomer = async (req, res) => {
+
+
+  try {
+
+
+    const restored = await restoreCustomerService(
+
+      req.params.id,
+
+      req.user.business_id
+
+    );
+
+
+    if (!restored) {
+
+
+      return res.status(404).json({
+
+        error:
+        "Customer not found"
+
+      });
+
+
+    }
+
+
+    res.json({
+
+      message:
+      "Customer restored"
 
     });
 
@@ -532,6 +630,10 @@ module.exports = {
   getCustomerById,
 
   deleteCustomer,
+
+  getTrashedCustomers,
+
+  restoreCustomer,
 
   updateCustomer,
 
