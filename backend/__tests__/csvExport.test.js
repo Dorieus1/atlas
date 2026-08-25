@@ -178,6 +178,36 @@ describe("Quotes CSV export", () => {
   });
 
 
+  test("a customer name that looks like a spreadsheet formula is neutralized, not exported as-is", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "CsvFormulaInjection");
+    const customerId = await createCustomer(
+      authHeader,
+      `=HYPERLINK("http://evil.example","Click")`,
+      "formula@example.com"
+    );
+
+    await createQuote(authHeader, customerId);
+
+    const res = await request(app)
+      .get("/api/quotes/export.csv")
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(200);
+
+    const rows = parseCsv(res.text);
+
+    // A leading ' forces spreadsheet apps to treat the cell as plain text
+    // instead of evaluating it as a formula - the standard CSV-injection
+    // mitigation (CWE-1236). The raw stored/returned value is still
+    // recognizably the original name (with the guard prefix), it's just
+    // no longer formula-shaped.
+    expect(rows[1][2]).toBe(`'=HYPERLINK("http://evil.example","Click")`);
+    expect(rows[1][2].startsWith("=")).toBe(false);
+
+  });
+
+
   test("export is scoped to the authenticated business and never leaks another business's data", async () => {
 
     const bizA = await createBusinessAndUser(app, "CsvScopeA");
