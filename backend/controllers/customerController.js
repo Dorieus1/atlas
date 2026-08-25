@@ -3,8 +3,15 @@ const {
   getCustomerById: getCustomerByIdService,
   getCustomersByBusiness: getCustomersByBusinessService,
   deleteCustomer: deleteCustomerService,
-  updateCustomer: updateCustomerService
+  updateCustomer: updateCustomerService,
+  getCustomerTags: getCustomerTagsService,
+  addCustomerTag: addCustomerTagService,
+  removeCustomerTag: removeCustomerTagService
 } = require("../services/customerService");
+
+const {
+  getTagById: getTagByIdService
+} = require("../services/tagService");
 
 
 
@@ -106,7 +113,9 @@ const getCustomers = async (req,res)=>{
     const customers =
       await getCustomersByBusinessService(
 
-        req.user.business_id
+        req.user.business_id,
+
+        req.query.tag_id
 
       );
 
@@ -171,7 +180,23 @@ const getCustomerById = async (req,res)=>{
 
 
 
-    res.json(customer);
+    const tags = await getCustomerTagsService(
+
+      req.params.id,
+
+      req.user.business_id
+
+    );
+
+
+
+    res.json({
+
+      ...customer,
+
+      tags
+
+    });
 
 
 
@@ -193,6 +218,156 @@ const getCustomerById = async (req,res)=>{
 
 };
 
+
+
+const addCustomerTag = async (req, res) => {
+
+
+  try {
+
+
+    const { tag_id } = req.body;
+
+    const business_id = req.user.business_id;
+
+
+    if (!tag_id) {
+
+      return res.status(400).json({
+
+        error: "tag_id is required"
+
+      });
+
+    }
+
+
+    const customer = await getCustomerByIdService(
+
+      req.params.id,
+
+      business_id
+
+    );
+
+
+    if (!customer) {
+
+      return res.status(404).json({
+
+        error: "Customer not found"
+
+      });
+
+    }
+
+
+    const tag = await getTagByIdService(tag_id, business_id);
+
+
+    if (!tag) {
+
+      return res.status(404).json({
+
+        error: "Tag not found"
+
+      });
+
+    }
+
+
+    await addCustomerTagService(req.params.id, tag_id, business_id);
+
+
+    const tags = await getCustomerTagsService(req.params.id, business_id);
+
+
+    res.status(201).json({ tags });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: "Something went wrong. Please try again."
+
+    });
+
+
+  }
+
+
+};
+
+
+
+const removeCustomerTag = async (req, res) => {
+
+
+  try {
+
+
+    const business_id = req.user.business_id;
+
+
+    const customer = await getCustomerByIdService(
+
+      req.params.id,
+
+      business_id
+
+    );
+
+
+    if (!customer) {
+
+      return res.status(404).json({
+
+        error: "Customer not found"
+
+      });
+
+    }
+
+
+    await removeCustomerTagService(
+
+      req.params.id,
+
+      req.params.tagId,
+
+      business_id
+
+    );
+
+
+    const tags = await getCustomerTagsService(req.params.id, business_id);
+
+
+    res.json({ tags });
+
+
+  } catch (error) {
+
+
+    console.error(error);
+
+
+    res.status(500).json({
+
+      error: "Something went wrong. Please try again."
+
+    });
+
+
+  }
+
+
+};
 
 
 
@@ -346,7 +521,11 @@ module.exports = {
 
   deleteCustomer,
 
-  updateCustomer
+  updateCustomer,
+
+  addCustomerTag,
+
+  removeCustomerTag
 
 
 };

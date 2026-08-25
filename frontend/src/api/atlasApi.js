@@ -1264,3 +1264,33 @@ export const deleteSavedLineItem = (id) =>
   request(`/saved-line-items/${id}`, {
     method:"DELETE"
   });
+
+
+
+/* ---------- Tags (customer segmentation) ---------- */
+
+
+export const getTags = () =>
+  request("/tags");
+
+export const createTag = (name) =>
+  request("/tags", {
+    method: "POST",
+    body: JSON.stringify({ name })
+  });
+
+export const deleteTag = (id) =>
+  request(`/tags/${id}`, {
+    method: "DELETE"
+  });
+
+export const addCustomerTag = (customerId, tagId) =>
+  request(`/customers/${customerId}/tags`, {
+    method: "POST",
+    body: JSON.stringify({ tag_id: tagId })
+  });
+
+export const removeCustomerTag = (customerId, tagId) =>
+  request(`/customers/${customerId}/tags/${tagId}`, {
+    method: "DELETE"
+  });

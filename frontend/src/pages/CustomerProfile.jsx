@@ -13,7 +13,11 @@ import {
   updateLeadStatus,
   getBusinesses,
   deleteCustomer,
-  updateCustomerInfo
+  updateCustomerInfo,
+  getTags,
+  createTag,
+  addCustomerTag,
+  removeCustomerTag
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
@@ -54,6 +58,13 @@ function CustomerProfile() {
   const [customerEditError, setCustomerEditError] = useState("");
   const [savingCustomerEdit, setSavingCustomerEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [allTags, setAllTags] = useState([]);
+  const [tagsError, setTagsError] = useState("");
+  const [selectedTagToAdd, setSelectedTagToAdd] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const [removingTagId, setRemovingTagId] = useState(null);
+  const [newTagName, setNewTagName] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
 
 
   useEffect(() => {
@@ -77,6 +88,14 @@ function CustomerProfile() {
     loadNotes();
 
   }, [id]);
+
+
+
+  useEffect(() => {
+
+    loadAllTags();
+
+  }, []);
 
 
 
@@ -235,6 +254,113 @@ function CustomerProfile() {
       );
 
       setNotesLoadError("Couldn't load notes. Please refresh to try again.");
+
+    }
+
+  };
+
+
+
+  const loadAllTags = async () => {
+
+    try {
+
+      const data = await getTags();
+      setAllTags(data);
+
+    } catch (err) {
+
+      console.error("TAGS LOAD ERROR:", err);
+
+    }
+
+  };
+
+
+
+  const handleAddTag = async () => {
+
+    if (!selectedTagToAdd) {
+      return;
+    }
+
+    setAddingTag(true);
+    setTagsError("");
+
+    try {
+
+      const result = await addCustomerTag(id, selectedTagToAdd);
+      setCustomer((prev) => ({ ...prev, tags: result.tags }));
+      setSelectedTagToAdd("");
+
+    } catch (err) {
+
+      console.error("ADD CUSTOMER TAG ERROR:", err);
+      setTagsError("Couldn't add that tag. Please try again.");
+
+    } finally {
+
+      setAddingTag(false);
+
+    }
+
+  };
+
+
+
+  const handleRemoveTag = async (tagId) => {
+
+    setRemovingTagId(tagId);
+    setTagsError("");
+
+    try {
+
+      const result = await removeCustomerTag(id, tagId);
+      setCustomer((prev) => ({ ...prev, tags: result.tags }));
+
+    } catch (err) {
+
+      console.error("REMOVE CUSTOMER TAG ERROR:", err);
+      setTagsError("Couldn't remove that tag. Please try again.");
+
+    } finally {
+
+      setRemovingTagId(null);
+
+    }
+
+  };
+
+
+
+  const handleCreateAndAssignTag = async () => {
+
+    if (!newTagName.trim()) {
+
+      setTagsError("Tag name is required.");
+      return;
+
+    }
+
+    setCreatingTag(true);
+    setTagsError("");
+
+    try {
+
+      const created = await createTag(newTagName.trim());
+      const result = await addCustomerTag(id, created.id);
+      setCustomer((prev) => ({ ...prev, tags: result.tags }));
+      setNewTagName("");
+      await loadAllTags();
+
+    } catch (err) {
+
+      console.error("CREATE TAG ERROR:", err);
+      setTagsError(err.message || "Couldn't create that tag. Please try again.");
+
+    } finally {
+
+      setCreatingTag(false);
 
     }
 
@@ -514,6 +640,14 @@ function CustomerProfile() {
 
 
 
+  const customerTags = customer.tags || [];
+
+  const availableTagsToAdd = allTags.filter(
+    (tag) => !customerTags.some((customerTag) => customerTag.id === tag.id)
+  );
+
+
+
   return (
 
     <div className="p-8 space-y-8">
@@ -716,6 +850,110 @@ function CustomerProfile() {
             </p>
 
           )}
+
+        </div>
+
+      </div>
+
+
+
+      {/* TAGS */}
+
+      <div className="
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
+        p-6
+      ">
+
+        <h2 className="text-xl font-bold">
+          🏷️ Tags
+        </h2>
+
+        {tagsError && (
+          <p className="mt-3 text-red-400">
+            {tagsError}
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+
+          {customerTags.length === 0 ? (
+
+            <p className="text-sm text-slate-400">
+              No tags yet.
+            </p>
+
+          ) : (
+
+            customerTags.map((tag) => (
+
+              <span
+                key={tag.id}
+                className="flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800 px-3 py-1.5 text-sm"
+              >
+
+                {tag.name}
+
+                <button
+                  onClick={() => handleRemoveTag(tag.id)}
+                  disabled={removingTagId === tag.id}
+                  className="text-slate-500 hover:text-red-400 disabled:opacity-50"
+                  aria-label={`Remove ${tag.name} tag`}
+                >
+                  ×
+                </button>
+
+              </span>
+
+            ))
+
+          )}
+
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+
+          <select
+            value={selectedTagToAdd}
+            onChange={(e) => setSelectedTagToAdd(e.target.value)}
+            className="bg-ink-800 border border-ink-700 rounded-lg p-2 text-sm text-white"
+          >
+            <option value="">Add existing tag...</option>
+            {availableTagsToAdd.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={handleAddTag}
+            disabled={!selectedTagToAdd || addingTag}
+            className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+          >
+            {addingTag ? "Adding..." : "Add"}
+          </button>
+
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+
+          <input
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            placeholder="Or create a new tag..."
+            className="bg-ink-900/60 border border-ink-700 rounded-lg p-2 text-sm text-white placeholder:text-slate-500"
+          />
+
+          <button
+            onClick={handleCreateAndAssignTag}
+            disabled={creatingTag}
+            className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+          >
+            {creatingTag ? "Creating..." : "Create & Add"}
+          </button>
 
         </div>
 

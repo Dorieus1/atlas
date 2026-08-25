@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users } from "lucide-react";
-import { getCustomers } from "../api/atlasApi";
+import { getCustomers, getTags } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
 import EmptyState from "../components/EmptyState";
 import { downloadCSV } from "../utils/csv";
@@ -15,6 +15,10 @@ function Customers() {
   const [search, setSearch] = useState("");
 
   const [loadError, setLoadError] = useState("");
+
+  const [tags, setTags] = useState([]);
+
+  const [tagFilter, setTagFilter] = useState("");
 
   const navigate = useNavigate();
 
@@ -53,11 +57,29 @@ function Customers() {
 
 
 
+  const loadTags = async () => {
+
+    try {
+
+      const data = await getTags();
+      setTags(data);
+
+    } catch (error) {
+
+      console.error("TAGS LOAD ERROR:", error);
+
+    }
+
+  };
+
+
+
 
   useEffect(() => {
 
 
     loadCustomers();
+    loadTags();
 
 
   }, []);
@@ -66,13 +88,23 @@ function Customers() {
 
   const query = search.trim().toLowerCase();
 
-  const filteredCustomers = query
+  const searchedCustomers = query
     ? customers.filter((customer) =>
         (customer.name || "").toLowerCase().includes(query) ||
         (customer.email || "").toLowerCase().includes(query) ||
         (customer.phone || "").toLowerCase().includes(query)
       )
     : customers;
+
+  // Client-side, same as the search above - the full list is already
+  // loaded, so there's no need for a round trip just to filter by tag.
+  // The backend also supports a tag_id query param on GET /api/customers
+  // independently (e.g. for a future paginated view).
+  const filteredCustomers = tagFilter
+    ? searchedCustomers.filter((customer) =>
+        (customer.tags || []).some((tag) => tag.id === tagFilter)
+      )
+    : searchedCustomers;
 
 
   const exportCSV = () => {
@@ -148,27 +180,62 @@ function Customers() {
 
       {customers.length > 0 && (
 
-        <input
+        <div className="mt-8 flex flex-wrap gap-3">
 
-          value={search}
+          <input
 
-          onChange={(e) => setSearch(e.target.value)}
+            value={search}
 
-          placeholder="Search by name or email"
+            onChange={(e) => setSearch(e.target.value)}
 
-          className="
-            w-full
-            mt-8
-            bg-ink-900/60
-            text-white
-            placeholder:text-slate-500
-            border
-            border-ink-700
-            rounded-lg
-            p-3
-          "
+            placeholder="Search by name or email"
 
-        />
+            className="
+              flex-1
+              min-w-[220px]
+              bg-ink-900/60
+              text-white
+              placeholder:text-slate-500
+              border
+              border-ink-700
+              rounded-lg
+              p-3
+            "
+
+          />
+
+          {tags.length > 0 && (
+
+            <select
+
+              value={tagFilter}
+
+              onChange={(e) => setTagFilter(e.target.value)}
+
+              className="
+                bg-ink-900/60
+                text-white
+                border
+                border-ink-700
+                rounded-lg
+                p-3
+              "
+
+            >
+
+              <option value="">All tags</option>
+
+              {tags.map((tag) => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.name}
+                </option>
+              ))}
+
+            </select>
+
+          )}
+
+        </div>
 
       )}
 
@@ -259,6 +326,25 @@ function Customers() {
                 {customer.phone}
 
               </p>
+
+            )}
+
+            {(customer.tags || []).length > 0 && (
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+
+                {customer.tags.map((tag) => (
+
+                  <span
+                    key={tag.id}
+                    className="rounded-full border border-ink-700 bg-ink-800 px-2.5 py-1 text-xs text-slate-300"
+                  >
+                    {tag.name}
+                  </span>
+
+                ))}
+
+              </div>
 
             )}
 

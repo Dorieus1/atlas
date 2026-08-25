@@ -15,7 +15,9 @@ const {
   getCustomerById,
   getCustomersByBusiness,
   deleteCustomer,
-  updateCustomer
+  updateCustomer,
+  addCustomerTag,
+  removeCustomerTag
 
 } = require("../controllers/customerController");
 
@@ -58,6 +60,22 @@ router.put(
   "/:id",
   authMiddleware,
   updateCustomer
+);
+
+
+
+router.post(
+  "/:id/tags",
+  authMiddleware,
+  addCustomerTag
+);
+
+
+
+router.delete(
+  "/:id/tags/:tagId",
+  authMiddleware,
+  removeCustomerTag
 );
 
 
