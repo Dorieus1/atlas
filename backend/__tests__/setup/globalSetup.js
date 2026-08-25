@@ -40,7 +40,8 @@ module.exports = async () => {
           stripe_onboarded INTEGER DEFAULT 0,
           business_hours TEXT,
           timezone TEXT,
-          next_quote_number INTEGER NOT NULL DEFAULT 1001
+          next_quote_number INTEGER NOT NULL DEFAULT 1001,
+          last_digest_sent_date TEXT
         )
       `);
 
