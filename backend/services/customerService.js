@@ -1,5 +1,6 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const { withTransaction } = require("../../database/transactionQueue");
 
 
 const runAsync = (sql, params = []) => {
@@ -636,6 +637,125 @@ const findPossibleDuplicates = async (business_id) => {
 
 
 
+// Merges two customer records the owner has confirmed are the same real
+// person - re-points every table that references the "loser" customer
+// over to the "survivor", then soft-deletes the loser so it lands in the
+// normal 30-day trash (reversible/auditable, not a hard delete) rather
+// than vanishing outright. Deliberately requires the caller (the
+// controller, which requires explicit owner confirmation via the UI) to
+// already know which one should survive - this never guesses, and never
+// runs automatically off the duplicate-detection groups on its own.
+const CUSTOMER_ID_TABLES = [
+  "quotes",
+  "appointments",
+  "leads",
+  "notes",
+  "conversations",
+  "memories",
+  "photos",
+  "tasks",
+  "review_requests",
+  "activities",
+  "knowledge_gaps"
+];
+
+const mergeCustomers = async (business_id, survivor_id, loser_id) => {
+
+  if (survivor_id === loser_id) {
+    return { error: "same_customer" };
+  }
+
+  const survivor = await getCustomerById(survivor_id, business_id);
+  const loser = await getCustomerById(loser_id, business_id);
+
+  if (!survivor || !loser || survivor.deleted_at || loser.deleted_at) {
+    return { error: "not_found" };
+  }
+
+  const merged = await withTransaction(async () => {
+
+    await runAsync("BEGIN TRANSACTION");
+
+    try {
+
+      for (const table of CUSTOMER_ID_TABLES) {
+
+        await runAsync(
+          `UPDATE ${table} SET customer_id = ? WHERE customer_id = ?`,
+          [survivor_id, loser_id]
+        );
+
+      }
+
+      // customer_tags has a composite (customer_id, tag_id) primary key,
+      // so a plain re-point could collide if both customers already
+      // share a tag - drop the loser's duplicate rows first, then move
+      // whatever's left (tags only the loser had).
+      await runAsync(
+        `DELETE FROM customer_tags WHERE customer_id = ? AND tag_id IN (SELECT tag_id FROM customer_tags WHERE customer_id = ?)`,
+        [loser_id, survivor_id]
+      );
+
+      await runAsync(
+        `UPDATE customer_tags SET customer_id = ? WHERE customer_id = ?`,
+        [survivor_id, loser_id]
+      );
+
+      // Ephemeral, single-use, short-lived - nothing worth preserving,
+      // and they'd be meaningless attached to a different customer id
+      // anyway (a login link's whole point is proving control of a
+      // specific email that was sent one).
+      await runAsync(`DELETE FROM portal_login_tokens WHERE customer_id = ?`, [loser_id]);
+
+      // Fills gaps rather than overwriting - if the survivor is missing
+      // an email/phone the loser had, keep it; otherwise the survivor's
+      // own value (which the owner presumably already trusts, since they
+      // picked this one to keep) wins.
+      await runAsync(
+
+        `
+        UPDATE customers
+        SET
+          email = COALESCE(NULLIF(email, ''), (SELECT email FROM customers WHERE id = ?)),
+          phone = COALESCE(NULLIF(phone, ''), (SELECT phone FROM customers WHERE id = ?))
+        WHERE id = ?
+        `,
+
+        [loser_id, loser_id, survivor_id]
+
+      );
+
+      await runAsync(
+
+        `UPDATE customers SET deleted_at = ? WHERE id = ? AND business_id = ?`,
+
+        [new Date().toISOString(), loser_id, business_id]
+
+      );
+
+      await runAsync("COMMIT");
+
+      return true;
+
+    } catch (err) {
+
+      await runAsync("ROLLBACK").catch(() => {});
+      throw err;
+
+    }
+
+  });
+
+  if (!merged) {
+    return { error: "merge_failed" };
+  }
+
+  return { customer: await getCustomerById(survivor_id, business_id) };
+
+};
+
+
+
 const updateCustomer = (
 
   id,
@@ -704,6 +824,7 @@ module.exports = {
   getTrashedCustomersByBusiness,
 
   findPossibleDuplicates,
+  mergeCustomers,
   updateCustomer,
   getCustomerTags,
   addCustomerTag,

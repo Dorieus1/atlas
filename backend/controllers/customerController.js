@@ -8,6 +8,7 @@ const {
   restoreCustomer: restoreCustomerService,
   getTrashedCustomersByBusiness: getTrashedCustomersByBusinessService,
   findPossibleDuplicates: findPossibleDuplicatesService,
+  mergeCustomers: mergeCustomersService,
   updateCustomer: updateCustomerService,
   getCustomerTags: getCustomerTagsService,
   addCustomerTag: addCustomerTagService,
@@ -526,6 +527,64 @@ const getPossibleDuplicates = async (req, res) => {
 
 
 
+const mergeCustomers = async (req, res) => {
+
+  try {
+
+    const { survivor_id, loser_id } = req.body;
+
+    if (!survivor_id || !loser_id) {
+
+      return res.status(400).json({
+        error: "survivor_id and loser_id are both required"
+      });
+
+    }
+
+    if (survivor_id === loser_id) {
+
+      return res.status(400).json({
+        error: "Can't merge a customer into itself"
+      });
+
+    }
+
+    const result = await mergeCustomersService(req.user.business_id, survivor_id, loser_id);
+
+    if (result.error === "not_found") {
+
+      return res.status(404).json({
+        error: "One or both customers weren't found"
+      });
+
+    }
+
+    if (result.error) {
+
+      return res.status(500).json({
+        error: "Something went wrong. Please try again."
+      });
+
+    }
+
+    const tags = await getCustomerTagsService(survivor_id, req.user.business_id);
+
+    res.json({ ...result.customer, tags });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const restoreCustomer = async (req, res) => {
 
 
@@ -737,6 +796,7 @@ module.exports = {
 
   getTrashedCustomers,
   getPossibleDuplicates,
+  mergeCustomers,
 
   restoreCustomer,
 

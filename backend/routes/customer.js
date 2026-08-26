@@ -17,6 +17,7 @@ const {
   deleteCustomer,
   getTrashedCustomers,
   getPossibleDuplicates,
+  mergeCustomers,
   restoreCustomer,
   updateCustomer,
   addCustomerTag,
@@ -43,6 +44,14 @@ router.post(
   "/import",
   authMiddleware,
   importCustomers
+);
+
+
+
+router.post(
+  "/merge",
+  authMiddleware,
+  mergeCustomers
 );
 
 

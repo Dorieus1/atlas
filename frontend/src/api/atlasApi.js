@@ -414,6 +414,18 @@ export const getPossibleDuplicateCustomers = () =>
 
 
 
+export const mergeCustomers = (survivor_id, loser_id) =>
+
+  request("/customers/merge", {
+
+    method: "POST",
+
+    body: JSON.stringify({ survivor_id, loser_id })
+
+  });
+
+
+
 export const restoreCustomer = (id) =>
 
   request(`/customers/${id}/restore`, {

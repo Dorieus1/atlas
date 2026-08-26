@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Users, X, Upload, Trash2, Download, Copy } from "lucide-react";
+import { Users, X, Upload, Trash2, Download, Copy, Merge } from "lucide-react";
 import {
   getCustomers,
   getTags,
   importCustomersCsv,
   getTrashedCustomers,
   restoreCustomer,
-  getPossibleDuplicateCustomers
+  getPossibleDuplicateCustomers,
+  mergeCustomers
 } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
 import EmptyState from "../components/EmptyState";
@@ -44,6 +45,10 @@ function Customers() {
   const restoringRef = useRef(null);
 
   const [duplicateGroups, setDuplicateGroups] = useState([]);
+  const [mergeCandidate, setMergeCandidate] = useState(null);
+  const [mergeChoice, setMergeChoice] = useState(null);
+  const [merging, setMerging] = useState(false);
+  const [mergeError, setMergeError] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -141,6 +146,61 @@ function Customers() {
       // still works fine without it, so this doesn't need its own error
       // banner competing for attention on the main customers screen.
       console.error("DUPLICATES LOAD ERROR:", error);
+
+    }
+
+  };
+
+
+  const openMergeModal = (group) => {
+
+    setMergeCandidate(group);
+    setMergeChoice(null);
+    setMergeError("");
+
+  };
+
+
+  const closeMergeModal = () => {
+
+    if (merging) return;
+
+    setMergeCandidate(null);
+    setMergeChoice(null);
+    setMergeError("");
+
+  };
+
+
+  const handleMerge = async () => {
+
+    if (!mergeCandidate || !mergeChoice) return;
+
+    const survivor = mergeChoice;
+    const loser = mergeCandidate.customers.find((c) => c.id !== survivor);
+
+    setMerging(true);
+    setMergeError("");
+
+    try {
+
+      await mergeCustomers(survivor, loser.id);
+
+      setMergeCandidate(null);
+      setMergeChoice(null);
+
+      await loadCustomers();
+      await loadDuplicates();
+      await loadTrash();
+
+    } catch (error) {
+
+      console.error("MERGE ERROR:", error);
+      setMergeError(error.message || "Couldn't merge these customers. Please try again.");
+
+    } finally {
+
+      setMerging(false);
 
     }
 
@@ -430,10 +490,26 @@ function Customers() {
 
                 <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-ink-900/60 p-3">
 
-                  <p className={`text-xs uppercase tracking-wide ${isHighConfidence ? "text-amber-400/80" : "text-slate-500"}`}>
-                    {group.reasons.join(" & ")}
-                    {!isHighConfidence && " · could just be two different people with the same name"}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+
+                    <p className={`text-xs uppercase tracking-wide ${isHighConfidence ? "text-amber-400/80" : "text-slate-500"}`}>
+                      {group.reasons.join(" & ")}
+                      {!isHighConfidence && " · could just be two different people with the same name"}
+                    </p>
+
+                    {group.customers.length === 2 && (
+
+                      <button
+                        onClick={() => openMergeModal(group)}
+                        className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-300 transition hover:bg-ink-800 hover:text-white"
+                      >
+                        <Merge size={12} />
+                        Merge
+                      </button>
+
+                    )}
+
+                  </div>
 
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
 
@@ -909,6 +985,110 @@ function Customers() {
               >
                 <Upload size={15} />
                 {importing ? "Importing..." : "Import"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {mergeCandidate && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeMergeModal}
+        >
+
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Merge These Customers?
+              </h3>
+
+              <button
+                onClick={closeMergeModal}
+                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                aria-label="Close"
+                disabled={merging}
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            {mergeCandidate.confidence === "low" && (
+
+              <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-300">
+                These customers only share a name, not a phone or email. Make sure they're really the same person before merging — this can't be easily undone.
+              </p>
+
+            )}
+
+            <p className="mt-3 text-sm text-slate-400">
+              Pick which one to keep. Every quote, appointment, note, and tag from the other one moves onto it, and the other is then moved to the trash.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2">
+
+              {mergeCandidate.customers.map((customer) => (
+
+                <button
+                  key={customer.id}
+                  onClick={() => setMergeChoice(customer.id)}
+                  className={`rounded-lg border p-3 text-left transition ${
+                    mergeChoice === customer.id
+                      ? "border-brand-500 bg-brand-600/10"
+                      : "border-ink-700 bg-ink-800 hover:border-ink-600"
+                  }`}
+                >
+
+                  <p className="font-medium text-slate-100">
+                    {customer.name || "Unnamed customer"}
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {[customer.email, customer.phone].filter(Boolean).join(" · ") || "No contact info on file"}
+                  </p>
+
+                  <p className={`mt-1 text-xs font-medium ${mergeChoice === customer.id ? "text-brand-400" : "text-slate-500"}`}>
+                    {mergeChoice === customer.id ? "Keep this one" : "Click to keep this one"}
+                  </p>
+
+                </button>
+
+              ))}
+
+            </div>
+
+            {mergeError && (
+              <p className="mt-3 text-sm text-red-400">{mergeError}</p>
+            )}
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+
+              <button
+                onClick={closeMergeModal}
+                disabled={merging}
+                className="rounded-lg bg-ink-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-ink-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleMerge}
+                disabled={!mergeChoice || merging}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+              >
+                <Merge size={14} />
+                {merging ? "Merging..." : "Merge"}
               </button>
 
             </div>
