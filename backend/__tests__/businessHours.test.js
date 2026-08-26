@@ -250,4 +250,65 @@ describe("Business hours", () => {
 
   });
 
+
+  // Regression tests for a real gap found during the design critique:
+  // these structured hours are already the thing that enforces portal
+  // booking above, but the AI chat that answers a customer's own
+  // questions never saw them at all - it only knew hours if the owner
+  // separately retyped them into a free-text Knowledge Base entry.
+  describe("AI chat grounding", () => {
+
+    beforeEach(() => {
+      global.__mockOpenAICreate.mockClear();
+      global.__mockOpenAICreate.mockResolvedValue({ output_text: "We're open Monday 09:00-17:00." });
+    });
+
+    test("structured business hours reach the AI's instructions without any Knowledge Base entry", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "HoursAIGrounded");
+
+      const setRes = await setBusinessHours(authHeader, "HoursAIGrounded Business", WEEKDAY_HOURS);
+      expect(setRes.status).toBe(200);
+
+      const customerRes = await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "AI Hours Customer" });
+
+      await request(app)
+        .post("/api/chat")
+        .set("Authorization", authHeader)
+        .send({ customer_id: customerRes.body.id, message: "What are your hours?" });
+
+      const callArgs = global.__mockOpenAICreate.mock.calls[0][0];
+
+      expect(callArgs.instructions).toContain("Monday: 09:00-17:00");
+      expect(callArgs.instructions).toContain("Saturday: Closed");
+      expect(callArgs.instructions).toContain("Sunday: Closed");
+
+    });
+
+
+    test("a business with no hours configured gets a plain 'not specified' instead of a crash", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "HoursAINotConfigured");
+
+      const customerRes = await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "AI No Hours Customer" });
+
+      await request(app)
+        .post("/api/chat")
+        .set("Authorization", authHeader)
+        .send({ customer_id: customerRes.body.id, message: "What are your hours?" });
+
+      const callArgs = global.__mockOpenAICreate.mock.calls[0][0];
+
+      expect(callArgs.instructions).toContain("Business Hours:\nNot specified.");
+
+    });
+
+  });
+
 });

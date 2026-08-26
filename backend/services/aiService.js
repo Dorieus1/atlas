@@ -1,8 +1,50 @@
 const OpenAI = require("openai");
+const { DAY_KEYS, DAY_LABELS } = require("./businessHoursService");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Structured hours (set in Settings, and already the thing that actually
+// blocks/allows portal booking requests server-side) live in a separate
+// place from the free-text Knowledge Base a business owner writes for the
+// AI to read. Without this, a business that only filled in the structured
+// hours - which feels like the "real" setting since it's the one that
+// enforces anything - would have an AI that can't answer "what are your
+// hours?" unless the owner also separately retyped the same hours as a
+// Knowledge entry. Parsing the same JSON the enforcement code reads keeps
+// both surfaces backed by one source of truth instead of two.
+function formatBusinessHours(business_hours) {
+
+  if (!business_hours) {
+    return "Not specified.";
+  }
+
+  let hours;
+
+  try {
+    hours = JSON.parse(business_hours);
+  } catch (parseError) {
+    return "Not specified.";
+  }
+
+  if (!hours || typeof hours !== "object") {
+    return "Not specified.";
+  }
+
+  return DAY_KEYS
+    .map((day) => {
+
+      const entry = hours[day];
+
+      return entry && entry.open && entry.close
+        ? `${DAY_LABELS[day]}: ${entry.open}-${entry.close}`
+        : `${DAY_LABELS[day]}: Closed`;
+
+    })
+    .join("\n");
+
+}
 
 const generateAIResponse = async (
   message,
@@ -40,6 +82,9 @@ ${business.address}
 
 Services:
 ${business.services}
+
+Business Hours:
+${formatBusinessHours(business.business_hours)}
 `
     : "No business profile available.";
 
