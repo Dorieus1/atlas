@@ -257,7 +257,7 @@ function Analytics() {
 
               <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[224px] flex-col items-center justify-center">
                 <span className="text-3xl font-bold">{stats.leads}</span>
-                <span className="text-xs text-slate-400">total leads</span>
+                <span className="text-xs text-slate-400">total lead{stats.leads === 1 ? "" : "s"}</span>
               </div>
 
             </div>
