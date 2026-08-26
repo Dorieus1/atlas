@@ -113,7 +113,7 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       flex
       flex-col
       ${open ? "" : "hidden"}
-      md:block
+      md:flex
       md:sticky
       md:top-0
     `}>
