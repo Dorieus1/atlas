@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign, CalendarClock } from "lucide-react";
 
 import {
   getCustomer,
@@ -19,7 +19,8 @@ import {
   createTag,
   addCustomerTag,
   removeCustomerTag,
-  getCustomerQuotes
+  getCustomerQuotes,
+  getCustomerAppointments
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
@@ -49,6 +50,8 @@ function CustomerProfile() {
   const [leadError, setLeadError] = useState("");
   const [quoteStats, setQuoteStats] = useState(null);
   const [quoteStatsError, setQuoteStatsError] = useState("");
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsError, setAppointmentsError] = useState("");
   const [notes, setNotes] = useState([]);
   const [notesLoadError, setNotesLoadError] = useState("");
   const [newNote, setNewNote] = useState("");
@@ -89,12 +92,15 @@ function CustomerProfile() {
     setNotesLoadError("");
     setQuoteStats(null);
     setQuoteStatsError("");
+    setAppointments([]);
+    setAppointmentsError("");
 
     loadCustomer();
     loadSummary();
     loadLead();
     loadNotes();
     loadQuoteStats();
+    loadAppointments();
 
   }, [id]);
 
@@ -258,6 +264,32 @@ function CustomerProfile() {
 
       console.error("QUOTE STATS LOAD ERROR:", err);
       setQuoteStatsError("Couldn't load this customer's job history. Please refresh to try again.");
+
+    }
+
+  };
+
+
+
+  // Most recent first, so a repeat customer's latest visit is always the
+  // first thing shown - matches the ordering convention already used for
+  // notes and messages elsewhere on this page.
+  const loadAppointments = async () => {
+
+    try {
+
+      const data = await getCustomerAppointments(id);
+
+      setAppointments(
+        [...data].sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+      );
+
+      setAppointmentsError("");
+
+    } catch (err) {
+
+      console.error("APPOINTMENTS LOAD ERROR:", err);
+      setAppointmentsError("Couldn't load this customer's appointment history. Please refresh to try again.");
 
     }
 
@@ -1042,6 +1074,78 @@ function CustomerProfile() {
         </div>
 
       )}
+
+
+
+      {/* APPOINTMENT HISTORY */}
+
+      <div className="
+        rounded-2xl
+        border
+        border-ink-700
+        bg-ink-900/60
+        p-6
+      ">
+
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <CalendarClock size={20} />
+          Appointment History
+        </h2>
+
+        {appointmentsError ? (
+
+          <p className="mt-4 text-sm text-red-400">{appointmentsError}</p>
+
+        ) : appointments.length === 0 ? (
+
+          <p className="mt-4 text-sm text-slate-400">No appointments scheduled yet.</p>
+
+        ) : (
+
+          <div className="mt-4 space-y-3">
+
+            {appointments.map((appt) => (
+
+              <div
+                key={appt.id}
+                className="flex flex-wrap items-center justify-between gap-3 bg-ink-800 rounded-lg p-4"
+              >
+
+                <div>
+
+                  <p className="font-medium">{appt.title}</p>
+
+                  <p className="mt-1 text-sm text-slate-400">
+                    {new Date(appt.start_time).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short"
+                    })}
+                  </p>
+
+                </div>
+
+                <span className={
+                  "shrink-0 rounded-full px-3 py-1 text-xs font-medium " +
+                  (appt.status === "completed"
+                    ? "bg-green-500/20 text-green-400"
+                    : appt.status === "cancelled"
+                      ? "bg-slate-500/20 text-slate-400"
+                      : "bg-brand-500/20 text-brand-400")
+                }>
+
+                  {appt.status}
+
+                </span>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
 
 
 
