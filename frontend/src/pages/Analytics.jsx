@@ -77,6 +77,15 @@ function Analytics() {
     value: stats.leadsByStatus[stage.key] || 0
   }));
 
+  // Recharts' default tick generator picks a "nice" step size for the
+  // axis range rather than one tick per integer, so a max value like 4
+  // was rendering ticks "0, 1, 2, 4" (silently skipping 3) instead of one
+  // tick per whole lead. Counts are always small whole numbers here, so
+  // an explicit list of every integer from 0 to the max removes the
+  // guesswork entirely.
+  const funnelMax = Math.max(...funnelData.map((stage) => stage.value), 0);
+  const funnelTicks = Array.from({ length: funnelMax + 1 }, (_, i) => i);
+
   const pieData = [
     { name: "Hot Leads", value: stats.hotLeads },
     { name: "Other Leads", value: Math.max(stats.leads - stats.hotLeads, 0) }
@@ -101,7 +110,7 @@ function Analytics() {
         </p>
       )}
 
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
         <StatCard
           title="Revenue Collected"
@@ -197,7 +206,7 @@ function Analytics() {
 
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={funnelData} layout="vertical" margin={{ left: 16 }}>
-                <XAxis type="number" stroke="#94a3b8" allowDecimals={false} />
+                <XAxis type="number" stroke="#94a3b8" allowDecimals={false} domain={[0, funnelMax]} ticks={funnelTicks} />
                 <YAxis type="category" dataKey="name" stroke="#94a3b8" width={90} />
                 <Tooltip
                   contentStyle={{
