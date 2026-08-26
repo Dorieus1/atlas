@@ -222,4 +222,51 @@ describe("Added by attribution", () => {
 
   });
 
+
+  test("an appointment assigned to a removed teammate reverts to unassigned, not a dangling reference", async () => {
+
+    const owner = await createBusinessAndUser(app, "AttribAssignee");
+
+    const teammateId = await inviteTeammate(app, owner.authHeader, {
+      name: "Assigned Teammate",
+      email: "assignedteammate@test.com"
+    });
+
+    const customer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", owner.authHeader)
+      .send({ name: "Assignment Customer" });
+
+    const appointment = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", owner.authHeader)
+      .send({
+        customer_id: customer.body.id,
+        title: "Roof inspection",
+        start_time: "2026-09-01T10:00:00.000Z",
+        assigned_user_id: teammateId
+      });
+
+    expect(appointment.status).toBe(201);
+
+    const beforeRemoval = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", owner.authHeader);
+
+    expect(beforeRemoval.body.find((a) => a.id === appointment.body.id).assigned_user_id).toBe(teammateId);
+
+    await request(app)
+      .delete(`/api/auth/teammates/${teammateId}`)
+      .set("Authorization", owner.authHeader);
+
+    const afterRemoval = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", owner.authHeader);
+
+    const updated = afterRemoval.body.find((a) => a.id === appointment.body.id);
+
+    expect(updated.assigned_user_id).toBeNull();
+
+  });
+
 });

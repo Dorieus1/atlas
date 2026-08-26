@@ -2,6 +2,20 @@ const db = require("../../database/db");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
+const { withTransaction } = require("../../database/transactionQueue");
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+
+  });
+
+};
 
 
 const createUser = async (
@@ -401,35 +415,50 @@ const getUserById = (userId, business_id) => {
 
 
 
+// Clears assigned_user_id on this user's appointments before removing
+// them - unlike created_by_user_id/created_by_name (a deliberate
+// snapshot, never meant to be re-resolved - see migration
+// 032_created_by_attribution.js), assigned_user_id is a live "who's
+// doing this job" reference the UI actively looks up by id. Left
+// dangling, a removed teammate's appointments would silently stop
+// showing an assignee at all (the frontend's teammatesById[id] lookup
+// just returns undefined) rather than correctly reading as "unassigned" -
+// same free-agent state a never-assigned appointment already has.
 const deleteUser = (userId, business_id) => {
 
-  return new Promise((resolve, reject) => {
+  return withTransaction(async () => {
 
-    db.run(
+    await runAsync("BEGIN TRANSACTION");
 
-      `
-      DELETE FROM users
-      WHERE id = ?
-      AND business_id = ?
-      `,
+    try {
 
-      [userId, business_id],
+      await runAsync(
+        `UPDATE appointments SET assigned_user_id = NULL WHERE assigned_user_id = ? AND business_id = ?`,
+        [userId, business_id]
+      );
 
-      function(err) {
+      const result = await runAsync(
 
-        if (err) {
+        `
+        DELETE FROM users
+        WHERE id = ?
+        AND business_id = ?
+        `,
 
-          reject(err);
+        [userId, business_id]
 
-        } else {
+      );
 
-          resolve(this.changes > 0);
+      await runAsync("COMMIT");
 
-        }
+      return result.changes > 0;
 
-      }
+    } catch (err) {
 
-    );
+      await runAsync("ROLLBACK").catch(() => {});
+      throw err;
+
+    }
 
   });
 
