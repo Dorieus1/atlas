@@ -1,9 +1,43 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
-const { getBusinessById } = require("./businessService");
+const { getBusinessById, clearGoogleCalendarConnection } = require("./businessService");
+const { createNotification } = require("./notificationService");
 
 const googleCalendarService = require("./googleCalendarService");
+
+
+// A revoked/expired refresh token means every future sync will fail the
+// exact same way forever until the owner reconnects - silently logging
+// each one (the normal best-effort behavior for a one-off Google hiccup)
+// would leave the owner believing appointments are syncing when none
+// are. Clearing the connection makes every later sync attempt no-op
+// immediately (via the google_calendar_connected check each of them
+// already does) instead of repeating this same failure, so this only
+// ever fires once per revocation.
+async function handleGoogleAuthFailure(business_id) {
+
+  try {
+
+    await clearGoogleCalendarConnection(business_id);
+
+    await createNotification(
+
+      business_id,
+      "calendar_disconnected",
+      "Google Calendar disconnected",
+      "Atlas lost access to your Google Calendar, so new appointments won't sync until you reconnect it.",
+      "/settings"
+
+    );
+
+  } catch (cleanupError) {
+
+    console.error("GOOGLE CALENDAR AUTH-FAILURE CLEANUP FAILED:", cleanupError);
+
+  }
+
+}
 
 
 // Matches the common calendar-app convention (Google Calendar included)
@@ -285,6 +319,10 @@ async function pushAppointmentCreateToGoogle(business_id, appointmentId, appoint
 
     console.error("GOOGLE CALENDAR SYNC (create) FAILED:", error);
 
+    if (error.isAuthError) {
+      await handleGoogleAuthFailure(business_id);
+    }
+
   }
 
 }
@@ -317,6 +355,10 @@ async function pushAppointmentUpdateToGoogle(appointment) {
 
     console.error("GOOGLE CALENDAR SYNC (update) FAILED:", error);
 
+    if (error.isAuthError) {
+      await handleGoogleAuthFailure(appointment.business_id);
+    }
+
   }
 
 }
@@ -347,6 +389,10 @@ async function pushAppointmentDeleteToGoogle(appointment) {
   } catch (error) {
 
     console.error("GOOGLE CALENDAR SYNC (delete) FAILED:", error);
+
+    if (error.isAuthError) {
+      await handleGoogleAuthFailure(appointment.business_id);
+    }
 
   }
 

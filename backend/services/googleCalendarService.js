@@ -214,13 +214,39 @@ function toEventRequestBody(appointment) {
 
 
 
+// True when a Google API/auth-library error means the stored refresh
+// token itself is no longer usable (the owner revoked Atlas's access,
+// or the token was reset on Google's side) rather than some transient
+// or one-off failure. Checked against every shape these libraries
+// actually throw: googleapis sets a numeric `code`, google-auth-library
+// puts the OAuth error name in `response.data.error` when a refresh
+// fails, and some paths only ever surface it in the message text.
+function isAuthError(error) {
+
+  if (error.code === 401 || error.response?.status === 401) {
+    return true;
+  }
+
+  const oauthError = error.response?.data?.error;
+
+  if (oauthError === "invalid_grant" || oauthError === "invalid_token") {
+    return true;
+  }
+
+  return /invalid_grant|invalid credentials/i.test(error.message || "");
+
+}
+
+
 // Creates an event on the business's primary Google Calendar for a newly
 // created appointment. Returns the created event's id, which callers are
 // expected to persist (appointments.google_event_id) so later updates/
 // deletes touch the right event. Throws clearly on failure - never
 // crashes unhandled - callers (appointmentService.js) are responsible for
 // catching this and logging, since a Google failure must never affect the
-// appointment operation itself.
+// appointment operation itself. The thrown error carries `isAuthError`
+// so callers can tell "Google had a bad moment" apart from "this
+// business's connection is dead and needs reconnecting."
 const createCalendarEvent = async (refreshToken, appointment) => {
 
   try {
@@ -239,7 +265,9 @@ const createCalendarEvent = async (refreshToken, appointment) => {
 
   } catch (error) {
 
-    throw new Error(`Couldn't create the Google Calendar event: ${error.message}`);
+    const wrapped = new Error(`Couldn't create the Google Calendar event: ${error.message}`);
+    wrapped.isAuthError = isAuthError(error);
+    throw wrapped;
 
   }
 
@@ -266,7 +294,9 @@ const updateCalendarEvent = async (refreshToken, googleEventId, appointment) => 
 
   } catch (error) {
 
-    throw new Error(`Couldn't update the Google Calendar event: ${error.message}`);
+    const wrapped = new Error(`Couldn't update the Google Calendar event: ${error.message}`);
+    wrapped.isAuthError = isAuthError(error);
+    throw wrapped;
 
   }
 
@@ -290,7 +320,9 @@ const deleteCalendarEvent = async (refreshToken, googleEventId) => {
 
   } catch (error) {
 
-    throw new Error(`Couldn't delete the Google Calendar event: ${error.message}`);
+    const wrapped = new Error(`Couldn't delete the Google Calendar event: ${error.message}`);
+    wrapped.isAuthError = isAuthError(error);
+    throw wrapped;
 
   }
 

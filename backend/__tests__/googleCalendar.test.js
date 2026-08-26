@@ -369,6 +369,53 @@ describe("Google Calendar sync on appointment create/update/delete", () => {
   });
 
 
+  test("a revoked Google connection (401/invalid_grant) auto-disconnects and notifies the owner instead of failing silently forever", async () => {
+
+    const owner = await createBusinessAndUser(app, "GCalApptRevoked");
+    await connectGoogleCalendar(owner.business_id);
+
+    const revokedError = new Error("invalid_grant");
+    revokedError.response = { status: 401, data: { error: "invalid_grant" } };
+    global.__mockGoogleCalendar.eventsInsert.mockRejectedValueOnce(revokedError);
+
+    const res = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", owner.authHeader)
+      .send({ title: "Chimney flashing", start_time: "2026-09-04T15:00:00.000Z" });
+
+    // The appointment itself still succeeds - only the calendar
+    // connection is torn down, same as every other sync failure.
+    expect(res.status).toBe(201);
+
+    const business = await waitFor(async () => {
+      const r = await getAsync("SELECT google_calendar_connected, google_refresh_token FROM businesses WHERE id = ?", [owner.business_id]);
+      return r.google_calendar_connected === 0 ? r : null;
+    });
+
+    expect(business.google_calendar_connected).toBe(0);
+    expect(business.google_refresh_token).toBeNull();
+
+    const notifications = await allAsync("SELECT * FROM notifications WHERE business_id = ?", [owner.business_id]);
+    expect(notifications.some((n) => n.type === "calendar_disconnected")).toBe(true);
+
+    // A second appointment right after must no-op cleanly (connection is
+    // already cleared) rather than trying the dead token again.
+    global.__mockGoogleCalendar.eventsInsert.mockClear();
+
+    const second = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", owner.authHeader)
+      .send({ title: "Gutter guard install", start_time: "2026-09-05T15:00:00.000Z" });
+
+    expect(second.status).toBe(201);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(global.__mockGoogleCalendar.eventsInsert).not.toHaveBeenCalled();
+
+  });
+
+
   test("updating a synced appointment's status updates the linked calendar event", async () => {
 
     const owner = await createBusinessAndUser(app, "GCalApptUpdate");
