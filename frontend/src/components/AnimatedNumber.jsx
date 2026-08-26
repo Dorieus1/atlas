@@ -47,10 +47,32 @@ function AnimatedNumber({ value, duration = 700, format }) {
 
     frameRef.current = requestAnimationFrame(tick);
 
+    // Browsers fully suspend requestAnimationFrame in a backgrounded tab
+    // rather than just throttling it, so a card whose data finishes
+    // loading while the tab isn't focused (e.g. the Dashboard loads in a
+    // tab the user isn't currently looking at) can sit stuck at its
+    // starting value indefinitely - the frame that would advance it
+    // never gets a chance to run. Re-running tick as soon as the tab
+    // becomes visible again guarantees it catches up immediately instead
+    // of waiting on a frame that may never come.
+    const handleVisibility = () => {
+
+      if (document.visibilityState === "visible") {
+        tick(performance.now());
+      }
+
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
+
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current);
       }
+
+      document.removeEventListener("visibilitychange", handleVisibility);
+
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
