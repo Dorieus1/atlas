@@ -80,11 +80,17 @@ function Analytics() {
   // Recharts' default tick generator picks a "nice" step size for the
   // axis range rather than one tick per integer, so a max value like 4
   // was rendering ticks "0, 1, 2, 4" (silently skipping 3) instead of one
-  // tick per whole lead. Counts are always small whole numbers here, so
-  // an explicit list of every integer from 0 to the max removes the
-  // guesswork entirely.
+  // tick per whole lead. An explicit list of every integer from 0 to the
+  // max fixes that - but only makes sense while the max is small. Past
+  // FUNNEL_TICK_CAP, one tick per lead would cram dozens of overlapping
+  // labels onto the axis, which is worse than the skip it's meant to
+  // fix - so beyond the cap, fall back to Recharts' own auto-ticking
+  // (still integer-only via allowDecimals) rather than one tick per unit.
+  const FUNNEL_TICK_CAP = 10;
   const funnelMax = Math.max(...funnelData.map((stage) => stage.value), 0);
-  const funnelTicks = Array.from({ length: funnelMax + 1 }, (_, i) => i);
+  const funnelTicks = funnelMax <= FUNNEL_TICK_CAP
+    ? Array.from({ length: funnelMax + 1 }, (_, i) => i)
+    : undefined;
 
   const pieData = [
     { name: "Hot Leads", value: stats.hotLeads },
