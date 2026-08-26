@@ -405,46 +405,57 @@ function Customers() {
 
       {!showTrash && duplicateGroups.length > 0 && (
 
-        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+        <div className={`mt-6 rounded-2xl border p-5 ${
+          duplicateGroups.some((g) => g.confidence === "high")
+            ? "border-amber-500/30 bg-amber-500/5"
+            : "border-ink-700 bg-ink-900/60"
+        }`}>
 
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-200">
             <Copy size={16} />
             Possible Duplicate Customers
           </h2>
 
           <p className="mt-1 text-xs text-slate-400">
-            These customers share a name, email, or phone number. Nothing has been changed - review each one and merge or trash the extra yourself if they're the same person.
+            Nothing has been changed - review each one and merge or trash the extra yourself if they're the same person.
           </p>
 
           <div className="mt-3 flex flex-col gap-2">
 
-            {duplicateGroups.map((group) => (
+            {duplicateGroups.map((group) => {
 
-              <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-ink-900/60 p-3">
+              const isHighConfidence = group.confidence === "high";
 
-                <p className="text-xs uppercase tracking-wide text-amber-400/80">
-                  {group.reasons.join(" & ")}
-                </p>
+              return (
 
-                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-ink-900/60 p-3">
 
-                  {group.customers.map((customer) => (
+                  <p className={`text-xs uppercase tracking-wide ${isHighConfidence ? "text-amber-400/80" : "text-slate-500"}`}>
+                    {group.reasons.join(" & ")}
+                    {!isHighConfidence && " · could just be two different people with the same name"}
+                  </p>
 
-                    <button
-                      key={customer.id}
-                      onClick={() => navigate(`/customers/${customer.id}`)}
-                      className="text-sm text-slate-200 underline decoration-slate-600 underline-offset-2 hover:text-white"
-                    >
-                      {customer.name || "Unnamed customer"}
-                    </button>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
 
-                  ))}
+                    {group.customers.map((customer) => (
+
+                      <button
+                        key={customer.id}
+                        onClick={() => navigate(`/customers/${customer.id}`)}
+                        className="text-sm text-slate-200 underline decoration-slate-600 underline-offset-2 hover:text-white"
+                      >
+                        {customer.name || "Unnamed customer"}
+                      </button>
+
+                    ))}
+
+                  </div>
 
                 </div>
 
-              </div>
+              );
 
-            ))}
+            })}
 
           </div>
 

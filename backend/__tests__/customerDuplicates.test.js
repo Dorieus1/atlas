@@ -17,7 +17,7 @@ const createCustomer = async (authHeader, name, email, phone) => {
 
 describe("Possible duplicate customers", () => {
 
-  test("two customers with the exact same name are flagged as a possible duplicate", async () => {
+  test("two customers with the exact same name but nothing else in common are flagged as low confidence - it's real evidence, but two different people can share a name", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "DupName");
 
@@ -31,6 +31,7 @@ describe("Possible duplicate customers", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].reasons).toEqual(["same name"]);
+    expect(res.body[0].confidence).toBe("low");
 
     const ids = res.body[0].customers.map((c) => c.id).sort();
     expect(ids).toEqual([idA, idB].sort());
@@ -38,7 +39,7 @@ describe("Possible duplicate customers", () => {
   });
 
 
-  test("phone numbers match regardless of formatting", async () => {
+  test("phone numbers match regardless of formatting, and count as high confidence - two different people essentially never share a phone number", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "DupPhone");
 
@@ -51,11 +52,12 @@ describe("Possible duplicate customers", () => {
 
     expect(res.body).toHaveLength(1);
     expect(res.body[0].reasons).toEqual(["same phone"]);
+    expect(res.body[0].confidence).toBe("high");
 
   });
 
 
-  test("a customer sharing both a name and an email with another shows up once, with both reasons", async () => {
+  test("a customer sharing both a name and an email with another shows up once, with both reasons, and counts as high confidence overall", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "DupBoth");
 
@@ -69,6 +71,30 @@ describe("Possible duplicate customers", () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].reasons.sort()).toEqual(["same email", "same name"]);
     expect(res.body[0].customers).toHaveLength(2);
+    expect(res.body[0].confidence).toBe("high");
+
+  });
+
+
+  test("high-confidence groups are listed before low-confidence ones", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "DupSortOrder");
+
+    // Name-only match - low confidence.
+    await createCustomer(authHeader, "Common Name", null, null);
+    await createCustomer(authHeader, "Common Name", null, null);
+
+    // Phone match - high confidence.
+    await createCustomer(authHeader, "Different One", null, "5559990000");
+    await createCustomer(authHeader, "Different Two", null, "5559990000");
+
+    const res = await request(app)
+      .get("/api/customers/duplicates")
+      .set("Authorization", authHeader);
+
+    expect(res.body).toHaveLength(2);
+    expect(res.body[0].confidence).toBe("high");
+    expect(res.body[1].confidence).toBe("low");
 
   });
 

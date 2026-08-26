@@ -616,7 +616,21 @@ const findPossibleDuplicates = async (business_id) => {
 
   });
 
-  return merged.map(({ reasons, customers }) => ({ reasons, customers }));
+  // A shared name is real, common, and genuinely ambiguous evidence -
+  // two different people are named "Mike Johnson" far more often than
+  // two different people share a phone number or an email address. A
+  // name-only match is labeled "low" confidence so the UI can visibly
+  // warn that it might just be a coincidence rather than presenting it
+  // with the same weight as a phone/email match, which is a very strong
+  // signal of the same real person. Strongest reason wins if a group
+  // matches on more than one signal.
+  return merged.map(({ reasons, customers }) => ({
+
+    reasons,
+    customers,
+    confidence: reasons.some((r) => r === "same email" || r === "same phone") ? "high" : "low"
+
+  })).sort((a, b) => (a.confidence === b.confidence ? 0 : a.confidence === "high" ? -1 : 1));
 
 };
 
