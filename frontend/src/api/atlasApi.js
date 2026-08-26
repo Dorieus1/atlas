@@ -1020,6 +1020,28 @@ export const deleteQuoteExpense = (id, expenseId) =>
 
 
 
+export const addQuotePayment = (id, amount, method, note) =>
+
+  request(`/quotes/${id}/payments`, {
+
+    method: "POST",
+
+    body: JSON.stringify({ amount, method, note })
+
+  });
+
+
+
+export const deleteQuotePayment = (id, paymentId) =>
+
+  request(`/quotes/${id}/payments/${paymentId}`, {
+
+    method: "DELETE"
+
+  });
+
+
+
 export const deleteQuote = (id) =>
 
   request(`/quotes/${id}`, {

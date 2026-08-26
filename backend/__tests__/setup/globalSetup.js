@@ -233,6 +233,19 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE quote_payments (
+          id TEXT PRIMARY KEY,
+          quote_id TEXT NOT NULL,
+          amount REAL NOT NULL,
+          method TEXT NOT NULL DEFAULT 'other',
+          note TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_by_user_id TEXT,
+          created_by_name TEXT
+        )
+      `);
+
+      db.run(`
         CREATE TABLE photos (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

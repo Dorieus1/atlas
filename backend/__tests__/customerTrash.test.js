@@ -263,6 +263,15 @@ describe("Customer trash", () => {
       .set("Authorization", authHeader)
       .send({ description: "Materials", amount: 40 });
 
+    // Inserted directly rather than through the real payments endpoint -
+    // that requires an invoice awaiting payment, which isn't this
+    // fixture's shape and isn't the point of this test either way; only
+    // the purge cascade itself is under test here.
+    await runAsync(
+      "INSERT INTO quote_payments (id, quote_id, amount, method) VALUES (?, ?, ?, ?)",
+      ["purge-test-payment", quoteRes.body.id, 25, "cash"]
+    );
+
     await request(app)
       .delete(`/api/customers/${customerId}`)
       .set("Authorization", authHeader);
@@ -287,12 +296,17 @@ describe("Customer trash", () => {
       "SELECT * FROM quote_expenses WHERE quote_id = ?",
       [quoteRes.body.id]
     );
+    const quotePayments = await allAsync(
+      "SELECT * FROM quote_payments WHERE quote_id = ?",
+      [quoteRes.body.id]
+    );
 
     expect(notes).toHaveLength(0);
     expect(appointments).toHaveLength(0);
     expect(quotes).toHaveLength(0);
     expect(quoteItems).toHaveLength(0);
     expect(quoteExpenses).toHaveLength(0);
+    expect(quotePayments).toHaveLength(0);
 
   });
 

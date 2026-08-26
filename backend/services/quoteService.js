@@ -558,6 +558,37 @@ const getQuoteById = async (id, business_id) => {
   quote.expense_total = round2(expenses.reduce((sum, expense) => sum + expense.amount, 0));
   quote.margin = round2(quote.total - quote.expense_total);
 
+  const payments = await allAsync(
+
+    `
+    SELECT *
+    FROM quote_payments
+    WHERE quote_id = ?
+    ORDER BY created_at ASC
+    `,
+
+    [id]
+
+  );
+
+  quote.payments = payments;
+
+  // Combines both ways money can already be marked received against
+  // this quote - a Stripe deposit (deposit_amount/deposit_paid_at,
+  // untouched by this feature) and any manually-recorded payments
+  // (cash, check, etc. - see addQuotePayment below) - into the one
+  // number that actually matters to the owner: how much is left. Manual
+  // payments are validated at insert time to never push amount_paid
+  // past total (see addQuotePayment), so balance_due should never go
+  // negative in practice, but it's still floored at 0 for display in
+  // case a deposit and manual payments are recorded in an order that
+  // would otherwise show a confusing negative balance.
+  const manualPaymentsTotal = round2(payments.reduce((sum, payment) => sum + payment.amount, 0));
+  const depositCollected = quote.deposit_paid_at ? quote.deposit_amount : 0;
+
+  quote.amount_paid = round2(depositCollected + manualPaymentsTotal);
+  quote.balance_due = Math.max(0, round2(quote.total - quote.amount_paid));
+
   return quote;
 
 };
@@ -621,6 +652,59 @@ const deleteQuoteExpense = async (expense_id, quote_id, business_id) => {
     `DELETE FROM quote_expenses WHERE id = ? AND quote_id = ?`,
 
     [expense_id, quote_id]
+
+  );
+
+  return result.changes > 0;
+
+};
+
+
+
+// A payment collected outside Stripe - cash, check, Venmo, etc. - logged
+// against an invoice. Deliberately no business-rule validation here
+// (amount sanity, status checks, whether this would overpay) - that
+// lives in the controller, same separation already used for discount/
+// deposit/tax validation elsewhere in this file's callers.
+const addQuotePayment = async (quote_id, business_id, amount, method, note, created_by_user_id, created_by_name) => {
+
+  const quote = await getOwnedQuote(quote_id, business_id);
+
+  if (!quote) {
+    return null;
+  }
+
+  const id = uuidv4();
+
+  await runAsync(
+
+    `
+    INSERT INTO quote_payments (id, quote_id, amount, method, note, created_by_user_id, created_by_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+
+    [id, quote_id, amount, method || "other", note || null, created_by_user_id || null, created_by_name || null]
+
+  );
+
+  return getAsync(`SELECT * FROM quote_payments WHERE id = ?`, [id]);
+
+};
+
+
+const deleteQuotePayment = async (payment_id, quote_id, business_id) => {
+
+  const quote = await getOwnedQuote(quote_id, business_id);
+
+  if (!quote) {
+    return false;
+  }
+
+  const result = await runAsync(
+
+    `DELETE FROM quote_payments WHERE id = ? AND quote_id = ?`,
+
+    [payment_id, quote_id]
 
   );
 
@@ -777,6 +861,7 @@ const deleteQuote = async (id, business_id) => {
 
       await runAsync(`DELETE FROM quote_items WHERE quote_id = ?`, [id]);
       await runAsync(`DELETE FROM quote_expenses WHERE quote_id = ?`, [id]);
+      await runAsync(`DELETE FROM quote_payments WHERE quote_id = ?`, [id]);
 
       const result = await runAsync(
 
@@ -844,6 +929,10 @@ module.exports = {
 
   addQuoteExpense,
 
-  deleteQuoteExpense
+  deleteQuoteExpense,
+
+  addQuotePayment,
+
+  deleteQuotePayment
 
 };

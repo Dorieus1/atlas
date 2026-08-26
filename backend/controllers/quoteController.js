@@ -13,7 +13,9 @@ const {
   replaceQuoteItems: replaceQuoteItemsService,
   deleteQuote: deleteQuoteService,
   addQuoteExpense: addQuoteExpenseService,
-  deleteQuoteExpense: deleteQuoteExpenseService
+  deleteQuoteExpense: deleteQuoteExpenseService,
+  addQuotePayment: addQuotePaymentService,
+  deleteQuotePayment: deleteQuotePaymentService
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -40,6 +42,7 @@ function formatMoneyForEmail(amount) {
 
 const VALID_TYPES = ["quote", "invoice"];
 const VALID_STATUSES = ["draft", "sent", "accepted", "declined", "paid"];
+const VALID_PAYMENT_METHODS = ["cash", "check", "bank_transfer", "other"];
 
 
 function validateItems(items) {
@@ -725,6 +728,179 @@ const deleteQuoteExpense = async (req, res) => {
 
 
 
+// Records a payment collected outside Stripe (cash, check, bank
+// transfer) against an invoice. Deliberately narrower than the Stripe/
+// deposit flow it sits alongside: only ever adds toward the balance,
+// never exceeds it, and only while the invoice is actually awaiting
+// payment - an owner fixing a mistake after the fact isn't what this is
+// for (see deleteQuotePayment's own status check for the same reason).
+const addQuotePayment = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.user.business_id;
+    const { amount, method, note } = req.body;
+
+    const quote = await getQuoteByIdService(id, business_id);
+
+    if (!quote) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    if (quote.type !== "invoice") {
+
+      return res.status(400).json({
+        error: "Only invoices can have payments recorded against them"
+      });
+
+    }
+
+    if (quote.status !== "sent" && quote.status !== "accepted") {
+
+      return res.status(400).json({
+        error: quote.status === "paid"
+          ? "This invoice is already fully paid"
+          : "This invoice isn't ready to record payments against yet"
+      });
+
+    }
+
+    const numericAmount = Number(amount);
+
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+
+      return res.status(400).json({
+        error: "Enter a valid, positive amount"
+      });
+
+    }
+
+    // A small epsilon absorbs float rounding (e.g. a balance_due of
+    // 476.28000000000003) without ever letting a payment meaningfully
+    // overshoot what's actually still owed.
+    if (numericAmount > quote.balance_due + 0.01) {
+
+      return res.status(400).json({
+        error: `That's more than the remaining balance of $${quote.balance_due.toFixed(2)}`
+      });
+
+    }
+
+    const paymentMethod = method || "other";
+
+    if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+
+      return res.status(400).json({
+        error: "method must be one of: " + VALID_PAYMENT_METHODS.join(", ")
+      });
+
+    }
+
+    const actingUser = await getUserById(req.user.id, business_id);
+
+    const payment = await addQuotePaymentService(
+      id,
+      business_id,
+      numericAmount,
+      paymentMethod,
+      note ? String(note).trim().slice(0, 500) : null,
+      req.user.id,
+      actingUser ? actingUser.name : null
+    );
+
+    // Reusing markQuotePaid rather than flipping status here directly -
+    // it already carries the review-request automation and the
+    // idempotency guarantee every other path to "paid" goes through
+    // (see quotePaymentService.js), so a customer who happens to fully
+    // pay via a manually-recorded payment gets exactly the same
+    // follow-up as one who paid through Stripe.
+    let markedPaid = false;
+
+    if (numericAmount >= quote.balance_due - 0.01) {
+
+      const result = await markQuotePaid(id, business_id);
+      markedPaid = result.found && !result.alreadyPaid;
+
+    }
+
+    res.status(201).json({ ...payment, markedPaid });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const deleteQuotePayment = async (req, res) => {
+
+  try {
+
+    const { id, paymentId } = req.params;
+    const business_id = req.user.business_id;
+
+    const quote = await getQuoteByIdService(id, business_id);
+
+    if (!quote) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    // Once the invoice is actually marked paid, removing a payment that
+    // helped get it there would leave it in an inconsistent state (paid,
+    // but visibly underpaid) - same reasoning as the items/discount/tax
+    // edit lock elsewhere in this file.
+    if (quote.status === "paid") {
+
+      return res.status(400).json({
+        error: "This has already been paid in full and its payments can't be edited."
+      });
+
+    }
+
+    const deleted = await deleteQuotePaymentService(paymentId, id, business_id);
+
+    if (!deleted) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    res.json({
+      message: "Deleted"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const updateQuote = async (req, res) => {
 
   try {
@@ -1070,6 +1246,10 @@ module.exports = {
   addQuoteExpense,
 
   deleteQuoteExpense,
+
+  addQuotePayment,
+
+  deleteQuotePayment,
 
   updateQuote,
 

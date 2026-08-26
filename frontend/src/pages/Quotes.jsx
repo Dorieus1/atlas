@@ -10,7 +10,8 @@ import {
   Sparkles,
   Pencil,
   Send,
-  Receipt
+  Receipt,
+  Wallet
 } from "lucide-react";
 
 import {
@@ -21,6 +22,8 @@ import {
   sendQuote,
   addQuoteExpense,
   deleteQuoteExpense,
+  addQuotePayment,
+  deleteQuotePayment,
   deleteQuote,
   downloadQuotePdf,
   exportQuotesCsv,
@@ -95,6 +98,14 @@ function calculateTotals(items, discountType, discountValue, taxRate, depositTyp
 }
 
 
+const PAYMENT_METHOD_LABELS = {
+  cash: "Cash",
+  check: "Check",
+  bank_transfer: "Bank transfer",
+  other: "Other"
+};
+
+
 function Quotes() {
 
   const [searchParams] = useSearchParams();
@@ -139,6 +150,12 @@ function Quotes() {
   const [addingExpense, setAddingExpense] = useState(false);
   const [expenseError, setExpenseError] = useState("");
   const [deletingExpenseId, setDeletingExpenseId] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [deletingPaymentId, setDeletingPaymentId] = useState(null);
 
 
   const loadQuotes = async () => {
@@ -679,6 +696,73 @@ function Quotes() {
   };
 
 
+  const handleAddPayment = async () => {
+
+    if (!activeQuote) return;
+
+    const amount = Number(paymentAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentError("Enter a valid, positive amount.");
+      return;
+    }
+
+    setAddingPayment(true);
+    setPaymentError("");
+
+    try {
+
+      await addQuotePayment(activeQuote.id, amount, paymentMethod, paymentNote.trim() || null);
+      setPaymentAmount("");
+      setPaymentNote("");
+
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+      await loadQuotes();
+
+    } catch (error) {
+
+      console.error("ADD PAYMENT ERROR:", error);
+      setPaymentError(error.message || "Couldn't record that payment. Please try again.");
+
+    } finally {
+
+      setAddingPayment(false);
+
+    }
+
+  };
+
+
+  const handleDeletePayment = async (paymentId) => {
+
+    if (!activeQuote) return;
+
+    setDeletingPaymentId(paymentId);
+    setPaymentError("");
+
+    try {
+
+      await deleteQuotePayment(activeQuote.id, paymentId);
+
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+      await loadQuotes();
+
+    } catch (error) {
+
+      console.error("DELETE PAYMENT ERROR:", error);
+      setPaymentError(error.message || "Couldn't remove that payment. Please try again.");
+
+    } finally {
+
+      setDeletingPaymentId(null);
+
+    }
+
+  };
+
+
   const handleExportCsv = async () => {
 
     setExportingCsv(true);
@@ -778,7 +862,7 @@ function Quotes() {
         </p>
       )}
 
-      <div className="mt-6 rounded-2xl border border-ink-700 bg-ink-900/60 p-5">
+      <div className="mt-6 rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
         {loading ? (
 
@@ -1328,6 +1412,22 @@ function Quotes() {
                     </div>
                   )}
 
+                  {activeQuote.type === "invoice" && activeQuote.amount_paid > 0 && (
+
+                    <>
+                      <div className="flex items-center justify-between text-sm text-green-400">
+                        <span>Paid</span>
+                        <span>{formatMoney(activeQuote.amount_paid)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm font-semibold text-slate-300">
+                        <span>Balance Due</span>
+                        <span>{formatMoney(activeQuote.balance_due)}</span>
+                      </div>
+                    </>
+
+                  )}
+
                 </div>
 
                 <div className="mt-4 rounded-lg border border-ink-700 p-4">
@@ -1419,6 +1519,116 @@ function Quotes() {
                   )}
 
                 </div>
+
+                {activeQuote.type === "invoice" && activeQuote.status !== "draft" && activeQuote.status !== "declined" && (
+
+                  <div className="mt-4 rounded-lg border border-ink-700 p-4">
+
+                    <div className="flex items-center gap-2">
+                      <Wallet size={16} className="text-slate-400" />
+                      <h4 className="text-sm font-semibold">Payments</h4>
+                    </div>
+
+                    {activeQuote.payments?.length > 0 && (
+
+                      <div className="mt-3 flex flex-col divide-y divide-ink-800 rounded-lg border border-ink-800">
+
+                        {activeQuote.payments.map((payment) => (
+
+                          <div key={payment.id} className="flex items-center justify-between gap-3 p-2.5">
+
+                            <div className="min-w-0">
+                              <span className="text-sm text-slate-300">
+                                {PAYMENT_METHOD_LABELS[payment.method] || payment.method}
+                              </span>
+                              <span className="ml-2 text-xs text-slate-500">
+                                {new Date(payment.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                              </span>
+                              {payment.note && (
+                                <p className="truncate text-xs text-slate-500">{payment.note}</p>
+                              )}
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-2">
+
+                              <span className="text-sm text-green-400">
+                                {formatMoney(payment.amount)}
+                              </span>
+
+                              {activeQuote.status !== "paid" && (
+                                <button
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                  disabled={deletingPaymentId === payment.id}
+                                  className="rounded p-1 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                                  aria-label="Remove payment"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+
+                            </div>
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+                    {activeQuote.status !== "paid" && (
+
+                      <>
+                        <div className="mt-3 flex items-center gap-2">
+
+                          <select
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                          >
+                            <option value="cash">Cash</option>
+                            <option value="check">Check</option>
+                            <option value="bank_transfer">Bank transfer</option>
+                            <option value="other">Other</option>
+                          </select>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder={`Amount (up to ${formatMoney(activeQuote.balance_due)})`}
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            className="w-40 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                          />
+
+                          <button
+                            onClick={handleAddPayment}
+                            disabled={addingPayment}
+                            className="shrink-0 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                          >
+                            {addingPayment ? "Recording..." : "Record Payment"}
+                          </button>
+
+                        </div>
+
+                        <input
+                          placeholder="Note (optional)"
+                          value={paymentNote}
+                          onChange={(e) => setPaymentNote(e.target.value)}
+                          className="mt-2 w-full rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                        />
+                      </>
+
+                    )}
+
+                    {paymentError && (
+                      <p className="mt-2 text-xs text-red-400">{paymentError}</p>
+                    )}
+
+                  </div>
+
+                )}
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
 

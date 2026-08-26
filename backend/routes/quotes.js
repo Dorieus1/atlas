@@ -13,6 +13,8 @@ const {
   sendQuote,
   addQuoteExpense,
   deleteQuoteExpense,
+  addQuotePayment,
+  deleteQuotePayment,
   updateQuote,
   deleteQuote,
   downloadQuotePdf
@@ -74,6 +76,18 @@ router.delete(
   "/:id/expenses/:expenseId",
   authMiddleware,
   deleteQuoteExpense
+);
+
+router.post(
+  "/:id/payments",
+  authMiddleware,
+  addQuotePayment
+);
+
+router.delete(
+  "/:id/payments/:paymentId",
+  authMiddleware,
+  deleteQuotePayment
 );
 
 router.patch(
