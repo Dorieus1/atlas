@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   getCustomer,
   getCustomerSummary,
-  getConversations,
   getCustomerLead,
   getNotes,
   createNote,
@@ -39,8 +38,6 @@ function CustomerProfile() {
   const [business, setBusiness] = useState(null);
   const [summary, setSummary] = useState("");
   const [summaryError, setSummaryError] = useState("");
-  const [conversations, setConversations] = useState([]);
-  const [conversationsError, setConversationsError] = useState("");
   const [lead, setLead] = useState(null);
   const [leadError, setLeadError] = useState("");
   const [notes, setNotes] = useState([]);
@@ -77,8 +74,6 @@ function CustomerProfile() {
     setLoadError("");
     setSummary("");
     setSummaryError("");
-    setConversations([]);
-    setConversationsError("");
     setLead(null);
     setLeadError("");
     setNotes([]);
@@ -86,7 +81,6 @@ function CustomerProfile() {
 
     loadCustomer();
     loadSummary();
-    loadConversations();
     loadLead();
     loadNotes();
 
@@ -192,32 +186,6 @@ function CustomerProfile() {
       );
 
       setSummaryError("Couldn't generate a summary. Please refresh to try again.");
-
-    }
-
-  };
-
-
-
-  const loadConversations = async () => {
-
-    try {
-
-      const data =
-        await getConversations(id);
-
-      setConversations(data);
-
-      setConversationsError("");
-
-    } catch (err) {
-
-      console.error(
-        "CONVERSATIONS LOAD ERROR:",
-        err
-      );
-
-      setConversationsError("Couldn't load conversation history. Please refresh to try again.");
 
     }
 
@@ -1507,97 +1475,6 @@ function CustomerProfile() {
 
       </div>
 
-
-
-      {/* CONVERSATION HISTORY */}
-
-      <div className="
-        rounded-2xl
-        border
-        border-ink-700
-        bg-ink-900/60
-        p-6
-      ">
-
-        <h2 className="text-xl font-bold">
-
-          💬 Conversation History
-
-        </h2>
-
-
-        {conversations.length === 0 ? (
-
-          <p className={
-            "mt-4 " +
-            (conversationsError ? "text-red-400" : "text-slate-400")
-          }>
-
-            {conversationsError || "No conversations yet."}
-
-          </p>
-
-        ) : (
-
-          conversations.map(
-            (conversation) => (
-
-              <div
-
-                key={conversation.id}
-
-                className="
-                  mt-5
-                  space-y-2
-                "
-
-              >
-
-                <div className="
-                  bg-ink-800
-                  rounded-lg
-                  p-4
-                ">
-
-                  <strong>
-                    Customer
-                  </strong>
-
-                  <p>
-                    {conversation.message}
-                  </p>
-
-                </div>
-
-
-                {conversation.response && (
-
-                  <div className="
-                    bg-brand-600/15
-                    rounded-lg
-                    p-4
-                  ">
-
-                    <strong>
-                      Atlas
-                    </strong>
-
-                    <p>
-                      {conversation.response}
-                    </p>
-
-                  </div>
-
-                )}
-
-              </div>
-
-            )
-          )
-
-        )}
-
-      </div>
 
 
     </div>
