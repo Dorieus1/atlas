@@ -1,4 +1,8 @@
 const db = require("../../database/db");
+const { applyDiscount } = require("./quoteService");
+
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 
 const getAsync = (sql, params = []) => {
@@ -57,11 +61,10 @@ const getAnalytics = async (business_id) => {
     leads,
     hotLeads,
     leadsByStatusRows,
-    revenuePaid,
-    revenueOutstanding,
+    paidQuoteRows,
+    outstandingQuoteRows,
     paidInvoices,
     outstandingInvoices,
-    monthlyRows,
     expensesPaid
   ] = await Promise.all([
 
@@ -76,30 +79,46 @@ const getAnalytics = async (business_id) => {
     // re-plotting the same totals the top-level stat cards already show.
     allAsync(`SELECT status, COUNT(*) as count FROM leads WHERE business_id = ? GROUP BY status`, [business_id]),
 
-    getAsync(
+    // Per-quote subtotal (not a single aggregate SUM) so discount_type/
+    // discount_value can be applied per quote in JS below via the same
+    // applyDiscount() quoteService.js uses everywhere else - a straight
+    // SUM(quantity * unit_price) here would count the pre-discount
+    // subtotal as "revenue", overstating it for any discounted invoice
+    // even though Stripe genuinely only charges (and this business only
+    // actually collects) the discounted total.
+    allAsync(
 
       `
-      SELECT COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as total
+      SELECT
+        quotes.discount_type,
+        quotes.discount_value,
+        quotes.paid_at,
+        COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
       FROM quotes
       JOIN quote_items ON quote_items.quote_id = quotes.id
       WHERE quotes.business_id = ?
       AND quotes.type = 'invoice'
       AND quotes.status = 'paid'
+      GROUP BY quotes.id
       `,
 
       [business_id]
 
     ),
 
-    getAsync(
+    allAsync(
 
       `
-      SELECT COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as total
+      SELECT
+        quotes.discount_type,
+        quotes.discount_value,
+        COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
       FROM quotes
       JOIN quote_items ON quote_items.quote_id = quotes.id
       WHERE quotes.business_id = ?
       AND quotes.type = 'invoice'
       AND quotes.status IN ('sent', 'accepted')
+      GROUP BY quotes.id
       `,
 
       [business_id]
@@ -117,25 +136,6 @@ const getAnalytics = async (business_id) => {
     getAsync(
 
       `SELECT COUNT(*) as count FROM quotes WHERE business_id = ? AND type = 'invoice' AND status IN ('sent', 'accepted')`,
-
-      [business_id]
-
-    ),
-
-    allAsync(
-
-      `
-      SELECT
-        strftime('%Y-%m', quotes.paid_at) as month,
-        COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as total
-      FROM quotes
-      JOIN quote_items ON quote_items.quote_id = quotes.id
-      WHERE quotes.business_id = ?
-      AND quotes.type = 'invoice'
-      AND quotes.status = 'paid'
-      AND quotes.paid_at IS NOT NULL
-      GROUP BY month
-      `,
 
       [business_id]
 
@@ -163,10 +163,44 @@ const getAnalytics = async (business_id) => {
 
   ]);
 
+  // Each row's own discount applied here, in JS, rather than trusting a
+  // single raw SQL SUM - the same applyDiscount() every other real-money
+  // computation in this codebase (quoteService.js, the PDF, the CSV
+  // export) already uses, so "revenue" always means what was actually
+  // billed/collected, not the pre-discount subtotal.
+  const paidTotals = paidQuoteRows.map((row) => ({
+
+    paidAt: row.paid_at,
+    total: applyDiscount(row.subtotal, row.discount_type, row.discount_value).total
+
+  }));
+
+  const revenuePaidTotal = round2(paidTotals.reduce((sum, row) => sum + row.total, 0));
+
+  const revenueOutstandingTotal = round2(
+
+    outstandingQuoteRows.reduce(
+      (sum, row) => sum + applyDiscount(row.subtotal, row.discount_type, row.discount_value).total,
+      0
+    )
+
+  );
+
   const totalsByMonth = {};
 
-  monthlyRows.forEach((row) => {
-    totalsByMonth[row.month] = row.total;
+  // paid_at is stored as an ISO string (new Date().toISOString(), UTC) -
+  // slicing its first 7 characters ("YYYY-MM") reads the same UTC
+  // year-month strftime('%Y-%m', ...) used to compute, without needing
+  // SQL to do it since these totals are now computed in JS per-quote.
+  paidTotals.forEach((row) => {
+
+    if (!row.paidAt) {
+      return;
+    }
+
+    const month = row.paidAt.slice(0, 7);
+    totalsByMonth[month] = round2((totalsByMonth[month] || 0) + row.total);
+
   });
 
   const revenueByMonth = lastSixMonthKeys().map((month) => ({
@@ -197,14 +231,14 @@ const getAnalytics = async (business_id) => {
     hotLeads: hotLeads.count,
     leadsByStatus,
 
-    revenuePaid: revenuePaid.total,
-    revenueOutstanding: revenueOutstanding.total,
+    revenuePaid: revenuePaidTotal,
+    revenueOutstanding: revenueOutstandingTotal,
     paidInvoiceCount: paidInvoices.count,
     outstandingInvoiceCount: outstandingInvoices.count,
     revenueByMonth,
 
     expensesPaid: expensesPaid.total,
-    totalMargin: revenuePaid.total - expensesPaid.total
+    totalMargin: round2(revenuePaidTotal - expensesPaid.total)
 
   };
 

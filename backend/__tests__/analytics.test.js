@@ -118,6 +118,64 @@ describe("Analytics", () => {
   });
 
 
+  test("revenue reflects the actual discounted total, not the pre-discount subtotal - Stripe only ever charges the discounted amount", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AnalyticsDiscountRevenue");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Discount Revenue Customer" });
+
+    const customerId = customerRes.body.id;
+
+    // $1000 subtotal, 20% off -> $800 actually charged and collected.
+    const paidRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: [{ description: "Job", quantity: 1, unit_price: 1000 }],
+        discount_type: "percent",
+        discount_value: 20
+      });
+
+    await request(app)
+      .patch(`/api/quotes/${paidRes.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    // $500 subtotal, $100 off -> $400 actually still owed.
+    const outstandingRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: [{ description: "Job 2", quantity: 1, unit_price: 500 }],
+        discount_type: "fixed",
+        discount_value: 100
+      });
+
+    await request(app)
+      .patch(`/api/quotes/${outstandingRes.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", authHeader);
+
+    expect(res.body.revenuePaid).toBe(800);
+    expect(res.body.revenueOutstanding).toBe(400);
+
+    const currentMonthTotal = res.body.revenueByMonth[res.body.revenueByMonth.length - 1].total;
+    expect(currentMonthTotal).toBe(800);
+
+  });
+
+
   test("paid invoices count toward revenue, sent/accepted count as outstanding, drafts count toward neither", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "AnalyticsRevenue");
