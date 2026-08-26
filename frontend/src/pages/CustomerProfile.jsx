@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign } from "lucide-react";
 
 import {
   getCustomer,
@@ -18,7 +18,8 @@ import {
   getTags,
   createTag,
   addCustomerTag,
-  removeCustomerTag
+  removeCustomerTag,
+  getCustomerQuotes
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
@@ -26,6 +27,11 @@ import MemoryPanel from "../components/MemoryPanel";
 import PhotoGallery from "../components/PhotoGallery";
 import ReviewRequestPanel from "../components/ReviewRequestPanel";
 import { SkeletonText } from "../components/Skeleton";
+
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
+}
 
 
 function CustomerProfile() {
@@ -41,6 +47,8 @@ function CustomerProfile() {
   const [summaryError, setSummaryError] = useState("");
   const [lead, setLead] = useState(null);
   const [leadError, setLeadError] = useState("");
+  const [quoteStats, setQuoteStats] = useState(null);
+  const [quoteStatsError, setQuoteStatsError] = useState("");
   const [notes, setNotes] = useState([]);
   const [notesLoadError, setNotesLoadError] = useState("");
   const [newNote, setNewNote] = useState("");
@@ -79,11 +87,14 @@ function CustomerProfile() {
     setLeadError("");
     setNotes([]);
     setNotesLoadError("");
+    setQuoteStats(null);
+    setQuoteStatsError("");
 
     loadCustomer();
     loadSummary();
     loadLead();
     loadNotes();
+    loadQuoteStats();
 
   }, [id]);
 
@@ -213,6 +224,40 @@ function CustomerProfile() {
       );
 
       setLeadError("Couldn't load lead information. Please refresh to try again.");
+
+    }
+
+  };
+
+
+
+  // A quick "how much has this customer actually been worth" summary -
+  // paid invoices only, matching the definition of real revenue already
+  // used everywhere else (analyticsService.getAnalytics, Analytics.jsx),
+  // not sent/draft amounts that were never actually collected.
+  const loadQuoteStats = async () => {
+
+    try {
+
+      const quotes = await getCustomerQuotes(id);
+
+      const paidInvoices = quotes.filter((q) => q.type === "invoice" && q.status === "paid");
+      const outstandingInvoices = quotes.filter((q) => q.type === "invoice" && ["sent", "accepted"].includes(q.status));
+
+      setQuoteStats({
+
+        totalRevenue: paidInvoices.reduce((sum, q) => sum + q.total, 0),
+        totalOutstanding: outstandingInvoices.reduce((sum, q) => sum + q.total, 0),
+        jobsCompleted: paidInvoices.length
+
+      });
+
+      setQuoteStatsError("");
+
+    } catch (err) {
+
+      console.error("QUOTE STATS LOAD ERROR:", err);
+      setQuoteStatsError("Couldn't load this customer's job history. Please refresh to try again.");
 
     }
 
@@ -936,6 +981,53 @@ function CustomerProfile() {
         </div>
 
       </div>
+
+
+
+      {/* CUSTOMER VALUE */}
+
+      {quoteStatsError ? (
+
+        <p className="mt-6 text-sm text-red-400">{quoteStatsError}</p>
+
+      ) : quoteStats && (quoteStats.jobsCompleted > 0 || quoteStats.totalOutstanding > 0) && (
+
+        <div className="
+          mt-6
+          rounded-2xl
+          border
+          border-ink-700
+          bg-ink-900/60
+          p-6
+        ">
+
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <DollarSign size={20} />
+            Customer Value
+          </h2>
+
+          <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+
+            <div>
+              <p className="text-2xl font-bold">{formatMoney(quoteStats.totalRevenue)}</p>
+              <p className="mt-1 text-xs text-slate-500">Total Paid</p>
+            </div>
+
+            <div>
+              <p className="text-2xl font-bold">{formatMoney(quoteStats.totalOutstanding)}</p>
+              <p className="mt-1 text-xs text-slate-500">Outstanding</p>
+            </div>
+
+            <div>
+              <p className="text-2xl font-bold">{quoteStats.jobsCompleted}</p>
+              <p className="mt-1 text-xs text-slate-500">Jobs Completed</p>
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
 
 
