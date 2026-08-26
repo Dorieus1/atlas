@@ -908,7 +908,7 @@ function Quotes() {
               <button
                 key={quote.id}
                 onClick={() => openDetail(quote.id)}
-                className="flex items-center justify-between gap-4 rounded-xl border border-ink-700 bg-ink-800 p-4 text-left transition hover:border-ink-600 hover:bg-ink-900"
+                className="flex flex-col items-stretch gap-3 rounded-xl border border-ink-700 bg-ink-800 p-4 text-left transition hover:border-ink-600 hover:bg-ink-900 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
               >
 
                 <div className="min-w-0">
