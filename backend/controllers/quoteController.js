@@ -35,6 +35,23 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 // link (backend/controllers/portalController.js's requestLogin).
 const QUOTE_EMAIL_LINK_TTL_MINUTES = 7 * 24 * 60;
 
+// Resend (and most transactional email providers) refuses to send to
+// arbitrary real addresses from an unverified/shared sending domain
+// (Atlas's default "onboarding@resend.dev") until the business verifies
+// its own domain - a one-time setup step, not a bug. Detected by
+// message text since Resend doesn't expose a stable error code for
+// this in its response body; falls back to the generic message for any
+// other failure (a real network error, an expired API key, etc.) so
+// this never MISreports an unrelated problem as a domain-verification
+// issue.
+function isEmailSendingNotConfiguredError(error) {
+
+  const message = (error?.message || "").toLowerCase();
+
+  return message.includes("testing email address") || message.includes("verify a domain");
+
+}
+
 function formatMoneyForEmail(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
 }
@@ -630,6 +647,14 @@ const sendQuote = async (req, res) => {
   } catch (error) {
 
     console.error("SEND QUOTE ERROR:", error);
+
+    if (isEmailSendingNotConfiguredError(error)) {
+
+      return res.status(500).json({
+        error: "Emails can't be sent to real customers yet - your email service needs a verified sending domain first. This is a one-time setup, not a bug with this quote."
+      });
+
+    }
 
     res.status(500).json({
       error: "Couldn't send this to the customer. Please try again."

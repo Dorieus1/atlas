@@ -189,6 +189,43 @@ describe("Send quote to customer", () => {
   });
 
 
+  // Regression test for a real bug found during live testing: Resend
+  // refuses to send to arbitrary real addresses from Atlas's shared,
+  // unverified sending domain until the business verifies its own
+  // domain - a one-time setup step, not something wrong with any
+  // specific quote. The original generic "please try again" error gave
+  // an owner no way to tell a real problem from this expected
+  // restriction.
+  test("a domain-verification email failure gets a specific, actionable error instead of the generic retry message", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SendQuoteDomainNotVerified");
+    const customerId = await createCustomer(authHeader, "Domain Customer", "domain@test.com");
+    const quoteId = await createQuote(authHeader, customerId);
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ message: "Invalid `to` field. Please use our testing email address instead of domains like `example.com`. See our documentation for more information." })
+    });
+
+    const res = await request(app)
+      .post(`/api/quotes/${quoteId}/send`)
+      .set("Authorization", authHeader);
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/verified sending domain/i);
+    expect(res.body.error).not.toMatch(/please try again/i);
+
+    const detail = await request(app)
+      .get(`/api/quotes/${quoteId}`)
+      .set("Authorization", authHeader);
+
+    // Same "never mark it sent on a real failure" guarantee as the
+    // generic-failure test above.
+    expect(detail.body.status).toBe("draft");
+
+  });
+
+
   test("sending a quote that doesn't exist (or belongs to another business) 404s", async () => {
 
     const bizA = await createBusinessAndUser(app, "SendQuoteA");
