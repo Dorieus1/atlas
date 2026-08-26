@@ -1,4 +1,5 @@
 const { XMLParser } = require("fast-xml-parser");
+const { icsEscape, toICalDate } = require("./icsUtils");
 
 // Apple has no OAuth API for Calendar - iCloud speaks CalDAV instead,
 // authenticated with an "app-specific password" the user generates at
@@ -230,24 +231,6 @@ const discoverCalendarUrl = async (email, appPassword) => {
   return discoverTargetCalendarUrl(homeHref, email, appPassword);
 
 };
-
-
-function icsEscape(text) {
-
-  return String(text || "")
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
-
-}
-
-
-function toICalDate(date) {
-
-  return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-}
 
 
 // Deterministic from the appointment's own id, so create/update both

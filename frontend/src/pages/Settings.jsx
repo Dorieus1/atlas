@@ -6,6 +6,7 @@ import PublicLinkCard from "../components/PublicLinkCard";
 import StripeConnectCard from "../components/StripeConnectCard";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import AppleCalendarCard from "../components/AppleCalendarCard";
+import CalendarFeedCard from "../components/CalendarFeedCard";
 import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
 import SavedServicesPanel from "../components/SavedServicesPanel";
@@ -159,6 +160,7 @@ function Settings() {
                 <StripeConnectCard />
                 <GoogleCalendarCard />
                 <AppleCalendarCard />
+                <CalendarFeedCard />
               </>
 
             )}

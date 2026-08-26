@@ -1405,6 +1405,19 @@ export const disconnectAppleCalendar = () =>
 
 
 
+/* ---------- Calendar subscription feed (.ics) ---------- */
+
+
+export const getCalendarFeedToken = () =>
+  request("/calendar/feed/token");
+
+export const regenerateCalendarFeed = () =>
+  request("/calendar/feed/regenerate", {
+    method: "POST"
+  });
+
+
+
 /* ---------- Search ---------- */
 
 

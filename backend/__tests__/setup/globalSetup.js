@@ -48,7 +48,8 @@ module.exports = async () => {
           apple_calendar_connected INTEGER NOT NULL DEFAULT 0,
           apple_calendar_email TEXT,
           apple_calendar_app_password TEXT,
-          apple_calendar_url TEXT
+          apple_calendar_url TEXT,
+          calendar_feed_token TEXT
         )
       `);
 
