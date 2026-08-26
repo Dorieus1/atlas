@@ -1,5 +1,7 @@
 const request = require("supertest");
+const { v4: uuidv4 } = require("uuid");
 const app = require("../server");
+const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
 const { lastSixMonthKeys } = require("../services/analyticsService");
 
@@ -16,6 +18,36 @@ const createInvoice = async (authHeader, customerId, amount) => {
     });
 
   return res.body.id;
+
+};
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
+
+
+// leads has no dedicated POST route (leads are created internally by
+// chatService via the AI classifier) - inserted directly, same pattern
+// dailyDigest.test.js already uses for the same reason.
+const insertLead = (business_id, customer_id, status) => {
+
+  return runAsync(
+
+    `
+    INSERT INTO leads (id, customer_id, business_id, name, priority, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+
+    [uuidv4(), customer_id, business_id, "Test Lead", "warm", status, new Date().toISOString()]
+
+  );
 
 };
 
@@ -38,6 +70,48 @@ describe("Analytics", () => {
     expect(res.body.outstandingInvoiceCount).toBe(0);
     expect(res.body.revenueByMonth).toHaveLength(6);
     expect(res.body.revenueByMonth.every((m) => m.total === 0)).toBe(true);
+    expect(res.body.leadsByStatus).toEqual({ new: 0, contacted: 0, qualified: 0, closed: 0 });
+
+  });
+
+
+  test("leadsByStatus reflects real pipeline counts, scoped to the right business", async () => {
+
+    const bizA = await createBusinessAndUser(app, "AnalyticsPipelineA");
+    const bizB = await createBusinessAndUser(app, "AnalyticsPipelineB");
+
+    const customerA = await request(app)
+      .post("/api/customers")
+      .set("Authorization", bizA.authHeader)
+      .send({ name: "Pipeline Customer A" });
+
+    const customerB = await request(app)
+      .post("/api/customers")
+      .set("Authorization", bizB.authHeader)
+      .send({ name: "Pipeline Customer B" });
+
+    await insertLead(bizA.business_id, customerA.body.id, "new");
+    await insertLead(bizA.business_id, customerA.body.id, "new");
+    await insertLead(bizA.business_id, customerA.body.id, "contacted");
+    await insertLead(bizA.business_id, customerA.body.id, "qualified");
+    await insertLead(bizA.business_id, customerA.body.id, "closed");
+
+    // A different business's leads must never leak into bizA's counts.
+    await insertLead(bizB.business_id, customerB.body.id, "new");
+    await insertLead(bizB.business_id, customerB.body.id, "new");
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", bizA.authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.leads).toBe(5);
+    expect(res.body.leadsByStatus).toEqual({
+      new: 2,
+      contacted: 1,
+      qualified: 1,
+      closed: 1
+    });
 
   });
 

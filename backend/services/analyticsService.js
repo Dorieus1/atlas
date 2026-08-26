@@ -56,6 +56,7 @@ const getAnalytics = async (business_id) => {
     customers,
     leads,
     hotLeads,
+    leadsByStatusRows,
     revenuePaid,
     revenueOutstanding,
     paidInvoices,
@@ -68,6 +69,11 @@ const getAnalytics = async (business_id) => {
     getAsync(`SELECT COUNT(*) as count FROM leads WHERE business_id = ?`, [business_id]),
 
     getAsync(`SELECT COUNT(*) as count FROM leads WHERE business_id = ? AND priority = 'hot'`, [business_id]),
+
+    // Real pipeline stages, not just a total - lets the frontend show an
+    // actual funnel (new -> contacted -> qualified -> closed) instead of
+    // re-plotting the same totals the top-level stat cards already show.
+    allAsync(`SELECT status, COUNT(*) as count FROM leads WHERE business_id = ? GROUP BY status`, [business_id]),
 
     getAsync(
 
@@ -147,11 +153,28 @@ const getAnalytics = async (business_id) => {
     total: totalsByMonth[month] || 0
   }));
 
+  // Always all four keys, even at 0 - a business with no "qualified"
+  // leads yet should see an empty stage in the funnel, not a missing
+  // one, so the shape of the funnel is stable regardless of what's
+  // actually in the data.
+  const leadsByStatus = { new: 0, contacted: 0, qualified: 0, closed: 0 };
+
+  leadsByStatusRows.forEach((row) => {
+
+    const status = row.status || "new";
+
+    if (Object.prototype.hasOwnProperty.call(leadsByStatus, status)) {
+      leadsByStatus[status] = row.count;
+    }
+
+  });
+
   return {
 
     customers: customers.count,
     leads: leads.count,
     hotLeads: hotLeads.count,
+    leadsByStatus,
 
     revenuePaid: revenuePaid.total,
     revenueOutstanding: revenueOutstanding.total,

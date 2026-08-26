@@ -5,6 +5,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
   XAxis,
   YAxis,
   Tooltip,
@@ -15,6 +16,13 @@ import { getAnalytics } from "../api/atlasApi";
 import StatCard from "../components/dashboard/StatCard";
 
 const COLORS = ["#f97316", "#2a3040"];
+
+const PIPELINE_STAGES = [
+  { key: "new", label: "New" },
+  { key: "contacted", label: "Contacted" },
+  { key: "qualified", label: "Qualified" },
+  { key: "closed", label: "Closed" }
+];
 
 function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount || 0);
@@ -31,6 +39,7 @@ function Analytics() {
     customers: 0,
     leads: 0,
     hotLeads: 0,
+    leadsByStatus: { new: 0, contacted: 0, qualified: 0, closed: 0 },
     revenuePaid: 0,
     revenueOutstanding: 0,
     paidInvoiceCount: 0,
@@ -54,15 +63,10 @@ function Analytics() {
 
   }, []);
 
-  const conversion = stats.leads
-    ? Math.round((stats.hotLeads / stats.leads) * 100)
-    : 0;
-
-  const barData = [
-    { name: "Customers", value: stats.customers },
-    { name: "Total Leads", value: stats.leads },
-    { name: "Hot Leads", value: stats.hotLeads }
-  ];
+  const funnelData = PIPELINE_STAGES.map((stage) => ({
+    name: stage.label,
+    value: stats.leadsByStatus[stage.key] || 0
+  }));
 
   const pieData = [
     { name: "Hot Leads", value: stats.hotLeads },
@@ -87,35 +91,7 @@ function Analytics() {
         </p>
       )}
 
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-
-        <StatCard
-          title="Customers"
-          value={stats.customers}
-          icon="👥"
-          description="Total customers"
-        />
-
-        <StatCard
-          title="Total Leads"
-          value={stats.leads}
-          icon="📈"
-          description="Captured opportunities"
-        />
-
-        <StatCard
-          title="Hot Leads"
-          value={stats.hotLeads}
-          icon="🔥"
-          description="Needs attention"
-        />
-
-        <StatCard
-          title="Conversion"
-          value={`${conversion}%`}
-          icon="🎯"
-          description="Lead quality score"
-        />
+      <div className="mt-6 grid gap-5 sm:grid-cols-2">
 
         <StatCard
           title="Revenue Collected"
@@ -174,21 +150,21 @@ function Analytics() {
         <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
 
           <h2 className="text-xl font-bold mb-4">
-            Pipeline Overview
+            Lead Pipeline
           </h2>
 
-          {stats.customers === 0 && stats.leads === 0 ? (
+          {stats.leads === 0 ? (
 
             <p className="text-slate-400">
-              No data yet.
+              No leads yet.
             </p>
 
           ) : (
 
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={barData}>
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" allowDecimals={false} />
+              <BarChart data={funnelData} layout="vertical" margin={{ left: 16 }}>
+                <XAxis type="number" stroke="#94a3b8" allowDecimals={false} />
+                <YAxis type="category" dataKey="name" stroke="#94a3b8" width={90} />
                 <Tooltip
                   contentStyle={{
                     background: "#0c0e15",
@@ -196,7 +172,7 @@ function Analytics() {
                     borderRadius: 8
                   }}
                 />
-                <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#f97316" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
 
@@ -218,29 +194,39 @@ function Analytics() {
 
           ) : (
 
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "#0c0e15",
-                    border: "1px solid #1f2433",
-                    borderRadius: 8
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="relative">
+
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={4}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "#0c0e15",
+                      border: "1px solid #1f2433",
+                      borderRadius: 8
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+
+              <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[224px] flex-col items-center justify-center">
+                <span className="text-3xl font-bold">{stats.leads}</span>
+                <span className="text-xs text-slate-400">total leads</span>
+              </div>
+
+            </div>
 
           )}
 
