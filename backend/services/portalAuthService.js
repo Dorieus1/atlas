@@ -36,18 +36,21 @@ const createLoginToken = (customer_id, business_id, ttlMinutes = 15) => {
 
 
 
-// Single-use: looks the token up and marks it used in the same call, so a
-// link that's already been clicked (or is being replayed) fails instead of
-// logging someone in a second time.
+// Single-use: the UPDATE's own WHERE clause (used = 0 AND expires_at > ?)
+// is the thing that actually enforces single-use, not a SELECT beforehand -
+// two requests racing the same token can both run that SELECT before
+// either UPDATE commits, but only one UPDATE can ever match a still-
+// unused row, since SQLite serializes writes. Whichever one flips
+// used = 1 is the only one that gets `this.changes > 0` back.
 const consumeLoginToken = (token, business_id) => {
 
   return new Promise((resolve, reject) => {
 
-    db.get(
+    db.run(
 
       `
-      SELECT *
-      FROM portal_login_tokens
+      UPDATE portal_login_tokens
+      SET used = 1
       WHERE token = ?
       AND business_id = ?
       AND used = 0
@@ -56,23 +59,23 @@ const consumeLoginToken = (token, business_id) => {
 
       [token, business_id, new Date().toISOString()],
 
-      (err, row) => {
+      function (updateErr) {
 
-        if (err) {
-          return reject(err);
+        if (updateErr) {
+          return reject(updateErr);
         }
 
-        if (!row) {
+        if (this.changes === 0) {
           return resolve(null);
         }
 
-        db.run(
+        db.get(
 
-          `UPDATE portal_login_tokens SET used = 1 WHERE id = ?`,
+          `SELECT * FROM portal_login_tokens WHERE token = ? AND business_id = ?`,
 
-          [row.id],
+          [token, business_id],
 
-          (updateErr) => (updateErr ? reject(updateErr) : resolve(row))
+          (err, row) => (err ? reject(err) : resolve(row))
 
         );
 

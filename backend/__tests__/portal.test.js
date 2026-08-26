@@ -155,6 +155,44 @@ describe("Customer portal", () => {
   });
 
 
+  // consumeLoginToken's single-use guarantee comes from one atomic UPDATE
+  // (WHERE used = 0) rather than a SELECT followed by a separate UPDATE -
+  // firing two consumes at the same token genuinely concurrently is the
+  // only way to actually exercise that, since a SELECT-then-UPDATE version
+  // could let both callers pass the SELECT before either UPDATE commits.
+  // Calls the service directly rather than the rate-limited HTTP route
+  // (10 verifies/minute per IP) - that's a deliberate abuse-protection
+  // limit on real traffic, not something a same-process concurrency test
+  // should need to work around.
+  test("two simultaneous consumes of the same token: exactly one succeeds, never both", async () => {
+
+    const { createLoginToken, consumeLoginToken } = require("../services/portalAuthService");
+    const { authHeader } = await createBusinessAndUser(app, "PortalReuseRace");
+
+    const business = await request(app).get("/api/business").set("Authorization", authHeader);
+    const business_id = business.body[0].id;
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Race Customer", email: "race@test.com" });
+
+    const token = await createLoginToken(customerRes.body.id, business_id);
+
+    const [first, second] = await Promise.all([
+
+      consumeLoginToken(token, business_id),
+      consumeLoginToken(token, business_id)
+
+    ]);
+
+    const results = [first, second].filter((r) => r !== null);
+
+    expect(results.length).toBe(1);
+
+  });
+
+
   test("a valid token can't be verified against a different business's slug", async () => {
 
     const bizA = await createBusinessAndUser(app, "PortalCrossA");
