@@ -123,7 +123,7 @@ describe("Customer accept/decline", () => {
     const noName = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({});
+      .send({ type: "checkout.session.completed" });
 
     expect(noName.status).toBe(400);
 
@@ -669,6 +669,126 @@ describe("Paying a deposit from the portal", () => {
       .set("Authorization", customerAuthHeader);
 
     expect(noDepositConfigured.status).toBe(400);
+    expect(global.__mockStripe.checkoutSessionsCreate).not.toHaveBeenCalled();
+
+  });
+
+
+  test("paying the full invoice after a deposit already covers it - partial deposit charges the remainder, a full deposit refuses to charge $0", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "RemainingBalance");
+    const slug = await getSlug(authHeader);
+
+    await connectAndOnboard(authHeader);
+
+    const businessId = await getBusinessId(authHeader);
+
+    // One login, two quotes under the same customer - keeps this file
+    // under the portal's login rate limit, same reasoning as the
+    // DepositGuards test above.
+    const customerId = await createCustomer(authHeader, "Remaining Balance Customer", "remainingbalance@test.com");
+
+    // Subtotal 490, 20% deposit -> deposit amount 98, remaining balance 392.
+    const partial = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: ITEMS,
+        deposit_type: "percent",
+        deposit_value: 20
+      });
+
+    // Subtotal 490, 100% deposit -> nothing left to pay afterward.
+    const full = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: ITEMS,
+        deposit_type: "percent",
+        deposit_value: 100
+      });
+
+    await request(app)
+      .patch(`/api/quotes/${partial.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    await request(app)
+      .patch(`/api/quotes/${full.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "remainingbalance@test.com");
+
+    await request(app)
+      .post(`/api/portal/account/quotes/${partial.body.id}/accept`)
+      .set("Authorization", customerAuthHeader)
+      .send({ name: "Remaining Balance Payer" });
+
+    await request(app)
+      .post(`/api/portal/account/quotes/${full.body.id}/accept`)
+      .set("Authorization", customerAuthHeader)
+      .send({ name: "Remaining Balance Payer" });
+
+    // Pay both deposits, then simulate Stripe's webhook confirming each -
+    // that's what actually sets deposit_paid_at, not the checkout call
+    // itself.
+    await request(app)
+      .post(`/api/portal/account/quotes/${partial.body.id}/deposit-checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    await request(app)
+      .post(`/api/portal/account/quotes/${full.body.id}/deposit-checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    for (const quoteId of [partial.body.id, full.body.id]) {
+
+      global.__mockStripe.webhooksConstructEvent.mockReturnValue({
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            metadata: { quote_id: quoteId, business_id: businessId, payment_type: "deposit" }
+          }
+        }
+      });
+
+      await request(app)
+        .post("/api/stripe/webhook")
+        .set("stripe-signature", "test_signature")
+        .send({ type: "checkout.session.completed" });
+
+    }
+
+    global.__mockStripe.checkoutSessionsCreate.mockClear();
+
+    // Partial deposit: the "full" invoice payment must charge the
+    // remaining 392, never the original 490 total on top of the 98
+    // already paid.
+    const partialCheckout = await request(app)
+      .post(`/api/portal/account/quotes/${partial.body.id}/checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    expect(partialCheckout.status).toBe(200);
+
+    const sessionArgs = global.__mockStripe.checkoutSessionsCreate.mock.calls[0][0];
+
+    expect(sessionArgs.line_items.length).toBe(1);
+    expect(sessionArgs.line_items[0].price_data.unit_amount).toBe(39200);
+    expect(sessionArgs.line_items[0].price_data.unit_amount).not.toBe(SUBTOTAL * 100);
+
+    global.__mockStripe.checkoutSessionsCreate.mockClear();
+
+    // Full deposit: nothing left to pay, so the endpoint must refuse
+    // rather than charge $0 (or the full total again).
+    const fullCheckout = await request(app)
+      .post(`/api/portal/account/quotes/${full.body.id}/checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    expect(fullCheckout.status).toBe(400);
     expect(global.__mockStripe.checkoutSessionsCreate).not.toHaveBeenCalled();
 
   });

@@ -537,14 +537,47 @@ const createInvoiceCheckout = async (req, res) => {
 
     }
 
+    // If a deposit has already been paid, this button must charge only
+    // what's actually still owed - never the full items array again on
+    // top of a deposit the customer already paid. Same synthetic-line-
+    // item technique createDepositCheckout uses for the deposit itself,
+    // so the discount (already baked into quote.total) is never applied
+    // a second time either.
+    let checkoutItems = quote.items;
+    let checkoutDiscount = quote.discount_type ? { type: quote.discount_type, value: quote.discount_value } : null;
+
+    if (quote.deposit_paid_at) {
+
+      const remainingBalance = Math.round((quote.total - quote.deposit_amount + Number.EPSILON) * 100) / 100;
+
+      if (remainingBalance <= 0) {
+
+        return res.status(400).json({
+          error: "This invoice is fully covered by the deposit already paid"
+        });
+
+      }
+
+      const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null;
+
+      checkoutItems = [{
+        description: `Remaining balance for Invoice${numberPart ? ` ${numberPart}` : ""} (after $${quote.deposit_amount.toFixed(2)} deposit)`,
+        quantity: 1,
+        unit_price: remainingBalance
+      }];
+
+      checkoutDiscount = null;
+
+    }
+
     const session = await createCheckoutSession(
 
       business.stripe_account_id,
-      quote.items,
+      checkoutItems,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=1`,
       `${FRONTEND_URL}/portal/${business.slug}/dashboard?paid=0`,
       { quote_id: quote.id, business_id: business.id, payment_type: "invoice" },
-      quote.discount_type ? { type: quote.discount_type, value: quote.discount_value } : null
+      checkoutDiscount
 
     );
 

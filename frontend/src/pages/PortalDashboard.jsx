@@ -506,7 +506,21 @@ function PortalDashboard() {
 
                 {quotes.map((quote) => {
 
-                  const payable = quote.type === "invoice" && (quote.status === "sent" || quote.status === "accepted");
+                  // Once a deposit's been paid, the remaining balance - not
+                  // the full total again - is what's actually still owed.
+                  // A 100% deposit (or any deposit that happens to cover
+                  // the whole total) leaves nothing left to pay, so the
+                  // button must disappear entirely rather than offer to
+                  // charge $0 or the full amount a second time.
+                  const remainingBalance = quote.deposit_paid_at
+                    ? Math.max(0, quote.total - quote.deposit_amount)
+                    : quote.total;
+
+                  const payable =
+                    quote.type === "invoice" &&
+                    (quote.status === "sent" || quote.status === "accepted") &&
+                    remainingBalance > 0;
+
                   const decidable = quote.status === "sent";
                   const depositPayable = quote.deposit_type && quote.status === "accepted" && !quote.deposit_paid_at;
 
@@ -583,7 +597,11 @@ function PortalDashboard() {
                               className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
                             >
                               <CreditCard size={13} />
-                              {payingId === quote.id ? "Redirecting..." : `Pay ${formatMoney(quote.total)}`}
+                              {payingId === quote.id
+                                ? "Redirecting..."
+                                : quote.deposit_paid_at
+                                  ? `Pay remaining balance ${formatMoney(remainingBalance)}`
+                                  : `Pay ${formatMoney(quote.total)}`}
                             </button>
                           )}
 
