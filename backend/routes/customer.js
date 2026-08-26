@@ -16,6 +16,7 @@ const {
   getCustomersByBusiness,
   deleteCustomer,
   getTrashedCustomers,
+  getPossibleDuplicates,
   restoreCustomer,
   updateCustomer,
   addCustomerTag,
@@ -60,6 +61,17 @@ router.get(
   "/trash",
   authMiddleware,
   getTrashedCustomers
+);
+
+
+
+// Same reasoning as "/trash" just above - a literal path segment
+// registered ahead of GET "/:id" so "duplicates" is never swallowed as
+// an :id value.
+router.get(
+  "/duplicates",
+  authMiddleware,
+  getPossibleDuplicates
 );
 
 

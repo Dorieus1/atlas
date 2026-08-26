@@ -7,6 +7,7 @@ const {
   deleteCustomer: deleteCustomerService,
   restoreCustomer: restoreCustomerService,
   getTrashedCustomersByBusiness: getTrashedCustomersByBusinessService,
+  findPossibleDuplicates: findPossibleDuplicatesService,
   updateCustomer: updateCustomerService,
   getCustomerTags: getCustomerTagsService,
   addCustomerTag: addCustomerTagService,
@@ -503,6 +504,28 @@ const getTrashedCustomers = async (req, res) => {
 
 
 
+const getPossibleDuplicates = async (req, res) => {
+
+  try {
+
+    const groups = await findPossibleDuplicatesService(req.user.business_id);
+
+    res.json(groups);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const restoreCustomer = async (req, res) => {
 
 
@@ -713,6 +736,7 @@ module.exports = {
   deleteCustomer,
 
   getTrashedCustomers,
+  getPossibleDuplicates,
 
   restoreCustomer,
 

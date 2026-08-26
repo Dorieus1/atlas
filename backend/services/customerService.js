@@ -537,6 +537,91 @@ const getTrashedCustomersByBusiness = (business_id) => {
 
 
 
+// Groups active customers that share a normalized name, email, or phone.
+// Read-only by design: this surfaces likely duplicates for the owner to
+// review and act on themselves (edit, tag, or trash one of them) - it
+// deliberately does NOT merge anything automatically. A merge would mean
+// re-pointing every quote/appointment/lead/note/photo/tag reference from
+// one customer to another across several tables in one transaction,
+// which is real surgery on core data and deserves its own careful pass,
+// not something bolted onto a "find duplicates" feature.
+function groupBy(customers, keyFn) {
+
+  const map = new Map();
+
+  customers.forEach((customer) => {
+
+    const key = keyFn(customer);
+
+    if (!key) {
+      return;
+    }
+
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+
+    map.get(key).push(customer);
+
+  });
+
+  return [...map.values()].filter((group) => group.length > 1);
+
+}
+
+
+const findPossibleDuplicates = async (business_id) => {
+
+  const customers = await allAsync(
+
+    `SELECT id, name, email, phone FROM customers WHERE business_id = ? AND deleted_at IS NULL`,
+
+    [business_id]
+
+  );
+
+  const rawGroups = [
+
+    ...groupBy(customers, (c) => (c.name && c.name.trim() ? c.name.trim().toLowerCase() : null))
+      .map((group) => ({ reason: "same name", group })),
+
+    ...groupBy(customers, (c) => (c.email && c.email.trim() ? c.email.trim().toLowerCase() : null))
+      .map((group) => ({ reason: "same email", group })),
+
+    // Phone numbers are compared purely by digits so "(602) 300-2312"
+    // and "6023002312" still match - a 7-digit floor avoids a couple of
+    // near-empty/garbage numbers accidentally "matching" each other.
+    ...groupBy(customers, (c) => {
+      const digits = (c.phone || "").replace(/\D/g, "");
+      return digits.length >= 7 ? digits : null;
+    }).map((group) => ({ reason: "same phone", group }))
+
+  ];
+
+  // Two customers who share both a name AND an email would otherwise
+  // show up as two separate entries - merge groups covering the exact
+  // same set of customers into one entry with combined reasons.
+  const merged = [];
+
+  rawGroups.forEach(({ reason, group }) => {
+
+    const idKey = group.map((c) => c.id).sort().join(",");
+    const existing = merged.find((m) => m.idKey === idKey);
+
+    if (existing) {
+      existing.reasons.push(reason);
+    } else {
+      merged.push({ idKey, reasons: [reason], customers: group });
+    }
+
+  });
+
+  return merged.map(({ reasons, customers }) => ({ reasons, customers }));
+
+};
+
+
+
 const updateCustomer = (
 
   id,
@@ -603,6 +688,8 @@ module.exports = {
   deleteCustomer,
   restoreCustomer,
   getTrashedCustomersByBusiness,
+
+  findPossibleDuplicates,
   updateCustomer,
   getCustomerTags,
   addCustomerTag,

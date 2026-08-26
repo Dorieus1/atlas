@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Users, X, Upload, Trash2, Download } from "lucide-react";
+import { Users, X, Upload, Trash2, Download, Copy } from "lucide-react";
 import {
   getCustomers,
   getTags,
   importCustomersCsv,
   getTrashedCustomers,
-  restoreCustomer
+  restoreCustomer,
+  getPossibleDuplicateCustomers
 } from "../api/atlasApi";
 import CustomerForm from "../components/CustomerForm";
 import EmptyState from "../components/EmptyState";
@@ -41,6 +42,8 @@ function Customers() {
   const [restoringId, setRestoringId] = useState(null);
 
   const restoringRef = useRef(null);
+
+  const [duplicateGroups, setDuplicateGroups] = useState([]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,6 +128,26 @@ function Customers() {
 
 
 
+  const loadDuplicates = async () => {
+
+    try {
+
+      const data = await getPossibleDuplicateCustomers();
+      setDuplicateGroups(data);
+
+    } catch (error) {
+
+      // Purely a nice-to-have notice - if it fails to load, the page
+      // still works fine without it, so this doesn't need its own error
+      // banner competing for attention on the main customers screen.
+      console.error("DUPLICATES LOAD ERROR:", error);
+
+    }
+
+  };
+
+
+
   const handleRestore = async (id) => {
 
     if (restoringRef.current) {
@@ -165,6 +188,7 @@ function Customers() {
     loadCustomers();
     loadTags();
     loadTrash();
+    loadDuplicates();
 
 
   }, []);
@@ -378,6 +402,55 @@ function Customers() {
 
       </div>
 
+
+      {!showTrash && duplicateGroups.length > 0 && (
+
+        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <Copy size={16} />
+            Possible Duplicate Customers
+          </h2>
+
+          <p className="mt-1 text-xs text-slate-400">
+            These customers share a name, email, or phone number. Nothing has been changed - review each one and merge or trash the extra yourself if they're the same person.
+          </p>
+
+          <div className="mt-3 flex flex-col gap-2">
+
+            {duplicateGroups.map((group) => (
+
+              <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-ink-900/60 p-3">
+
+                <p className="text-xs uppercase tracking-wide text-amber-400/80">
+                  {group.reasons.join(" & ")}
+                </p>
+
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+
+                  {group.customers.map((customer) => (
+
+                    <button
+                      key={customer.id}
+                      onClick={() => navigate(`/customers/${customer.id}`)}
+                      className="text-sm text-slate-200 underline decoration-slate-600 underline-offset-2 hover:text-white"
+                    >
+                      {customer.name || "Unnamed customer"}
+                    </button>
+
+                  ))}
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      )}
 
       {showTrash ? (
 

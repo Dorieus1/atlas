@@ -408,6 +408,12 @@ export const getTrashedCustomers = () =>
 
 
 
+export const getPossibleDuplicateCustomers = () =>
+
+  request("/customers/duplicates");
+
+
+
 export const restoreCustomer = (id) =>
 
   request(`/customers/${id}/restore`, {
