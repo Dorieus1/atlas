@@ -179,11 +179,13 @@ function streamQuotePdf(res, quote, business) {
 
   });
 
-  // Only quotes with an actual discount get the Subtotal/Discount/Total
-  // breakdown - one that never had a discount keeps the exact single
-  // "Total" line this PDF has always shown, so existing quotes' PDFs
-  // don't suddenly grow a "Discount: $0.00" line that was never there.
+  // Only quotes with an actual discount or tax get the Subtotal/
+  // Discount/Tax/Total breakdown - one with neither keeps the exact
+  // single "Total" line this PDF has always shown, so existing quotes'
+  // PDFs don't suddenly grow lines that were never there.
   const hasDiscount = !!quote.discount_type;
+  const hasTax = Number(quote.tax_amount) > 0;
+  const hasBreakdown = hasDiscount || hasTax;
   const hasDeposit = !!quote.deposit_type;
   const depositPaid = hasDeposit && !!quote.deposit_paid_at;
 
@@ -193,13 +195,21 @@ function streamQuotePdf(res, quote, business) {
 
   // The "30" here is the same rough single-line height the page-break
   // math always used for the Total line - extra lines are added on top
-  // of it for each optional block (discount, deposit, and, once a
-  // deposit has actually been paid, the remaining balance still owed)
-  // that also needs to be drawn.
+  // of it for each optional block (subtotal, discount, tax, deposit, and,
+  // once a deposit has actually been paid, the remaining balance still
+  // owed) that also needs to be drawn.
   let totalsBlockHeight = 30;
 
+  if (hasBreakdown) {
+    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
+  }
+
   if (hasDiscount) {
-    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT * 2;
+    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
+  }
+
+  if (hasTax) {
+    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
   }
 
   if (hasDeposit) {
@@ -217,7 +227,7 @@ function streamQuotePdf(res, quote, business) {
 
   }
 
-  if (hasDiscount) {
+  if (hasBreakdown) {
 
     doc
       .font("Helvetica")
@@ -229,6 +239,10 @@ function streamQuotePdf(res, quote, business) {
 
     y += BREAKDOWN_LINE_HEIGHT;
 
+  }
+
+  if (hasDiscount) {
+
     doc
       .font("Helvetica")
       .fontSize(10)
@@ -236,6 +250,20 @@ function streamQuotePdf(res, quote, business) {
       .text(formatDiscountLabel(quote), DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
       .fillColor(INK_COLOR)
       .text(`-${formatMoney(quote.discount_amount)}`, COLUMNS.amount, y, { width: 65, align: "right" });
+
+    y += BREAKDOWN_LINE_HEIGHT;
+
+  }
+
+  if (hasTax) {
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(MUTED_COLOR)
+      .text(`Tax (${quote.tax_rate}%)`, DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+      .fillColor(INK_COLOR)
+      .text(formatMoney(quote.tax_amount), COLUMNS.amount, y, { width: 65, align: "right" });
 
     y += BREAKDOWN_LINE_HEIGHT;
 

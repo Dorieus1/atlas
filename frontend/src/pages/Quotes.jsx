@@ -25,7 +25,8 @@ import {
   downloadQuotePdf,
   exportQuotesCsv,
   getCustomers,
-  getSavedLineItems
+  getSavedLineItems,
+  getBusinesses
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
@@ -71,9 +72,11 @@ function calculatePercentOrFixed(base, type, value) {
 }
 
 // Mirrors the backend's calculateQuoteTotals() (backend/services/
-// quoteService.js) so the form can show a live Subtotal/Discount/Deposit/
-// Total breakdown as the user types.
-function calculateTotals(items, discountType, discountValue, depositType, depositValue) {
+// quoteService.js) so the form can show a live Subtotal/Discount/Tax/
+// Deposit/Total breakdown as the user types. Tax is computed on the
+// discounted amount, not the raw subtotal - same order the backend
+// applies it in.
+function calculateTotals(items, discountType, discountValue, taxRate, depositType, depositValue) {
 
   const subtotal = items.reduce(
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
@@ -81,10 +84,13 @@ function calculateTotals(items, discountType, discountValue, depositType, deposi
   );
 
   const discount_amount = calculatePercentOrFixed(subtotal, discountType, discountValue);
-  const total = subtotal - discount_amount;
+  const taxable_amount = subtotal - discount_amount;
+  const numericTaxRate = Number(taxRate);
+  const tax_amount = Number.isFinite(numericTaxRate) && numericTaxRate > 0 ? taxable_amount * (numericTaxRate / 100) : 0;
+  const total = taxable_amount + tax_amount;
   const deposit_amount = calculatePercentOrFixed(total, depositType, depositValue);
 
-  return { subtotal, discount_amount, total, deposit_amount };
+  return { subtotal, discount_amount, tax_amount, total, deposit_amount };
 
 }
 
@@ -110,6 +116,8 @@ function Quotes() {
   const [formItems, setFormItems] = useState([emptyItem()]);
   const [formDiscountType, setFormDiscountType] = useState("");
   const [formDiscountValue, setFormDiscountValue] = useState("");
+  const [formTaxRate, setFormTaxRate] = useState("");
+  const [businessDefaultTaxRate, setBusinessDefaultTaxRate] = useState(null);
   const [formDepositType, setFormDepositType] = useState("");
   const [formDepositValue, setFormDepositValue] = useState("");
   const [formError, setFormError] = useState("");
@@ -167,6 +175,15 @@ function Quotes() {
       .then(setSavedItems)
       .catch((error) => console.error("SAVED LINE ITEMS LOAD ERROR:", error));
 
+    getBusinesses()
+      .then((businesses) => {
+
+        const rate = businesses?.[0]?.default_tax_rate;
+        setBusinessDefaultTaxRate(rate === null || rate === undefined ? null : rate);
+
+      })
+      .catch((error) => console.error("BUSINESS LOAD ERROR:", error));
+
     // A search result (or any other deep link) can land here with
     // ?open=id to jump straight into that quote's detail view.
     const openId = searchParams.get("open");
@@ -206,6 +223,10 @@ function Quotes() {
     setFormItems([emptyItem()]);
     setFormDiscountType("");
     setFormDiscountValue("");
+    // Pre-filled from the business's own default so the owner doesn't
+    // have to remember to type it in on every quote - still just a
+    // starting value in the form state, freely editable per quote.
+    setFormTaxRate(businessDefaultTaxRate === null || businessDefaultTaxRate === undefined ? "" : String(businessDefaultTaxRate));
     setFormDepositType("");
     setFormDepositValue("");
     setFormError("");
@@ -234,6 +255,7 @@ function Quotes() {
     );
     setFormDiscountType(quote.discount_type || "");
     setFormDiscountValue(quote.discount_type ? String(quote.discount_value) : "");
+    setFormTaxRate(quote.tax_rate === null || quote.tax_rate === undefined ? "" : String(quote.tax_rate));
     setFormDepositType(quote.deposit_type || "");
     setFormDepositValue(quote.deposit_type ? String(quote.deposit_value) : "");
     setFormError("");
@@ -301,7 +323,7 @@ function Quotes() {
   };
 
 
-  const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue, formDepositType, formDepositValue);
+  const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue, formTaxRate, formDepositType, formDepositValue);
 
 
   const handleSaveQuote = async () => {
@@ -352,6 +374,17 @@ function Quotes() {
 
     }
 
+    if (formTaxRate !== "" && formTaxRate !== null && formTaxRate !== undefined) {
+
+      const value = Number(formTaxRate);
+
+      if (!Number.isFinite(value) || value < 0 || value > 100) {
+        setFormError("Enter a valid tax rate between 0 and 100.");
+        return;
+      }
+
+    }
+
     if (formDepositType) {
 
       const value = Number(formDepositValue);
@@ -366,11 +399,15 @@ function Quotes() {
         return;
       }
 
-      // Checked against the TOTAL (after any discount), not the raw
-      // subtotal - a deposit is up-front money toward what the customer
-      // will actually owe. Mirrors the backend's calculateTotals() above.
+      // Checked against the TOTAL (after any discount and tax), not the
+      // raw subtotal - a deposit is up-front money toward what the
+      // customer will actually owe. Mirrors the backend's
+      // calculateTotals() above.
       const cleanDiscountAmount = calculatePercentOrFixed(cleanSubtotal, formDiscountType, formDiscountValue);
-      const cleanTotal = cleanSubtotal - cleanDiscountAmount;
+      const cleanTaxableAmount = cleanSubtotal - cleanDiscountAmount;
+      const cleanTaxRate = Number(formTaxRate);
+      const cleanTaxAmount = Number.isFinite(cleanTaxRate) && cleanTaxRate > 0 ? cleanTaxableAmount * (cleanTaxRate / 100) : 0;
+      const cleanTotal = cleanTaxableAmount + cleanTaxAmount;
 
       if (formDepositType === "fixed" && value > cleanTotal) {
         setFormError("The deposit can't be more than the total.");
@@ -396,6 +433,7 @@ function Quotes() {
           items: cleanItems,
           discount_type: formDiscountType || null,
           discount_value: formDiscountType ? Number(formDiscountValue) : null,
+          tax_rate: formTaxRate === "" ? null : Number(formTaxRate),
           deposit_type: formDepositType || null,
           deposit_value: formDepositType ? Number(formDepositValue) : null
         });
@@ -414,7 +452,8 @@ function Quotes() {
           formDiscountType || null,
           formDiscountType ? Number(formDiscountValue) : null,
           formDepositType || null,
-          formDepositType ? Number(formDepositValue) : null
+          formDepositType ? Number(formDepositValue) : null,
+          formTaxRate === "" ? null : Number(formTaxRate)
         );
 
         setShowForm(false);
@@ -987,6 +1026,27 @@ function Quotes() {
 
               <div className="flex items-center gap-2">
 
+                <label className="text-sm text-slate-400">
+                  Tax rate
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  placeholder="e.g. 8.5"
+                  value={formTaxRate}
+                  onChange={(e) => setFormTaxRate(e.target.value)}
+                  className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                />
+
+                <span className="text-sm text-slate-500">%</span>
+
+              </div>
+
+              <div className="flex items-center gap-2">
+
                 <select
                   value={formDepositType}
                   onChange={(e) => {
@@ -1017,22 +1077,36 @@ function Quotes() {
 
               <div className="flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
 
+                {(formDiscountType || formTotals.tax_amount > 0) && (
+
+                  <div className="flex items-center justify-between text-sm text-slate-400">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(formTotals.subtotal)}</span>
+                  </div>
+
+                )}
+
                 {formDiscountType && (
 
-                  <>
-                    <div className="flex items-center justify-between text-sm text-slate-400">
-                      <span>Subtotal</span>
-                      <span>{formatMoney(formTotals.subtotal)}</span>
-                    </div>
+                  <div className="flex items-center justify-between text-sm text-slate-400">
+                    <span>
+                      Discount
+                      {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
+                    </span>
+                    <span>-{formatMoney(formTotals.discount_amount)}</span>
+                  </div>
 
-                    <div className="flex items-center justify-between text-sm text-slate-400">
-                      <span>
-                        Discount
-                        {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
-                      </span>
-                      <span>-{formatMoney(formTotals.discount_amount)}</span>
-                    </div>
-                  </>
+                )}
+
+                {formTotals.tax_amount > 0 && (
+
+                  <div className="flex items-center justify-between text-sm text-slate-400">
+                    <span>
+                      Tax
+                      {formTaxRate ? ` (${formTaxRate}%)` : ""}
+                    </span>
+                    <span>{formatMoney(formTotals.tax_amount)}</span>
+                  </div>
 
                 )}
 
@@ -1195,24 +1269,38 @@ function Quotes() {
 
                 <div className="mt-4 flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
 
+                  {(activeQuote.discount_type || activeQuote.tax_amount > 0) && (
+
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>Subtotal</span>
+                      <span>{formatMoney(activeQuote.subtotal)}</span>
+                    </div>
+
+                  )}
+
                   {activeQuote.discount_type && (
 
-                    <>
-                      <div className="flex items-center justify-between text-sm text-slate-400">
-                        <span>Subtotal</span>
-                        <span>{formatMoney(activeQuote.subtotal)}</span>
-                      </div>
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>
+                        Discount
+                        {activeQuote.discount_type === "percent"
+                          ? ` (${activeQuote.discount_value}%)`
+                          : ` (${formatMoney(activeQuote.discount_value)} off)`}
+                      </span>
+                      <span>-{formatMoney(activeQuote.discount_amount)}</span>
+                    </div>
 
-                      <div className="flex items-center justify-between text-sm text-slate-400">
-                        <span>
-                          Discount
-                          {activeQuote.discount_type === "percent"
-                            ? ` (${activeQuote.discount_value}%)`
-                            : ` (${formatMoney(activeQuote.discount_value)} off)`}
-                        </span>
-                        <span>-{formatMoney(activeQuote.discount_amount)}</span>
-                      </div>
-                    </>
+                  )}
+
+                  {activeQuote.tax_amount > 0 && (
+
+                    <div className="flex items-center justify-between text-sm text-slate-400">
+                      <span>
+                        Tax
+                        {activeQuote.tax_rate ? ` (${activeQuote.tax_rate}%)` : ""}
+                      </span>
+                      <span>{formatMoney(activeQuote.tax_amount)}</span>
+                    </div>
 
                   )}
 

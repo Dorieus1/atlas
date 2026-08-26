@@ -66,6 +66,7 @@ function BusinessProfile({ business }) {
     services: "",
     review_link: "",
     timezone: "",
+    default_tax_rate: "",
   });
 
   // null means "hours not configured" (nothing enforced). Once the owner
@@ -97,6 +98,9 @@ function BusinessProfile({ business }) {
         services: business.services || "",
         review_link: business.review_link || "",
         timezone: business.timezone || "",
+        default_tax_rate: business.default_tax_rate === null || business.default_tax_rate === undefined
+          ? ""
+          : String(business.default_tax_rate),
 
       });
 
@@ -467,6 +471,38 @@ function BusinessProfile({ business }) {
 
       <p className="text-xs text-slate-500 -mt-2 mb-3">
         Customers who get a review request will be sent this link.
+      </p>
+
+      <label htmlFor="business-tax-rate" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Default Tax Rate
+      </label>
+
+      <input
+
+        id="business-tax-rate"
+
+        type="number"
+        min="0"
+        max="100"
+        step="0.01"
+
+        value={form.default_tax_rate}
+
+        placeholder="e.g. 8.5 for 8.5%"
+
+        className={inputClass}
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            default_tax_rate: e.target.value
+          })
+        }
+
+      />
+
+      <p className="text-xs text-slate-500 -mt-2 mb-3">
+        Applied automatically to new quotes and invoices - leave blank if you don't collect sales tax. You can still override it on any individual quote.
       </p>
 
 

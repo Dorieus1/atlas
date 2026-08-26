@@ -80,18 +80,20 @@ const getAnalytics = async (business_id) => {
     allAsync(`SELECT status, COUNT(*) as count FROM leads WHERE business_id = ? GROUP BY status`, [business_id]),
 
     // Per-quote subtotal (not a single aggregate SUM) so discount_type/
-    // discount_value can be applied per quote in JS below via the same
-    // applyDiscount() quoteService.js uses everywhere else - a straight
-    // SUM(quantity * unit_price) here would count the pre-discount
-    // subtotal as "revenue", overstating it for any discounted invoice
-    // even though Stripe genuinely only charges (and this business only
-    // actually collects) the discounted total.
+    // discount_value/tax_rate can be applied per quote in JS below via
+    // the same applyDiscount() quoteService.js uses everywhere else - a
+    // straight SUM(quantity * unit_price) here would count the pre-
+    // discount, pre-tax subtotal as "revenue", overstating or
+    // understating it for any discounted/taxed invoice even though
+    // Stripe genuinely only charges (and this business only actually
+    // collects) the final discounted-and-taxed total.
     allAsync(
 
       `
       SELECT
         quotes.discount_type,
         quotes.discount_value,
+        quotes.tax_rate,
         quotes.paid_at,
         COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
       FROM quotes
@@ -112,6 +114,7 @@ const getAnalytics = async (business_id) => {
       SELECT
         quotes.discount_type,
         quotes.discount_value,
+        quotes.tax_rate,
         COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
       FROM quotes
       JOIN quote_items ON quote_items.quote_id = quotes.id
@@ -171,7 +174,7 @@ const getAnalytics = async (business_id) => {
   const paidTotals = paidQuoteRows.map((row) => ({
 
     paidAt: row.paid_at,
-    total: applyDiscount(row.subtotal, row.discount_type, row.discount_value).total
+    total: applyDiscount(row.subtotal, row.discount_type, row.discount_value, row.tax_rate).total
 
   }));
 
@@ -180,7 +183,7 @@ const getAnalytics = async (business_id) => {
   const revenueOutstandingTotal = round2(
 
     outstandingQuoteRows.reduce(
-      (sum, row) => sum + applyDiscount(row.subtotal, row.discount_type, row.discount_value).total,
+      (sum, row) => sum + applyDiscount(row.subtotal, row.discount_type, row.discount_value, row.tax_rate).total,
       0
     )
 

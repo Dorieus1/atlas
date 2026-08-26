@@ -49,7 +49,8 @@ module.exports = async () => {
           apple_calendar_email TEXT,
           apple_calendar_app_password TEXT,
           apple_calendar_url TEXT,
-          calendar_feed_token TEXT
+          calendar_feed_token TEXT,
+          default_tax_rate REAL
         )
       `);
 
@@ -205,7 +206,8 @@ module.exports = async () => {
           declined_at DATETIME,
           deposit_type TEXT,
           deposit_value REAL,
-          deposit_paid_at DATETIME
+          deposit_paid_at DATETIME,
+          tax_rate REAL
         )
       `);
 

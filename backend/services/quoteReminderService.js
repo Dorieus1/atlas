@@ -87,6 +87,7 @@ const sendQuoteReminders = async () => {
       quotes.reminder_count,
       quotes.discount_type,
       quotes.discount_value,
+      quotes.tax_rate,
       quotes.deposit_type,
       quotes.deposit_value,
       COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal,
@@ -122,7 +123,7 @@ const sendQuoteReminders = async () => {
     // rest of the batch from going out.
     try {
 
-      const { total } = applyDiscount(quote.subtotal, quote.discount_type, quote.discount_value);
+      const { total } = applyDiscount(quote.subtotal, quote.discount_type, quote.discount_value, quote.tax_rate);
       const depositAmount = calculateDeposit(total, quote.deposit_type, quote.deposit_value);
 
       const token = await createLoginToken(quote.customer_id, quote.business_id, REMINDER_LINK_TTL_MINUTES);

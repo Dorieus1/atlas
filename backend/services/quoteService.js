@@ -92,18 +92,26 @@ const calculatePercentOrFixed = (base, type, value) => {
 };
 
 
-// The discount-amount math on its own, given a subtotal that's already
+// The discount-and-tax math on its own, given a subtotal that's already
 // known - used by the list endpoints below, which compute their subtotal
 // with a SQL SUM rather than loading every quote's line items into JS.
 // calculateQuoteTotals() (below) is the items-array-shaped wrapper around
-// this same math, so there is still only one place the percent-vs-fixed
-// logic itself lives.
-const applyDiscount = (subtotal, discount_type, discount_value) => {
+// this same math, so there is still only one place this logic lives.
+// Tax is computed on the DISCOUNTED amount (subtotal minus discount),
+// not the raw subtotal - standard invoicing practice, since a discount
+// reduces what's actually being sold before tax applies to it.
+// tax_rate is optional and defaults to no tax, so every existing
+// 3-argument call site (there are several, across analyticsService.js,
+// the reminder services, etc.) keeps computing exactly the total it
+// always did without needing to be touched.
+const applyDiscount = (subtotal, discount_type, discount_value, tax_rate = null) => {
 
   const discount_amount = calculatePercentOrFixed(subtotal, discount_type, discount_value);
-  const total = round2(subtotal - discount_amount);
+  const taxable_amount = round2(subtotal - discount_amount);
+  const tax_amount = tax_rate ? round2(taxable_amount * (Number(tax_rate) / 100)) : 0;
+  const total = round2(taxable_amount + tax_amount);
 
-  return { discount_amount, total };
+  return { discount_amount, tax_amount, total };
 
 };
 
@@ -122,21 +130,22 @@ const calculateDeposit = (total, deposit_type, deposit_value) => {
 
 
 // THE single source of truth for turning a quote's line items plus its
-// optional discount into { subtotal, discount_amount, total }. Every
-// place in the app that shows or charges a quote's total - the API
-// response, the quotes list, the CSV export, the PDF, and the Stripe
-// Checkout Session - has to go through this (or applyDiscount() above,
-// when only a pre-summed subtotal is available) so a discount can never
-// be applied inconsistently between two of those places.
-const calculateQuoteTotals = (items, discount_type, discount_value) => {
+// optional discount and tax rate into { subtotal, discount_amount,
+// tax_amount, total }. Every place in the app that shows or charges a
+// quote's total - the API response, the quotes list, the CSV export,
+// the PDF, and the Stripe Checkout Session - has to go through this (or
+// applyDiscount() above, when only a pre-summed subtotal is available)
+// so a discount or tax rate can never be applied inconsistently between
+// two of those places.
+const calculateQuoteTotals = (items, discount_type, discount_value, tax_rate = null) => {
 
   const subtotal = round2(
     (items || []).reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
   );
 
-  const { discount_amount, total } = applyDiscount(subtotal, discount_type, discount_value);
+  const { discount_amount, tax_amount, total } = applyDiscount(subtotal, discount_type, discount_value, tax_rate);
 
-  return { subtotal, discount_amount, total };
+  return { subtotal, discount_amount, tax_amount, total };
 
 };
 
@@ -215,7 +224,8 @@ const createQuote = async (
   discount_type = null,
   discount_value = null,
   deposit_type = null,
-  deposit_value = null
+  deposit_value = null,
+  tax_rate = null
 
 ) => {
 
@@ -238,8 +248,8 @@ const createQuote = async (
 
         `
         INSERT INTO quotes
-        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name, discount_type, discount_value, deposit_type, deposit_value)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, business_id, customer_id, type, notes, appointment_id, quote_number, created_by_user_id, created_by_name, discount_type, discount_value, deposit_type, deposit_value, tax_rate)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
 
         [
@@ -255,7 +265,8 @@ const createQuote = async (
           discount_type || null,
           discount_value === undefined || discount_value === null ? null : Number(discount_value),
           deposit_type || null,
-          deposit_value === undefined || deposit_value === null ? null : Number(deposit_value)
+          deposit_value === undefined || deposit_value === null ? null : Number(deposit_value),
+          tax_rate === undefined || tax_rate === null ? null : Number(tax_rate)
         ]
 
       );
@@ -337,10 +348,10 @@ const getQuotes = async (business_id) => {
   return rows.map((row) => {
 
     const subtotal = round2(row.subtotal);
-    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const { discount_amount, tax_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value, row.tax_rate);
     const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total, deposit_amount };
+    return { ...row, subtotal, discount_amount, tax_amount, total, deposit_amount };
 
   });
 
@@ -390,10 +401,10 @@ const getQuotesForExport = async (business_id, { type, status } = {}) => {
   return rows.map((row) => {
 
     const subtotal = round2(row.subtotal);
-    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const { discount_amount, tax_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value, row.tax_rate);
     const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total, deposit_amount };
+    return { ...row, subtotal, discount_amount, tax_amount, total, deposit_amount };
 
   });
 
@@ -474,10 +485,10 @@ const getQuotesByCustomer = async (customer_id, business_id) => {
   return rows.map((row) => {
 
     const subtotal = round2(row.subtotal);
-    const { discount_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value);
+    const { discount_amount, tax_amount, total } = applyDiscount(subtotal, row.discount_type, row.discount_value, row.tax_rate);
     const deposit_amount = calculateDeposit(total, row.deposit_type, row.deposit_value);
 
-    return { ...row, subtotal, discount_amount, total, deposit_amount };
+    return { ...row, subtotal, discount_amount, tax_amount, total, deposit_amount };
 
   });
 
@@ -522,10 +533,11 @@ const getQuoteById = async (id, business_id) => {
 
   quote.items = items;
 
-  const totals = calculateQuoteTotals(items, quote.discount_type, quote.discount_value);
+  const totals = calculateQuoteTotals(items, quote.discount_type, quote.discount_value, quote.tax_rate);
 
   quote.subtotal = totals.subtotal;
   quote.discount_amount = totals.discount_amount;
+  quote.tax_amount = totals.tax_amount;
   quote.total = totals.total;
   quote.deposit_amount = calculateDeposit(totals.total, quote.deposit_type, quote.deposit_value);
 

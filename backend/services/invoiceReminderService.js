@@ -74,6 +74,7 @@ const sendInvoiceReminders = async () => {
       quotes.reminder_count,
       quotes.discount_type,
       quotes.discount_value,
+      quotes.tax_rate,
       quotes.deposit_type,
       quotes.deposit_value,
       quotes.deposit_paid_at,
@@ -110,7 +111,7 @@ const sendInvoiceReminders = async () => {
     // going out.
     try {
 
-      const { total } = applyDiscount(invoice.subtotal, invoice.discount_type, invoice.discount_value);
+      const { total } = applyDiscount(invoice.subtotal, invoice.discount_type, invoice.discount_value, invoice.tax_rate);
       const depositAmount = calculateDeposit(total, invoice.deposit_type, invoice.deposit_value);
       const depositOwed = invoice.deposit_type && !invoice.deposit_paid_at;
 

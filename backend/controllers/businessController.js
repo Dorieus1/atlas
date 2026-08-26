@@ -146,7 +146,8 @@ const updateBusiness = (req, res) => {
     services,
     review_link,
     business_hours,
-    timezone
+    timezone,
+    default_tax_rate
 
   } = req.body;
 
@@ -186,6 +187,20 @@ const updateBusiness = (req, res) => {
   }
 
 
+  // Empty string/null means "no default tax rate" - a business that
+  // doesn't collect sales tax (or hasn't set one up yet) shouldn't be
+  // forced to have one.
+  const hasTaxRate = default_tax_rate !== undefined && default_tax_rate !== null && default_tax_rate !== "";
+  const normalizedTaxRate = hasTaxRate ? Number(default_tax_rate) : null;
+
+  if (hasTaxRate && (!Number.isFinite(normalizedTaxRate) || normalizedTaxRate < 0 || normalizedTaxRate > 100)) {
+
+    return res.status(400).json({
+      error: "default_tax_rate must be a number between 0 and 100"
+    });
+
+  }
+
 
   db.run(
 
@@ -201,7 +216,8 @@ const updateBusiness = (req, res) => {
       services = ?,
       review_link = ?,
       business_hours = ?,
-      timezone = ?
+      timezone = ?,
+      default_tax_rate = ?
 
     WHERE id = ?
 
@@ -218,6 +234,7 @@ const updateBusiness = (req, res) => {
       review_link,
       hoursCheck.normalized ? JSON.stringify(hoursCheck.normalized) : null,
       normalizedTimezone,
+      normalizedTaxRate,
       id
 
     ],

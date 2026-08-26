@@ -546,6 +546,42 @@ const createInvoiceCheckout = async (req, res) => {
     let checkoutItems = quote.items;
     let checkoutDiscount = quote.discount_type ? { type: quote.discount_type, value: quote.discount_value } : null;
 
+    // Stripe's `discounts` coupon applies to the WHOLE session (every
+    // line item, not just the ones it's "meant" for) - so a coupon and a
+    // separately-added tax line item can't coexist: the coupon would
+    // also shave a percentage off the tax line, undercharging tax. Tax
+    // alone (no discount) is safe as its own line item, since nothing
+    // else is proportionally reducing the session. Discount alone is
+    // the existing, already-correct coupon path. Only when BOTH are
+    // present does this collapse to one synthetic line for the exact
+    // final total - same technique the remaining-balance branch below
+    // already uses for its own synthetic amount - since that's the one
+    // combination the coupon mechanism can't represent correctly.
+    if (quote.tax_amount > 0 && checkoutDiscount) {
+
+      const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null;
+
+      checkoutItems = [{
+        description: `Invoice${numberPart ? ` ${numberPart}` : ""} (incl. tax)`,
+        quantity: 1,
+        unit_price: quote.total
+      }];
+
+      checkoutDiscount = null;
+
+    } else if (quote.tax_amount > 0) {
+
+      checkoutItems = [
+        ...checkoutItems,
+        {
+          description: `Tax (${quote.tax_rate}%)`,
+          quantity: 1,
+          unit_price: quote.tax_amount
+        }
+      ];
+
+    }
+
     if (quote.deposit_paid_at) {
 
       const remainingBalance = Math.round((quote.total - quote.deposit_amount + Number.EPSILON) * 100) / 100;

@@ -139,6 +139,32 @@ function validateDiscount(discount_type, discount_value, subtotal) {
 }
 
 
+// Simpler than validateDiscount/validateDeposit - tax is always a
+// percentage, never a fixed dollar amount, so there's no type field to
+// check. null/undefined (no override - use the business's own default)
+// is valid; anything else must be a real, sane percentage.
+function validateTaxRate(tax_rate) {
+
+  if (tax_rate === undefined || tax_rate === null || tax_rate === "") {
+    return null;
+  }
+
+  const value = Number(tax_rate);
+
+  if (!Number.isFinite(value) || value < 0) {
+    return "tax_rate must be a non-negative number";
+  }
+
+  if (value > 100) {
+    return "tax_rate can't be more than 100%";
+  }
+
+  return null;
+
+}
+
+
+
 // Same both-or-neither shape as validateDiscount above, but checked
 // against the quote's TOTAL (after any discount is applied) rather than
 // its subtotal - a deposit is up-front money toward what the customer
@@ -214,7 +240,8 @@ const createQuote = async (req, res) => {
       discount_type,
       discount_value,
       deposit_type,
-      deposit_value
+      deposit_value,
+      tax_rate
     } = req.body;
 
     const business_id = req.user.business_id;
@@ -261,10 +288,48 @@ const createQuote = async (req, res) => {
 
     }
 
+    const taxRateError = validateTaxRate(tax_rate);
+
+    if (taxRateError) {
+
+      return res.status(400).json({
+        error: taxRateError
+      });
+
+    }
+
+    const [customer, business] = await Promise.all([
+      getCustomerById(customer_id, business_id),
+      getBusinessById(business_id)
+    ]);
+
+    if (!customer) {
+
+      return res.status(404).json({
+        error: "Customer not found"
+      });
+
+    }
+
+    // An explicit tax_rate on the request - including 0, a deliberate
+    // "no tax on this one" override - wins outright; omitting it entirely
+    // falls back to whatever the business has configured as their
+    // default in Settings, so an owner doesn't have to remember to type
+    // their rate in on every single quote.
+    const effectiveTaxRate = tax_rate === undefined || tax_rate === null || tax_rate === ""
+      ? (business?.default_tax_rate ?? null)
+      : Number(tax_rate);
+
     // The deposit is checked against the total, which needs the discount
-    // factored in first - applyDiscount() rather than a second call to
-    // calculateQuoteTotals() since the items are already summed above.
-    const { total } = applyDiscount(subtotal, discount_type || null, discount_value === undefined ? null : discount_value);
+    // and tax factored in first - applyDiscount() rather than a second
+    // call to calculateQuoteTotals() since the items are already summed
+    // above.
+    const { total } = applyDiscount(
+      subtotal,
+      discount_type || null,
+      discount_value === undefined ? null : discount_value,
+      effectiveTaxRate
+    );
 
     const depositError = validateDeposit(deposit_type, deposit_value, total);
 
@@ -272,16 +337,6 @@ const createQuote = async (req, res) => {
 
       return res.status(400).json({
         error: depositError
-      });
-
-    }
-
-    const customer = await getCustomerById(customer_id, business_id);
-
-    if (!customer) {
-
-      return res.status(404).json({
-        error: "Customer not found"
       });
 
     }
@@ -303,7 +358,8 @@ const createQuote = async (req, res) => {
       discount_type || null,
       discount_value === undefined ? null : discount_value,
       deposit_type || null,
-      deposit_value === undefined ? null : deposit_value
+      deposit_value === undefined ? null : deposit_value,
+      effectiveTaxRate
     );
 
     res.status(201).json({
@@ -675,7 +731,7 @@ const updateQuote = async (req, res) => {
 
     const { id } = req.params;
     const business_id = req.user.business_id;
-    const { status, notes, type, items, discount_type, discount_value, deposit_type, deposit_value } = req.body;
+    const { status, notes, type, items, discount_type, discount_value, deposit_type, deposit_value, tax_rate } = req.body;
 
     if (status !== undefined && !VALID_STATUSES.includes(status)) {
 
@@ -712,6 +768,21 @@ const updateQuote = async (req, res) => {
     // stored value (if any) is left exactly as-is.
     const discountFieldsProvided = discount_type !== undefined || discount_value !== undefined;
     const depositFieldsProvided = deposit_type !== undefined || deposit_value !== undefined;
+    const taxRateProvided = tax_rate !== undefined;
+
+    if (taxRateProvided) {
+
+      const taxRateError = validateTaxRate(tax_rate);
+
+      if (taxRateError) {
+
+        return res.status(400).json({
+          error: taxRateError
+        });
+
+      }
+
+    }
 
     // A discount's validity depends on the subtotal it's applied against,
     // and a deposit's validity depends on the TOTAL (the subtotal minus
@@ -727,7 +798,7 @@ const updateQuote = async (req, res) => {
     // and no extra read happens.
     let existingQuote = null;
 
-    if (items !== undefined || discountFieldsProvided || depositFieldsProvided) {
+    if (items !== undefined || discountFieldsProvided || depositFieldsProvided || taxRateProvided) {
 
       existingQuote = await getQuoteByIdService(id, business_id);
 
@@ -775,7 +846,11 @@ const updateQuote = async (req, res) => {
 
       }
 
-      const { total } = applyDiscount(subtotal, effectiveDiscountType, effectiveDiscountValue);
+      const effectiveTaxRate = taxRateProvided
+        ? (tax_rate === null || tax_rate === "" ? null : Number(tax_rate))
+        : existingQuote.tax_rate;
+
+      const { total } = applyDiscount(subtotal, effectiveDiscountType, effectiveDiscountValue, effectiveTaxRate);
 
       const effectiveDepositType = depositFieldsProvided ? (deposit_type || null) : existingQuote.deposit_type;
       const effectiveDepositValue = depositFieldsProvided
@@ -828,6 +903,12 @@ const updateQuote = async (req, res) => {
 
       fieldsToUpdate.deposit_type = deposit_type || null;
       fieldsToUpdate.deposit_value = deposit_value === undefined || deposit_value === null ? null : Number(deposit_value);
+
+    }
+
+    if (taxRateProvided) {
+
+      fieldsToUpdate.tax_rate = tax_rate === null || tax_rate === "" ? null : Number(tax_rate);
 
     }
 

@@ -115,6 +115,7 @@ describe("Quotes CSV export", () => {
       "Customer Name",
       "Customer Email",
       "Items",
+      "Tax",
       "Total",
       "Job Costs",
       "Margin",
@@ -127,10 +128,12 @@ describe("Quotes CSV export", () => {
     expect(rows[1][1]).toBe("draft");
     expect(rows[1][2]).toBe("Basic Customer");
     expect(rows[1][3]).toBe("basic@example.com");
-    expect(rows[1][5]).toBe("150.00");
+    // No tax rate configured for this business - Tax is 0.00.
+    expect(rows[1][5]).toBe("0.00");
+    expect(rows[1][6]).toBe("150.00");
     // No expenses logged - Job Costs is 0.00 and Margin equals the total.
-    expect(rows[1][6]).toBe("0.00");
-    expect(rows[1][7]).toBe("150.00");
+    expect(rows[1][7]).toBe("0.00");
+    expect(rows[1][8]).toBe("150.00");
 
   });
 
@@ -155,9 +158,10 @@ describe("Quotes CSV export", () => {
 
     const rows = parseCsv(res.text);
 
-    expect(rows[1][5]).toBe("1000.00");
-    expect(rows[1][6]).toBe("300.00");
-    expect(rows[1][7]).toBe("700.00");
+    expect(rows[1][5]).toBe("0.00");
+    expect(rows[1][6]).toBe("1000.00");
+    expect(rows[1][7]).toBe("300.00");
+    expect(rows[1][8]).toBe("700.00");
 
   });
 
@@ -328,7 +332,7 @@ describe("Quotes CSV export", () => {
 
     expect(rows.length).toBe(2);
     expect(rows[1][1]).toBe("paid");
-    expect(rows[1][9]).not.toBe("");
+    expect(rows[1][10]).not.toBe("");
 
     void draftId;
 

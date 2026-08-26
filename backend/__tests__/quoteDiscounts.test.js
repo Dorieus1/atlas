@@ -356,8 +356,10 @@ describe("Quote discounts", () => {
 
     const rows = parseCsv(res.text);
 
-    expect(rows[1][5]).toBe((SUBTOTAL - 90).toFixed(2));
-    expect(rows[1][5]).not.toBe(SUBTOTAL.toFixed(2));
+    // Index 6, not 5 - a "Tax" column now sits between Items and Total
+    // (see csvService.js).
+    expect(rows[1][6]).toBe((SUBTOTAL - 90).toFixed(2));
+    expect(rows[1][6]).not.toBe(SUBTOTAL.toFixed(2));
 
   });
 

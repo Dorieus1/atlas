@@ -937,7 +937,8 @@ export const createQuote = (
   discount_type = null,
   discount_value = null,
   deposit_type = null,
-  deposit_value = null
+  deposit_value = null,
+  tax_rate = undefined
 ) =>
 
   request("/quotes", {
@@ -960,7 +961,14 @@ export const createQuote = (
 
       deposit_type,
 
-      deposit_value
+      deposit_value,
+
+      // undefined (not null) when omitted, and JSON.stringify drops an
+      // undefined property entirely - the backend's own default (undefined
+      // means "no override" and falls back to the business's configured
+      // rate) only kicks in if the key is missing altogether, not if it's
+      // present as null.
+      ...(tax_rate === undefined ? {} : { tax_rate })
 
     })
 
