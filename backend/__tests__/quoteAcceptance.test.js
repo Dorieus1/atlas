@@ -1046,3 +1046,133 @@ describe("Deposit info on the generated PDF", () => {
   });
 
 });
+
+
+describe("Editing a quote once money has actually changed hands", () => {
+
+  test("a fully paid invoice can't have its items, discount, or deposit edited", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "EditLockPaid");
+    const customerId = await createCustomer(authHeader, "Edit Lock Customer", "editlockpaid@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, type: "invoice", items: ITEMS });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    const attempt = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ items: [{ description: "Different job", quantity: 1, unit_price: 99999 }] });
+
+    expect(attempt.status).toBe(400);
+
+    const unchanged = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(unchanged.body.total).toBe(SUBTOTAL);
+
+    // Status/notes edits, which don't touch the actual amounts, are
+    // still allowed on a paid invoice.
+    const notesEdit = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ notes: "Thanks for your business!" });
+
+    expect(notesEdit.status).toBe(200);
+
+  });
+
+
+  test("a quote with an already-paid deposit can't have its items, discount, or deposit edited, even while still 'accepted' rather than 'paid'", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "EditLockDeposit");
+    const customerId = await createCustomer(authHeader, "Deposit Lock Customer", "editlockdeposit@test.com");
+    const businessId = await getBusinessId(authHeader);
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: ITEMS,
+        deposit_type: "fixed",
+        deposit_value: 100
+      });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "accepted" });
+
+    global.__mockStripe.webhooksConstructEvent.mockReturnValue({
+
+      type: "checkout.session.completed",
+
+      data: {
+        object: {
+          metadata: { quote_id: created.body.id, business_id: businessId, payment_type: "deposit" }
+        }
+      }
+
+    });
+
+    await request(app)
+      .post("/api/stripe/webhook")
+      .set("stripe-signature", "test_signature")
+      .send({ type: "checkout.session.completed" });
+
+    const attempt = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ deposit_type: "fixed", deposit_value: 50 });
+
+    expect(attempt.status).toBe(400);
+
+    const unchanged = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(unchanged.body.deposit_value).toBe(100);
+
+  });
+
+
+  test("a merely 'sent' or 'accepted' quote with no deposit paid yet can still be freely edited", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "EditStillOpen");
+    const customerId = await createCustomer(authHeader, "Open Edit Customer", "openedit@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, type: "invoice", items: ITEMS });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "accepted" });
+
+    const attempt = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ items: [{ description: "Updated scope", quantity: 1, unit_price: 600 }] });
+
+    expect(attempt.status).toBe(200);
+
+    const updated = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(updated.body.total).toBe(600);
+
+  });
+
+});

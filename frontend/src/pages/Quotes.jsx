@@ -1334,13 +1334,15 @@ function Quotes() {
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
 
-                  <button
-                    onClick={() => openEditForm(activeQuote)}
-                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
-                  >
-                    <Pencil size={14} />
-                    Edit
-                  </button>
+                  {activeQuote.status !== "paid" && !activeQuote.deposit_paid_at && (
+                    <button
+                      onClick={() => openEditForm(activeQuote)}
+                      className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </button>
+                  )}
 
                   <button
                     onClick={handleSendToCustomer}
