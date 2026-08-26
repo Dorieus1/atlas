@@ -47,6 +47,23 @@ const STATUS_STYLES = {
 
 const STATUS_OPTIONS = ["draft", "sent", "accepted", "declined", "paid"];
 
+// Matches invoiceReminderService's own "first reminder 3 days after
+// sent_at" cadence on the backend, so an invoice only gets flagged here
+// exactly when the owner's first real reminder email is also going out
+// - not a separate, disconnected definition of "overdue".
+const OVERDUE_AFTER_DAYS = 3;
+
+function isOverdueInvoice(quote) {
+
+  return (
+    quote.type === "invoice" &&
+    quote.status === "sent" &&
+    quote.sent_at &&
+    Date.now() - new Date(quote.sent_at).getTime() > OVERDUE_AFTER_DAYS * 24 * 60 * 60 * 1000
+  );
+
+}
+
 const emptyItem = () => ({ description: "", quantity: 1, unit_price: 0 });
 
 function formatMoney(amount) {
@@ -918,6 +935,12 @@ function Quotes() {
                   <span className="font-display text-lg font-bold">
                     {formatMoney(quote.total)}
                   </span>
+
+                  {isOverdueInvoice(quote) && (
+                    <span className="rounded-full bg-red-500/20 px-2.5 py-1 text-[11px] font-medium text-red-400">
+                      Overdue
+                    </span>
+                  )}
 
                   <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${STATUS_STYLES[quote.status]}`}>
                     {quote.status}

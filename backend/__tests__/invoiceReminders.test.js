@@ -148,6 +148,59 @@ describe("Invoice payment reminder emails", () => {
   });
 
 
+  test("the first reminder also creates an in-app notification for the owner", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderNotifies");
+    const customerId = await createCustomer(authHeader, "Notify Customer", "notify@test.com");
+    const invoiceId = await createInvoice(authHeader, customerId);
+
+    await setStatus(authHeader, invoiceId, "sent");
+    await backdateInvoice(invoiceId, { sentDaysAgo: 4 });
+
+    await sendInvoiceReminders();
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const overdueNotification = notifications.body.find((n) => n.type === "invoice_overdue");
+
+    expect(overdueNotification).toBeTruthy();
+    expect(overdueNotification.title).toContain("Notify Customer");
+    expect(overdueNotification.link).toBe("/quotes");
+
+  });
+
+
+  test("a second reminder on the same invoice doesn't create a duplicate notification", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderNoDupe");
+    const customerId = await createCustomer(authHeader, "Dupe Customer", "dupe@test.com");
+    const invoiceId = await createInvoice(authHeader, customerId);
+
+    await setStatus(authHeader, invoiceId, "sent");
+    await backdateInvoice(invoiceId, { sentDaysAgo: 4 });
+
+    await sendInvoiceReminders();
+
+    await backdateInvoice(invoiceId, { sentDaysAgo: 9, reminderDaysAgo: 6 });
+
+    await sendInvoiceReminders();
+
+    const row = await getQuoteRow(invoiceId);
+    expect(row.reminder_count).toBe(2);
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const overdueNotifications = notifications.body.filter((n) => n.type === "invoice_overdue");
+
+    expect(overdueNotifications.length).toBe(1);
+
+  });
+
+
   test("a freshly-sent invoice (under 3 days old) is left alone", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ReminderFresh");

@@ -1,7 +1,8 @@
 const db = require("../../database/db");
 const { sendEmail } = require("./emailService");
 const { createLoginToken } = require("./portalAuthService");
-const { applyDiscount, calculateDeposit } = require("./quoteService");
+const { applyDiscount, calculateDeposit, formatQuoteNumber } = require("./quoteService");
+const { createNotification } = require("./notificationService");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -69,6 +70,8 @@ const sendInvoiceReminders = async () => {
     `
     SELECT
       quotes.id,
+      quotes.type,
+      quotes.quote_number,
       quotes.customer_id,
       quotes.business_id,
       quotes.reminder_count,
@@ -144,6 +147,40 @@ const sendInvoiceReminders = async () => {
         [new Date().toISOString(), invoice.id]
 
       );
+
+      // Only on the invoice's first reminder - this is the moment it
+      // actually *becomes* overdue from the owner's perspective, not
+      // something to re-notify about on every 5-day follow-up. Best-effort,
+      // same reasoning as every other notification in this codebase: a
+      // notification failure must never count as the reminder itself
+      // having failed.
+      if (invoice.reminder_count === 0) {
+
+        try {
+
+          const numberPart = invoice.quote_number ? formatQuoteNumber(invoice.type, invoice.quote_number) : null;
+
+          await createNotification(
+
+            invoice.business_id,
+
+            "invoice_overdue",
+
+            `⏰ ${invoice.customer_name || "A customer"}'s invoice is overdue`,
+
+            numberPart,
+
+            "/quotes"
+
+          );
+
+        } catch (notificationError) {
+
+          console.error(`OVERDUE INVOICE NOTIFICATION FAILED for invoice ${invoice.id}:`, notificationError);
+
+        }
+
+      }
 
       sent += 1;
 
