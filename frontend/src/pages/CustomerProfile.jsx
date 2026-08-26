@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote } from "lucide-react";
 
 import {
   getCustomer,
@@ -683,9 +684,10 @@ function CustomerProfile() {
           p-4
         ">
 
-          <p className="text-amber-300 text-sm">
+          <p className="text-amber-300 text-sm flex items-start gap-2">
 
-            🗑️ This customer is in the trash. They'll be permanently deleted 30 days after being moved here, unless restored.
+            <Trash2 size={16} className="mt-0.5 shrink-0" />
+            This customer is in the trash. They'll be permanently deleted 30 days after being moved here, unless restored.
 
           </p>
 
@@ -812,9 +814,10 @@ function CustomerProfile() {
 
             <>
 
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
 
-                👤 {customer.name}
+                <User size={28} />
+                {customer.name}
 
                 <button
 
@@ -946,8 +949,9 @@ function CustomerProfile() {
         p-6
       ">
 
-        <h2 className="text-xl font-bold">
-          🏷️ Tags
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Tag size={20} />
+          Tags
         </h2>
 
         {tagsError && (
@@ -1062,9 +1066,10 @@ function CustomerProfile() {
           p-6
         ">
 
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold flex items-center gap-2">
 
-            💬 Atlas Chat
+            <MessageSquare size={20} />
+            Atlas Chat
 
           </h2>
 
@@ -1106,9 +1111,10 @@ function CustomerProfile() {
         p-6
       ">
 
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold flex items-center gap-2">
 
-          🧠 AI Customer Summary
+          <Brain size={20} />
+          AI Customer Summary
 
         </h2>
 
@@ -1144,9 +1150,10 @@ function CustomerProfile() {
         p-6
       ">
 
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold flex items-center gap-2">
 
-          🔥 Lead Information
+          <Flame size={20} />
+          Lead Information
 
         </h2>
 
@@ -1258,9 +1265,10 @@ function CustomerProfile() {
         p-6
       ">
 
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold flex items-center gap-2">
 
-          📝 Notes
+          <StickyNote size={20} />
+          Notes
 
         </h2>
 

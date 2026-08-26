@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Users, X, Upload, Trash2 } from "lucide-react";
+import { Users, X, Upload, Trash2, Download } from "lucide-react";
 import {
   getCustomers,
   getTags,
@@ -285,9 +285,12 @@ function Customers() {
           <h1 className="
             text-3xl
             font-bold
+            flex
+            items-center
+            gap-2
           ">
 
-            {showTrash ? "🗑️ Trash" : "👥 Customers"}
+            {showTrash ? (<><Trash2 size={28} /> Trash</>) : (<><Users size={28} /> Customers</>)}
 
           </h1>
 
@@ -349,7 +352,7 @@ function Customers() {
 
             >
 
-              ⬆️ Import CSV
+              <Upload size={16} /> Import CSV
 
             </button>
 
@@ -361,11 +364,11 @@ function Customers() {
 
               onClick={exportCSV}
 
-              className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
+              className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
 
             >
 
-              ⬇️ Export CSV
+              <Download size={16} /> Export CSV
 
             </button>
 

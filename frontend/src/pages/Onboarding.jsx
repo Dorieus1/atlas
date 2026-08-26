@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Rocket } from "lucide-react";
 import { API_BASE } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
 
@@ -252,9 +253,13 @@ function Onboarding() {
         text-3xl
         font-bold
         mb-6
+        flex
+        items-center
+        gap-2
       ">
 
-        🚀 Set Up Your Business
+        <Rocket size={28} />
+        Set Up Your Business
 
       </h1>
 

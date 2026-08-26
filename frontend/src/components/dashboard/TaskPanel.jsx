@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, Check } from "lucide-react";
 import {
   getTasks,
   completeTask
@@ -133,9 +133,13 @@ function TaskPanel() {
         text-2xl
         font-bold
         mb-6
+        flex
+        items-center
+        gap-2
       ">
 
-        📅 Follow-Up Tasks
+        <CalendarCheck size={24} />
+        Follow-Up Tasks
 
       </h2>
 
@@ -220,11 +224,14 @@ function TaskPanel() {
                   py-2
                   rounded-lg
                   disabled:opacity-50
+                  flex
+                  items-center
+                  gap-1.5
                 "
 
               >
 
-                {completingId === task.id ? "Completing..." : "✅ Complete"}
+                {completingId === task.id ? "Completing..." : (<><Check size={16} /> Complete</>)}
 
               </button>
 

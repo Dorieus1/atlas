@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Settings as SettingsIcon, Key } from "lucide-react";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import PublicLinkCard from "../components/PublicLinkCard";
@@ -72,8 +73,9 @@ function Settings() {
 
     <div className="p-8">
 
-      <h1 className="text-3xl font-bold">
-        ⚙️ Settings
+      <h1 className="text-3xl font-bold flex items-center gap-2">
+        <SettingsIcon size={28} />
+        Settings
       </h1>
 
       <p className="mt-1 text-sm text-slate-500">
@@ -150,7 +152,7 @@ function Settings() {
                 <PublicLinkCard
                   business={business}
                   path="/portal"
-                  title="🔑 Your Customer Portal"
+                  title={<><Key size={20} /> Your Customer Portal</>}
                   description="Share this link with customers so they can log in with their email and see their own appointments, quotes, invoices, and photos."
                 />
                 <StripeConnectCard />

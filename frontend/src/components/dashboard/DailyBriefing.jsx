@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Sun } from "lucide-react";
 import { getBriefing } from "../../api/atlasApi";
 import { SkeletonText } from "../Skeleton";
 
@@ -84,9 +85,13 @@ function DailyBriefing() {
         text-2xl
         font-bold
         mb-5
+        flex
+        items-center
+        gap-2
       ">
 
-        ☀️ Atlas Daily Briefing
+        <Sun size={24} />
+        Atlas Daily Briefing
 
       </h2>
 

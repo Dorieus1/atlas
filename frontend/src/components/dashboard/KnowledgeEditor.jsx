@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Plus } from "lucide-react";
 import { createKnowledge } from "../../api/atlasApi";
 
 function KnowledgeEditor() {
@@ -66,8 +67,9 @@ function KnowledgeEditor() {
 
     <div className="h-full bg-ink-900/60 border border-ink-700 rounded-2xl p-6">
 
-      <h2 className="text-2xl font-bold">
-        ➕ Add Business Knowledge
+      <h2 className="text-2xl font-bold flex items-center gap-2">
+        <Plus size={22} />
+        Add Business Knowledge
       </h2>
 
       {error && (

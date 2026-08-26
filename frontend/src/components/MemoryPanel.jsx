@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { Brain } from "lucide-react";
 import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 
@@ -211,8 +212,9 @@ function MemoryPanel({ customer }) {
     <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
 
 
-      <h2 className="text-xl font-bold mb-4">
-        🧠 What Atlas Remembers
+      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <Brain size={20} />
+        What Atlas Remembers
       </h2>
 
       <p className="text-slate-400 text-sm mb-4">

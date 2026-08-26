@@ -173,8 +173,9 @@ function PhotoGallery({ customerId }) {
 
       <div className="flex items-center justify-between gap-3">
 
-        <h2 className="text-xl font-bold">
-          📷 Photos
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Camera size={20} />
+          Photos
         </h2>
 
         <button

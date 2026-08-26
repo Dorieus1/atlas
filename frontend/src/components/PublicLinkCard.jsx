@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check, ExternalLink, MessageSquare } from "lucide-react";
 
 function PublicLinkCard({
   business,
   path = "/talk",
-  title = "💬 Your Public Chat Link",
+  title = (<><MessageSquare size={20} /> Your Public Chat Link</>),
   description = "Share this link anywhere — your website, texts, a QR code — so customers can chat with Atlas directly, no login needed."
 }) {
 
@@ -36,7 +36,7 @@ function PublicLinkCard({
 
     <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
-      <h2 className="text-xl font-bold">
+      <h2 className="text-xl font-bold flex items-center gap-2">
         {title}
       </h2>
 

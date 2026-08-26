@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Flame } from "lucide-react";
+import { Flame, Download, Sparkles } from "lucide-react";
 import { API_BASE, handleSessionExpired, generateFollowUpMessage } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
@@ -213,8 +213,9 @@ function LeadPipeline() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <h2 className="text-2xl font-bold">
-          🔥 Lead Pipeline
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Flame size={22} />
+          Lead Pipeline
         </h2>
 
         {leads.length > 0 && (
@@ -223,11 +224,11 @@ function LeadPipeline() {
 
             onClick={exportCSV}
 
-            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm"
+            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
 
           >
 
-            ⬇️ Export CSV
+            <Download size={14} /> Export CSV
 
           </button>
 
@@ -361,11 +362,11 @@ function LeadPipeline() {
                 <button
                   onClick={() => generateFollowUp(lead)}
                   disabled={followUpLoadingId === lead.id}
-                  className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {followUpLoadingId === lead.id
                     ? "Generating..."
-                    : "🧠 Generate Follow-Up Message"}
+                    : (<><Sparkles size={14} /> Generate Follow-Up Message</>)}
                 </button>
 
                 {followUpErrors[lead.id] && (

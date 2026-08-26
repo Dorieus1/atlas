@@ -58,8 +58,9 @@ function StripeConnectCard() {
 
     <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
-      <h2 className="text-xl font-bold">
-        💳 Get Paid Online
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <CreditCard size={20} />
+        Get Paid Online
       </h2>
 
       {status?.onboarded ? (

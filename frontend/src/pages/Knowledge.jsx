@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BookOpen } from "lucide-react";
 import KnowledgePanel from "../components/dashboard/KnowledgePanel";
 import KnowledgeEditor from "../components/dashboard/KnowledgeEditor";
 import KnowledgeGapsPanel from "../components/dashboard/KnowledgeGapsPanel";
@@ -16,8 +17,9 @@ function Knowledge() {
 
     <div className="p-8">
 
-      <h1 className="text-3xl font-bold">
-        📚 Knowledge Base
+      <h1 className="text-3xl font-bold flex items-center gap-2">
+        <BookOpen size={28} />
+        Knowledge Base
       </h1>
 
       <p className="mt-1 text-sm text-slate-500">

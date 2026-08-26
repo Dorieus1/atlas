@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Wrench } from "lucide-react";
 import {
   getSavedLineItems,
   createSavedLineItem,
@@ -201,8 +201,9 @@ function SavedServicesPanel() {
 
     <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
 
-      <h2 className="text-2xl font-bold">
-        🧰 Saved Services
+      <h2 className="text-2xl font-bold flex items-center gap-2">
+        <Wrench size={22} />
+        Saved Services
       </h2>
 
       <p className="mt-1 text-sm text-slate-500">

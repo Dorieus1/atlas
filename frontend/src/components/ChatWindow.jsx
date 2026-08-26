@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { MessageSquare } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
@@ -175,8 +176,9 @@ function ChatWindow({ business, customer }) {
   return (
     <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
 
-      <h2 className="text-2xl font-bold">
-        💬 Atlas Chat
+      <h2 className="text-2xl font-bold flex items-center gap-2">
+        <MessageSquare size={22} />
+        Atlas Chat
 
         {business && (
           <span className="font-normal text-slate-400">

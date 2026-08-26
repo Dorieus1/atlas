@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Brain, User, Flame, Pin, CalendarCheck, Smartphone, Mail } from "lucide-react";
 import {
   getIntelligence,
   createTask,
@@ -205,9 +206,13 @@ function IntelligencePanel() {
         text-2xl
         font-bold
         mb-6
+        flex
+        items-center
+        gap-2
       ">
 
-        🧠 Atlas Intelligence
+        <Brain size={24} />
+        Atlas Intelligence
 
       </h2>
 
@@ -299,21 +304,25 @@ function IntelligencePanel() {
           <h3 className="
             text-xl
             font-bold
+            flex
+            items-center
+            gap-2
           ">
 
-            👤 {item.customer}
+            <User size={18} />
+            {item.customer}
 
           </h3>
 
 
 
-          <p>
-            🔥 Priority: {item.priority}
+          <p className="flex items-center gap-1.5">
+            <Flame size={15} /> Priority: {item.priority}
           </p>
 
 
-          <p>
-            📌 Status: {item.status}
+          <p className="flex items-center gap-1.5">
+            <Pin size={15} /> Status: {item.status}
           </p>
 
 
@@ -366,10 +375,13 @@ function IntelligencePanel() {
                 px-4
                 py-2
                 rounded-lg
+                flex
+                items-center
+                gap-1.5
               "
             >
 
-              📅 Create Follow-Up
+              <CalendarCheck size={16} /> Create Follow-Up
 
             </button>
 
@@ -390,10 +402,13 @@ function IntelligencePanel() {
                 px-4
                 py-2
                 rounded-lg
+                flex
+                items-center
+                gap-1.5
               "
             >
 
-              📱 SMS
+              <Smartphone size={16} /> SMS
 
             </button>
 
@@ -414,10 +429,13 @@ function IntelligencePanel() {
                 px-4
                 py-2
                 rounded-lg
+                flex
+                items-center
+                gap-1.5
               "
             >
 
-              ✉️ Email
+              <Mail size={16} /> Email
 
             </button>
 

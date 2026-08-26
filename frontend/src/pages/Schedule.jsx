@@ -414,8 +414,9 @@ function Schedule() {
       <div className="flex flex-wrap items-center justify-between gap-3">
 
         <div>
-          <h1 className="text-3xl font-bold">
-            📅 Schedule
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <CalendarDays size={28} />
+            Schedule
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Every job and appointment, at a glance.

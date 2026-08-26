@@ -88,8 +88,9 @@ function ReviewRequestPanel({ customerId }) {
 
       <div className="flex items-center justify-between gap-3">
 
-        <h2 className="text-xl font-bold">
-          ⭐ Reviews
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Star size={20} />
+          Reviews
         </h2>
 
         <button

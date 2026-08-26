@@ -164,9 +164,10 @@ function KnowledgePanel() {
       p-6
     ">
 
-      <h2 className="text-2xl font-bold">
+      <h2 className="text-2xl font-bold flex items-center gap-2">
 
-        📚 Business Knowledge
+        <BookOpen size={22} />
+        Business Knowledge
 
       </h2>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Users, TrendingUp, Flame, Target } from "lucide-react";
 import { API_BASE, handleSessionExpired } from "../api/atlasApi";
 
 import StatCard from "./dashboard/StatCard";
@@ -160,7 +161,7 @@ function Dashboard(){
 
           value={stats.customers}
 
-          icon="👥"
+          icon={<Users size={20} />}
 
           description="Total customers"
 
@@ -174,7 +175,7 @@ function Dashboard(){
 
           value={stats.leads}
 
-          icon="📈"
+          icon={<TrendingUp size={20} />}
 
           description="Captured opportunities"
 
@@ -188,7 +189,7 @@ function Dashboard(){
 
           value={stats.hotLeads}
 
-          icon="🔥"
+          icon={<Flame size={20} />}
 
           description="Needs attention"
 
@@ -202,7 +203,7 @@ function Dashboard(){
 
           value={`${conversion}%`}
 
-          icon="🎯"
+          icon={<Target size={20} />}
 
           description="Lead quality score"
 

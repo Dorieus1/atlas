@@ -615,8 +615,9 @@ function Quotes() {
       <div className="flex flex-wrap items-center justify-between gap-3">
 
         <div>
-          <h1 className="text-3xl font-bold">
-            🧾 Quotes &amp; Invoices
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <FileText size={28} />
+            Quotes &amp; Invoices
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Price the job, then bill it — all in one place.

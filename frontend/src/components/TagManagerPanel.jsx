@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Tag } from "lucide-react";
 import { getTags, createTag, deleteTag } from "../api/atlasApi";
 
 // A business-level list of reusable tag names (e.g. "VIP", "Recurring",
@@ -114,8 +114,9 @@ function TagManagerPanel() {
 
     <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
 
-      <h2 className="text-2xl font-bold">
-        🏷️ Customer Tags
+      <h2 className="text-2xl font-bold flex items-center gap-2">
+        <Tag size={22} />
+        Customer Tags
       </h2>
 
       <p className="mt-1 text-sm text-slate-500">

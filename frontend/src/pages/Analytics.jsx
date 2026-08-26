@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BarChart3, DollarSign, Hourglass } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -77,8 +78,9 @@ function Analytics() {
 
     <div className="p-8">
 
-      <h1 className="text-3xl font-bold">
-        📊 Analytics
+      <h1 className="text-3xl font-bold flex items-center gap-2">
+        <BarChart3 size={28} />
+        Analytics
       </h1>
 
       <p className="mt-1 text-sm text-slate-500">
@@ -97,7 +99,7 @@ function Analytics() {
           title="Revenue Collected"
           value={stats.revenuePaid}
           format={formatMoney}
-          icon="💰"
+          icon={<DollarSign size={20} />}
           description={`${stats.paidInvoiceCount} paid invoice${stats.paidInvoiceCount === 1 ? "" : "s"}`}
         />
 
@@ -105,7 +107,7 @@ function Analytics() {
           title="Outstanding"
           value={stats.revenueOutstanding}
           format={formatMoney}
-          icon="⏳"
+          icon={<Hourglass size={20} />}
           description={`${stats.outstandingInvoiceCount} unpaid invoice${stats.outstandingInvoiceCount === 1 ? "" : "s"}`}
         />
 

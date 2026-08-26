@@ -2,11 +2,13 @@
 // (Landing page hero). No state, no data fetching, no real components —
 // purely decorative markup styled to match the real dashboard at a glance.
 
+import { Users, TrendingUp, Flame, Target, Sun } from "lucide-react";
+
 const MOCK_STATS = [
-  { title: "Customers", value: "128", icon: "👥", description: "Total customers" },
-  { title: "Total Leads", value: "34", icon: "📈", description: "Captured opportunities" },
-  { title: "Hot Leads", value: "9", icon: "🔥", description: "Needs attention" },
-  { title: "Conversion", value: "26%", icon: "🎯", description: "Lead quality score" }
+  { title: "Customers", value: "128", icon: <Users size={16} />, description: "Total customers" },
+  { title: "Total Leads", value: "34", icon: <TrendingUp size={16} />, description: "Captured opportunities" },
+  { title: "Hot Leads", value: "9", icon: <Flame size={16} />, description: "Needs attention" },
+  { title: "Conversion", value: "26%", icon: <Target size={16} />, description: "Lead quality score" }
 ];
 
 const MOCK_LEADS = [
@@ -77,7 +79,10 @@ function DashboardMockup({ className = "" }) {
 
           <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-12">
             <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 lg:col-span-7">
-              <h3 className="text-base font-bold">☀️ Atlas Daily Briefing</h3>
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Sun size={16} />
+                Atlas Daily Briefing
+              </h3>
               <div className="mt-4 space-y-2.5 rounded-xl bg-ink-800 p-4">
                 <p className="text-sm leading-relaxed text-slate-300">
                   You have 3 hot leads waiting on a reply — Priya Shah asked about
@@ -90,7 +95,10 @@ function DashboardMockup({ className = "" }) {
             </div>
 
             <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 lg:col-span-5">
-              <h3 className="text-base font-bold">🔥 Lead Pipeline</h3>
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Flame size={16} />
+                Lead Pipeline
+              </h3>
               <div className="mt-4 space-y-2.5">
                 {MOCK_LEADS.map((lead) => (
                   <div

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Brain } from "lucide-react";
 import { API_BASE } from "../api/atlasApi";
 import Logo from "../components/Logo";
 
@@ -198,9 +199,13 @@ function KnowledgeSetup() {
         text-3xl
         font-bold
         mb-6
+        flex
+        items-center
+        gap-2
       ">
 
-        🧠 Teach Atlas Your Business
+        <Brain size={28} />
+        Teach Atlas Your Business
 
       </h1>
 
