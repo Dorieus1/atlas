@@ -1,5 +1,5 @@
 const { constructWebhookEvent } = require("../services/stripeService");
-const { markQuotePaid, markQuoteDepositPaid, notifyQuotePaymentFailed } = require("../services/quotePaymentService");
+const { markQuotePaid, markQuoteDepositPaid, notifyQuotePaymentFailed, notifyQuoteFullyPaid } = require("../services/quotePaymentService");
 
 
 // No auth here - Stripe calls this directly. The signature check below is
@@ -44,7 +44,18 @@ const handleStripeWebhook = async (req, res) => {
 
         } else {
 
-          await markQuotePaid(quote_id, business_id);
+          // Only notify on the actual transition to paid - never on a
+          // manual owner-side "mark paid" (markQuotePaid is shared with
+          // that path, and the owner already knows they just did it),
+          // and never on Stripe redelivering the same event for an
+          // invoice that was already paid.
+          const result = await markQuotePaid(quote_id, business_id);
+
+          if (result.found && !result.alreadyPaid) {
+
+            await notifyQuoteFullyPaid(quote_id, business_id);
+
+          }
 
         }
 

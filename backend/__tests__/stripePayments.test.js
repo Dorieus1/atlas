@@ -429,10 +429,19 @@ describe("Stripe webhook", () => {
 
     expect(reviewRequests.body.length).toBe(1);
 
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const paidNotification = notifications.body.find((n) => n.type === "invoice_paid");
+
+    expect(paidNotification).toBeTruthy();
+    expect(paidNotification.title).toContain("Webhook Customer");
+
   });
 
 
-  test("processing the same completed event twice doesn't send a duplicate review request", async () => {
+  test("processing the same completed event twice doesn't send a duplicate review request or a duplicate paid notification", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "WebhookIdempotent");
 
@@ -484,6 +493,48 @@ describe("Stripe webhook", () => {
       .set("Authorization", authHeader);
 
     expect(reviewRequests.body.length).toBe(1);
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const paidNotifications = notifications.body.filter((n) => n.type === "invoice_paid");
+
+    expect(paidNotifications.length).toBe(1);
+
+  });
+
+
+  // markQuotePaid is shared by this webhook AND the owner manually
+  // marking an invoice paid by hand (quoteController.js) - the
+  // "invoice_paid" notification only makes sense for the former (the
+  // owner obviously already knows when they've just done it themselves),
+  // so it's wired at the webhook call site, not inside markQuotePaid
+  // itself. This confirms that scoping actually holds.
+  test("the owner manually marking an invoice paid does not create an 'invoice_paid' notification", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ManualMarkPaidNoNotify");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Manual Paid Customer" });
+
+    const invoiceRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, type: "invoice", items: [{ description: "Job", quantity: 1, unit_price: 300 }] });
+
+    await request(app)
+      .patch(`/api/quotes/${invoiceRes.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    expect(notifications.body.find((n) => n.type === "invoice_paid")).toBeUndefined();
 
   });
 

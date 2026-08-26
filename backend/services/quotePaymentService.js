@@ -158,8 +158,55 @@ const notifyQuotePaymentFailed = async (quote_id, business_id) => {
 };
 
 
+// Fired only from the Stripe webhook, right after markQuotePaid actually
+// transitions a quote to "paid" (never on a manual owner-side "mark
+// paid" - the owner obviously already knows they just did that, and
+// never on a webhook redelivery of an already-paid quote, since the
+// caller only invokes this when markQuotePaid's own result says the
+// transition actually happened this time). Mirrors
+// notifyQuotePaymentFailed's shape exactly, so a business owner gets the
+// same kind of heads-up for a customer paying online as they already do
+// for one failing to.
+const notifyQuoteFullyPaid = async (quote_id, business_id) => {
+
+  const quote = await getQuoteById(quote_id, business_id);
+
+  if (!quote) {
+    return { found: false };
+  }
+
+  try {
+
+    const customer = await getCustomerById(quote.customer_id, business_id);
+    const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null;
+
+    await createNotification(
+
+      business_id,
+
+      "invoice_paid",
+
+      `✅ ${customer?.name || "A customer"} paid their invoice`,
+
+      numberPart,
+
+      "/quotes"
+
+    );
+
+  } catch (notificationError) {
+
+    console.error("INVOICE PAID NOTIFICATION FAILED:", notificationError);
+
+  }
+
+  return { found: true };
+};
+
+
 module.exports = {
   markQuotePaid,
   markQuoteDepositPaid,
-  notifyQuotePaymentFailed
+  notifyQuotePaymentFailed,
+  notifyQuoteFullyPaid
 };
