@@ -112,11 +112,8 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       p-6
       flex
       flex-col
-      transform
-      transition-transform
-      duration-200
-      ${open ? "translate-x-0" : "-translate-x-full"}
-      md:translate-x-0
+      ${open ? "" : "hidden"}
+      md:block
       md:sticky
       md:top-0
     `}>
