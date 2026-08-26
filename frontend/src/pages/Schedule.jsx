@@ -56,8 +56,24 @@ function sameDay(a, b) {
   );
 }
 
+// Local calendar date, not UTC - sameDay() (just above) already compares
+// by local getFullYear/getMonth/getDate, and the month/week grid cells
+// are all built from local-midnight Date objects (buildMonthGrid,
+// buildWeekGrid), so this needs to agree with those or an appointment
+// can end up filed under the wrong grid cell. Using
+// date.toISOString().slice(0, 10) here (the original implementation)
+// reads the UTC calendar date instead - for any timezone behind UTC, an
+// evening appointment's stored UTC start_time can already be on the
+// NEXT calendar day, silently shifting it into tomorrow's cell instead
+// of the day it was actually booked for.
 function toDateKey(date) {
-  return date.toISOString().slice(0, 10);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+
 }
 
 // A small, fixed palette rather than anything derived from a teammate's
