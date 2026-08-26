@@ -201,6 +201,19 @@ if (require.main === module) {
 
       }, 6 * 60 * 60 * 1000);
 
+      // A 90-day dormancy window is just as unhurried as the trash purge
+      // above, so it shares the same 6-hour cadence rather than the
+      // 30-minute interval used for time-sensitive reminders.
+      const { sendWinBackCampaign } = require("./services/winBackService");
+
+      sendWinBackCampaign().catch((err) => console.error("WIN-BACK CAMPAIGN FAILED:", err));
+
+      setInterval(() => {
+
+        sendWinBackCampaign().catch((err) => console.error("WIN-BACK CAMPAIGN FAILED:", err));
+
+      }, 6 * 60 * 60 * 1000);
+
       app.listen(PORT,()=>{
 
         console.log(
