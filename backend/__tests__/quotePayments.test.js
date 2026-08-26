@@ -3,14 +3,57 @@ const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
 
 
-const createCustomer = async (authHeader, name) => {
+const createCustomer = async (authHeader, name, email) => {
 
   const res = await request(app)
     .post("/api/customers")
     .set("Authorization", authHeader)
-    .send({ name });
+    .send({ name, email });
 
   return res.body.id;
+
+};
+
+
+const getSlug = async (authHeader) => {
+
+  const res = await request(app)
+    .get("/api/business")
+    .set("Authorization", authHeader);
+
+  return res.body[0].slug;
+
+};
+
+
+const connectAndOnboard = async (authHeader) => {
+
+  await request(app)
+    .post("/api/stripe/connect/start")
+    .set("Authorization", authHeader);
+
+  await request(app)
+    .get("/api/stripe/connect/status")
+    .set("Authorization", authHeader);
+
+};
+
+
+const loginAsCustomer = async (slug, email) => {
+
+  await request(app)
+    .post(`/api/portal/${slug}/login`)
+    .send({ email });
+
+  const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
+  const body = JSON.parse(lastCall[1].body);
+  const token = body.html.match(/token=([a-f0-9]+)/)[1];
+
+  const verify = await request(app)
+    .post(`/api/portal/${slug}/verify`)
+    .send({ token });
+
+  return `Bearer ${verify.body.token}`;
 
 };
 
@@ -339,6 +382,103 @@ describe("Manually recorded quote/invoice payments", () => {
       .send({ amount: 50, method: "cash" });
 
     expect(crossAttempt.status).toBe(404);
+
+  });
+
+});
+
+
+// Regression tests for two related real-money bugs both stemming from
+// the same root cause: quote_payments/amount_paid/balance_due (this
+// file's own subject, migration 045) is a newer source of truth than
+// deposit_paid_at, and two pre-existing money-critical paths were never
+// updated to consult it - a customer who'd already paid part of an
+// invoice in cash could still be charged the full original total again
+// through the portal, and an invoice with a manual payment recorded
+// against it could still be edited to shrink the total below what was
+// already paid.
+describe("Manual payments interacting with the portal checkout and the edit lock", () => {
+
+  test("the portal's Pay button charges only the remaining balance after a manual cash payment, and refuses to charge again once fully paid", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ManualPaymentCheckout");
+    const slug = await getSlug(authHeader);
+
+    await connectAndOnboard(authHeader);
+
+    const customerId = await createCustomer(authHeader, "Manual Payment Customer", "manualpaymentcheckout@test.com");
+
+    // Two $1000 invoices for the same customer - one login covers both,
+    // matching this suite's own "scoped to the right business" style of
+    // reusing setup rather than logging in per scenario.
+    const partialId = await createSentInvoice(authHeader, customerId, 1000);
+    const fullId = await createSentInvoice(authHeader, customerId, 1000);
+
+    // $400 cash on the first - amount_paid 400, balance_due 600.
+    await request(app)
+      .post(`/api/quotes/${partialId}/payments`)
+      .set("Authorization", authHeader)
+      .send({ amount: 400, method: "cash" });
+
+    // Full $1000 cash on the second - nothing left to charge.
+    await request(app)
+      .post(`/api/quotes/${fullId}/payments`)
+      .set("Authorization", authHeader)
+      .send({ amount: 1000, method: "cash" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "manualpaymentcheckout@test.com");
+
+    const partialCheckout = await request(app)
+      .post(`/api/portal/account/quotes/${partialId}/checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    expect(partialCheckout.status).toBe(200);
+
+    const sessionArgs = global.__mockStripe.checkoutSessionsCreate.mock.calls[0][0];
+
+    // (1000 - 400) * 100 = 60000 cents - must never be the full 100000.
+    expect(sessionArgs.line_items.length).toBe(1);
+    expect(sessionArgs.line_items[0].price_data.unit_amount).toBe(60000);
+    expect(sessionArgs.line_items[0].price_data.unit_amount).not.toBe(100000);
+
+    global.__mockStripe.checkoutSessionsCreate.mockClear();
+
+    const fullCheckout = await request(app)
+      .post(`/api/portal/account/quotes/${fullId}/checkout`)
+      .set("Authorization", customerAuthHeader);
+
+    expect(fullCheckout.status).toBe(400);
+    expect(global.__mockStripe.checkoutSessionsCreate).not.toHaveBeenCalled();
+
+  });
+
+
+  test("a manual payment blocks editing items, same as a deposit or a full payment would", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PaymentEditLock");
+    const customerId = await createCustomer(authHeader, "Edit Lock Customer");
+    const invoiceId = await createSentInvoice(authHeader, customerId, 1000);
+
+    await request(app)
+      .post(`/api/quotes/${invoiceId}/payments`)
+      .set("Authorization", authHeader)
+      .send({ amount: 400, method: "cash" });
+
+    // Shrinking the items to well under the $400 already paid must be
+    // refused, not silently accepted with balance_due floored at 0.
+    const edit = await request(app)
+      .patch(`/api/quotes/${invoiceId}`)
+      .set("Authorization", authHeader)
+      .send({ items: [{ description: "Smaller job", quantity: 1, unit_price: 100 }] });
+
+    expect(edit.status).toBe(400);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${invoiceId}`)
+      .set("Authorization", authHeader);
+
+    // Untouched - the original $1000 item is still there.
+    expect(fetched.body.subtotal).toBe(1000);
 
   });
 

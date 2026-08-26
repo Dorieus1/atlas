@@ -582,14 +582,20 @@ const createInvoiceCheckout = async (req, res) => {
 
     }
 
-    if (quote.deposit_paid_at) {
+    // quote.amount_paid (getQuoteById, quoteService.js) already combines
+    // BOTH ways money can be on the books before this button is ever
+    // pressed - a Stripe deposit and any manually-recorded payments
+    // (cash/check/etc., addQuotePayment) - so this one check covers
+    // either or both, instead of only ever looking at deposit_paid_at
+    // and silently ignoring manual payments recorded against the same
+    // invoice (which would otherwise charge the customer the full
+    // original total a second time on top of what they already paid).
+    if (quote.amount_paid > 0) {
 
-      const remainingBalance = Math.round((quote.total - quote.deposit_amount + Number.EPSILON) * 100) / 100;
-
-      if (remainingBalance <= 0) {
+      if (quote.balance_due <= 0) {
 
         return res.status(400).json({
-          error: "This invoice is fully covered by the deposit already paid"
+          error: "This invoice is fully covered by payments already made"
         });
 
       }
@@ -597,9 +603,9 @@ const createInvoiceCheckout = async (req, res) => {
       const numberPart = quote.quote_number ? formatQuoteNumber(quote.type, quote.quote_number) : null;
 
       checkoutItems = [{
-        description: `Remaining balance for Invoice${numberPart ? ` ${numberPart}` : ""} (after $${quote.deposit_amount.toFixed(2)} deposit)`,
+        description: `Remaining balance for Invoice${numberPart ? ` ${numberPart}` : ""} (after $${quote.amount_paid.toFixed(2)} already paid)`,
         quantity: 1,
-        unit_price: remainingBalance
+        unit_price: quote.balance_due
       }];
 
       checkoutDiscount = null;

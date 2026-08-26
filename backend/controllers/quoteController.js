@@ -986,19 +986,24 @@ const updateQuote = async (req, res) => {
 
       }
 
-      // Once a quote is fully paid, or a deposit has actually been
-      // collected against its current total/deposit_amount, changing
-      // items/discount/deposit would silently invalidate money that's
-      // already changed hands - the customer paid based on the numbers
-      // as they were, and nothing here reconciles a real payment against
-      // a retroactively different total. Editing notes/status is still
-      // fine; only the fields that affect the actual amounts are blocked.
-      if (existingQuote.status === "paid" || existingQuote.deposit_paid_at) {
+      // Once a quote is fully paid, a deposit has actually been collected
+      // against its current total/deposit_amount, or ANY manual payment
+      // (cash/check/etc., addQuotePayment) has been recorded against it,
+      // changing items/discount/deposit would silently invalidate money
+      // that's already changed hands - the customer paid based on the
+      // numbers as they were, and nothing here reconciles a real payment
+      // against a retroactively different total. amount_paid (getQuoteById,
+      // quoteService.js) already combines both the deposit and manual-
+      // payment cases, so checking it alongside deposit_paid_at also
+      // catches a partial cash payment that deposit_paid_at alone would
+      // miss entirely. Editing notes/status is still fine; only the
+      // fields that affect the actual amounts are blocked.
+      if (existingQuote.status === "paid" || existingQuote.deposit_paid_at || existingQuote.amount_paid > 0) {
 
         return res.status(400).json({
           error: existingQuote.status === "paid"
             ? "This has already been paid in full and can't be edited."
-            : "A deposit has already been paid on this - editing the price would no longer match what the customer paid."
+            : "A payment has already been recorded against this - editing the price would no longer match what the customer paid."
         });
 
       }
