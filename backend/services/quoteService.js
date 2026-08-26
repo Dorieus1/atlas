@@ -514,7 +514,7 @@ const updateQuoteFields = async (id, business_id, fields) => {
 
   const existing = await getAsync(
 
-    `SELECT id, sent_at FROM quotes WHERE id = ? AND business_id = ?`,
+    `SELECT id, sent_at, type FROM quotes WHERE id = ? AND business_id = ?`,
 
     [id, business_id]
 
@@ -526,11 +526,35 @@ const updateQuoteFields = async (id, business_id, fields) => {
 
   const fieldsWithTimestamps = { ...fields };
 
+  // Converting a quote to an invoice (or vice versa - "Convert to Invoice"
+  // is the only path today, but this stays correct either direction) is a
+  // new lifecycle stage for reminder purposes: "asking for a decision" and
+  // "asking for payment" are different asks with different urgency. Without
+  // this reset, quoteReminderService and invoiceReminderService - which both
+  // key off these same three columns - would either inherit a reminder_count
+  // already at the cap (silently disabling every future reminder on the new
+  // document) or an old sent_at already past the reminder cutoff (firing an
+  // immediate, premature reminder seconds after the "new" document exists).
+  // Reset the whole reminder history so the new type starts its own
+  // countdown from scratch, exactly like a freshly-created document would.
+  const typeChanged = fieldsWithTimestamps.type !== undefined && fieldsWithTimestamps.type !== existing.type;
+
+  if (typeChanged) {
+    fieldsWithTimestamps.sent_at = null;
+    fieldsWithTimestamps.last_reminder_sent_at = null;
+    fieldsWithTimestamps.reminder_count = 0;
+  }
+
   // First time a quote/invoice transitions to "sent", stamp sent_at - this
-  // is what the invoice-reminder job uses to know when the 3-day countdown
-  // to a first reminder starts. Only set it once; re-saving an already-sent
-  // quote must not push the clock forward.
-  if (fieldsWithTimestamps.status === "sent" && !existing.sent_at) {
+  // is what the reminder jobs use to know when the countdown to a first
+  // reminder starts. Only set it once; re-saving an already-sent quote
+  // must not push the clock forward. Checked against the EFFECTIVE prior
+  // sent_at (null if a type change just reset it above), not the stale
+  // DB value, so a type-change-plus-resend in the same call correctly
+  // re-stamps immediately rather than staying null until some later save.
+  const effectiveExistingSentAt = typeChanged ? null : existing.sent_at;
+
+  if (fieldsWithTimestamps.status === "sent" && !effectiveExistingSentAt) {
     fieldsWithTimestamps.sent_at = new Date().toISOString();
   }
 

@@ -3,6 +3,7 @@ const app = require("../server");
 const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
 const { sendQuoteReminders } = require("../services/quoteReminderService");
+const { sendInvoiceReminders } = require("../services/invoiceReminderService");
 
 
 const createCustomer = async (authHeader, name, email) => {
@@ -302,6 +303,67 @@ describe("Quote follow-up reminder emails", () => {
     expect(body.subject).toContain("QuoteReminderContent Business");
     expect(body.html).toContain("QuoteReminderContent Business");
     expect(body.html.toLowerCase()).toContain("estimate");
+
+  });
+
+
+  test("converting a fully-reminded quote into an invoice resets its reminder history instead of carrying it over", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuoteToInvoiceReset");
+    const customerId = await createCustomer(authHeader, "Convert Customer", "converttoinvoice@test.com");
+    const quoteId = await createQuote(authHeader, customerId);
+
+    await setStatus(authHeader, quoteId, "sent");
+
+    // Exhaust the quote's reminder cap and backdate sent_at well past
+    // both jobs' cutoffs, simulating a quote that took ~2 weeks to
+    // decide on and used up all 3 quote-reminder nudges in the meantime.
+    await backdateQuote(quoteId, { sentDaysAgo: 14, reminderDaysAgo: 6, reminderCount: 3 });
+
+    const beforeConvert = await getQuoteRow(quoteId);
+    expect(beforeConvert.reminder_count).toBe(3);
+
+    // The exact call Quotes.jsx's "Convert to Invoice" button makes.
+    await request(app)
+      .patch(`/api/quotes/${quoteId}`)
+      .set("Authorization", authHeader)
+      .send({ type: "invoice", status: "sent" });
+
+    const afterConvert = await getQuoteRow(quoteId);
+
+    // reminder_count/last_reminder_sent_at reset, and sent_at re-stamped
+    // to now (not left at its old, already-past-every-cutoff value) -
+    // the new invoice gets a genuinely fresh reminder countdown, not an
+    // immediately-overdue one.
+    expect(afterConvert.reminder_count).toBe(0);
+    expect(afterConvert.last_reminder_sent_at).toBeFalsy();
+    expect(afterConvert.sent_at).toBeTruthy();
+    expect(new Date(afterConvert.sent_at).getTime()).toBeGreaterThan(Date.now() - 60 * 1000);
+
+    // Right after conversion, the invoice is far too fresh (sent moments
+    // ago) to be due for a reminder yet - this is the regression the bug
+    // would have caused (an immediate, premature reminder). Checked on
+    // THIS row specifically, not the job's aggregate return count -
+    // sendInvoiceReminders is deliberately cross-tenant, so an unrelated
+    // invoice left behind by another test earlier in this same file can
+    // legitimately be due at the same time and would make an aggregate
+    // count assertion flaky for reasons that have nothing to do with
+    // this fix.
+    await sendInvoiceReminders();
+
+    const stillUnreminded = await getQuoteRow(quoteId);
+    expect(stillUnreminded.last_reminder_sent_at).toBeFalsy();
+
+    // But once it's genuinely 3+ days old again, invoice reminders fire
+    // normally on this row - proving the cap reset actually re-enabled
+    // them, not just cleared the fields without effect.
+    await backdateQuote(quoteId, { sentDaysAgo: 4 });
+
+    await sendInvoiceReminders();
+
+    const nowReminded = await getQuoteRow(quoteId);
+    expect(nowReminded.last_reminder_sent_at).toBeTruthy();
+    expect(nowReminded.reminder_count).toBe(1);
 
   });
 
