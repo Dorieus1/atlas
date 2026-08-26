@@ -6,6 +6,8 @@ import {
   getPortalMe,
   getPortalAppointments,
   requestPortalAppointment,
+  cancelPortalAppointment,
+  reschedulePortalAppointment,
   getPortalQuotes,
   createInvoiceCheckout,
   acceptPortalQuote,
@@ -52,6 +54,20 @@ function formatDate(dateString) {
   });
 }
 
+// Mirrors the backend's own guard in loadOwnEditableAppointment
+// (portalController.js) - an appointment that's already cancelled,
+// already completed, or already in the past isn't something a customer
+// can still act on, so the buttons shouldn't even offer to try.
+function canManageAppointment(appt) {
+
+  return (
+    appt.status !== "cancelled" &&
+    appt.status !== "completed" &&
+    new Date(appt.start_time).getTime() > Date.now()
+  );
+
+}
+
 
 function PortalDashboard() {
 
@@ -80,6 +96,16 @@ function PortalDashboard() {
   const [requesting, setRequesting] = useState(false);
   const requestingRef = useRef(false);
   const [requestSuccess, setRequestSuccess] = useState("");
+
+  const [cancellingId, setCancellingId] = useState(null);
+  const [confirmingCancelId, setConfirmingCancelId] = useState(null);
+  const [appointmentActionError, setAppointmentActionError] = useState("");
+
+  const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("09:00");
+  const [rescheduleError, setRescheduleError] = useState("");
+  const [rescheduling, setRescheduling] = useState(false);
 
   const [payingId, setPayingId] = useState(null);
   const [payError, setPayError] = useState("");
@@ -207,6 +233,86 @@ function PortalDashboard() {
 
       requestingRef.current = false;
       setRequesting(false);
+
+    }
+
+  };
+
+
+  const handleCancelAppointment = async (id) => {
+
+    setCancellingId(id);
+    setAppointmentActionError("");
+
+    try {
+
+      await cancelPortalAppointment(id);
+      setConfirmingCancelId(null);
+
+      const myAppointments = await getPortalAppointments();
+      setAppointments(myAppointments);
+
+    } catch (error) {
+
+      console.error("CANCEL APPOINTMENT ERROR:", error);
+      setAppointmentActionError(error.message || "Couldn't cancel that appointment. Please try again.");
+
+    } finally {
+
+      setCancellingId(null);
+
+    }
+
+  };
+
+
+  const openRescheduleForm = (appt) => {
+
+    setRescheduleError("");
+
+    const start = new Date(appt.start_time);
+
+    setRescheduleDate(start.toISOString().slice(0, 10));
+    setRescheduleTime(start.toISOString().slice(11, 16));
+    setReschedulingAppointment(appt);
+
+  };
+
+
+  const handleConfirmReschedule = async () => {
+
+    if (!reschedulingAppointment) {
+      return;
+    }
+
+    if (!rescheduleDate) {
+      setRescheduleError("Pick a date.");
+      return;
+    }
+
+    setRescheduling(true);
+    setRescheduleError("");
+
+    try {
+
+      const newStartTime = new Date(`${rescheduleDate}T${rescheduleTime || "09:00"}:00`).toISOString();
+
+      await reschedulePortalAppointment(reschedulingAppointment.id, newStartTime);
+
+      setReschedulingAppointment(null);
+      setAppointmentActionError("");
+
+      const myAppointments = await getPortalAppointments();
+      setAppointments(myAppointments);
+
+    } catch (error) {
+
+      console.error("RESCHEDULE APPOINTMENT ERROR:", error);
+      setRescheduleError(error.message || "Couldn't reschedule that appointment. Please try again.");
+
+    } finally {
+
+      setRescheduling(false);
 
     }
 
@@ -441,6 +547,12 @@ function PortalDashboard() {
               </p>
             )}
 
+            {appointmentActionError && (
+              <p className="mt-3 text-sm text-red-400">
+                {appointmentActionError}
+              </p>
+            )}
+
             {appointments.length === 0 ? (
 
               <EmptyState
@@ -457,17 +569,70 @@ function PortalDashboard() {
 
                   <div
                     key={appt.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-ink-800 p-3"
+                    className="flex flex-col gap-2 rounded-xl border border-ink-800 p-3"
                   >
 
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{appt.title}</p>
-                      <p className="text-xs text-slate-500">{formatDate(appt.start_time)}</p>
+                    <div className="flex items-center justify-between gap-3">
+
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{appt.title}</p>
+                        <p className="text-xs text-slate-500">{formatDate(appt.start_time)}</p>
+                      </div>
+
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-slate-300"}`}>
+                        {STATUS_LABELS[appt.status] || appt.status}
+                      </span>
+
                     </div>
 
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-slate-300"}`}>
-                      {STATUS_LABELS[appt.status] || appt.status}
-                    </span>
+                    {canManageAppointment(appt) && (
+
+                      confirmingCancelId === appt.id ? (
+
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
+
+                          <span className="text-slate-400">Cancel this appointment?</span>
+
+                          <button
+                            onClick={() => handleCancelAppointment(appt.id)}
+                            disabled={cancellingId === appt.id}
+                            className="font-semibold text-red-400 hover:text-red-300 disabled:opacity-50"
+                          >
+                            {cancellingId === appt.id ? "Cancelling..." : "Yes, cancel it"}
+                          </button>
+
+                          <button
+                            onClick={() => setConfirmingCancelId(null)}
+                            className="text-slate-400 hover:text-white"
+                          >
+                            Never mind
+                          </button>
+
+                        </div>
+
+                      ) : (
+
+                        <div className="flex items-center gap-4 text-xs font-semibold">
+
+                          <button
+                            onClick={() => openRescheduleForm(appt)}
+                            className="text-brand-400 hover:text-brand-300"
+                          >
+                            Reschedule
+                          </button>
+
+                          <button
+                            onClick={() => setConfirmingCancelId(appt.id)}
+                            className="text-slate-400 hover:text-red-400"
+                          >
+                            Cancel
+                          </button>
+
+                        </div>
+
+                      )
+
+                    )}
 
                   </div>
 
@@ -793,6 +958,78 @@ function PortalDashboard() {
               </button>
 
             </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {reschedulingAppointment && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setReschedulingAppointment(null)}
+        >
+
+          <div
+            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Reschedule {reschedulingAppointment.title}
+              </h3>
+
+              <button
+                onClick={() => setReschedulingAppointment(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {reschedulingAppointment.status === "scheduled"
+                ? "We'll need to confirm the new time with you before it's official."
+                : "We'll take a look and confirm this time with you."}
+            </p>
+
+            {rescheduleError && (
+              <p className="mt-3 text-sm text-red-400">
+                {rescheduleError}
+              </p>
+            )}
+
+            <div className="mt-4 flex gap-3">
+
+              <input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+              />
+
+              <input
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+              />
+
+            </div>
+
+            <button
+              onClick={handleConfirmReschedule}
+              disabled={rescheduling}
+              className="mt-4 w-full rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+            >
+              {rescheduling ? "Saving..." : "Confirm New Time"}
+            </button>
 
           </div>
 

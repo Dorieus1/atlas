@@ -12,6 +12,8 @@ const {
   getMe,
   requestAppointment,
   getMyAppointments,
+  cancelMyAppointment,
+  rescheduleMyAppointment,
   getMyQuotes,
   downloadMyQuotePdf,
   createInvoiceCheckout,
@@ -44,6 +46,18 @@ router.post(
   "/account/appointments",
   customerAuthMiddleware,
   requestAppointment
+);
+
+router.post(
+  "/account/appointments/:id/cancel",
+  customerAuthMiddleware,
+  cancelMyAppointment
+);
+
+router.post(
+  "/account/appointments/:id/reschedule",
+  customerAuthMiddleware,
+  rescheduleMyAppointment
 );
 
 router.get(

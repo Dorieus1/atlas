@@ -3,7 +3,13 @@ const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail } = require("../services/emailService");
 const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit } = require("../services/quoteService");
-const { getAppointmentsByCustomer, createAppointment } = require("../services/appointmentService");
+const {
+  getAppointmentsByCustomer,
+  createAppointment,
+  getAppointmentById,
+  updateAppointmentStatus,
+  rescheduleAppointment: rescheduleAppointmentService
+} = require("../services/appointmentService");
 const { checkWithinBusinessHours } = require("../services/businessHoursService");
 const { getPhotosByCustomer } = require("../services/photoService");
 const { createNotification } = require("../services/notificationService");
@@ -391,6 +397,206 @@ const getMyAppointments = async (req, res) => {
     const appointments = await getAppointmentsByCustomer(req.customer.customer_id, req.customer.business_id);
 
     res.json(appointments);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+// Shared by cancelMyAppointment and rescheduleMyAppointment below - both
+// need the exact same "does this appointment belong to this customer,
+// and is it something a customer is even still allowed to touch" checks
+// before doing anything else. Returns the appointment on success, or
+// null after having already written the appropriate error response.
+async function loadOwnEditableAppointment(req, res) {
+
+  const appointment = await getAppointmentById(req.params.id, req.customer.business_id);
+
+  if (!appointment || appointment.customer_id !== req.customer.customer_id) {
+
+    res.status(404).json({
+      error: "Appointment not found"
+    });
+
+    return null;
+
+  }
+
+  if (appointment.status === "cancelled" || appointment.status === "completed") {
+
+    res.status(400).json({
+      error: appointment.status === "cancelled"
+        ? "This appointment has already been cancelled"
+        : "This appointment has already been completed"
+    });
+
+    return null;
+
+  }
+
+  if (new Date(appointment.start_time).getTime() < Date.now()) {
+
+    res.status(400).json({
+      error: "This appointment has already passed"
+    });
+
+    return null;
+
+  }
+
+  return appointment;
+
+}
+
+
+
+const cancelMyAppointment = async (req, res) => {
+
+  try {
+
+    const appointment = await loadOwnEditableAppointment(req, res);
+
+    if (!appointment) {
+      return;
+    }
+
+    await updateAppointmentStatus(appointment.id, req.customer.business_id, "cancelled");
+
+    // Best-effort - the cancellation itself must never fail just because
+    // the owner's notification couldn't be created, same reasoning as
+    // requestAppointment's own notification above.
+    try {
+
+      const customer = await getActiveCustomerById(req.customer.customer_id, req.customer.business_id);
+
+      await createNotification(
+
+        req.customer.business_id,
+
+        "appointment_cancelled",
+
+        `❌ ${customer?.name || "A customer"} cancelled an appointment`,
+
+        appointment.title,
+
+        "/schedule"
+
+      );
+
+    } catch (notificationError) {
+
+      console.error("APPOINTMENT CANCEL NOTIFICATION FAILED:", notificationError);
+
+    }
+
+    res.json({
+      message: "Appointment cancelled"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+// A customer moving their own appointment is treated the same as a
+// brand-new request, not a silent edit of a confirmed booking: if the
+// appointment was already "scheduled" (the owner had confirmed it), the
+// new time flips it back to "requested" so the owner has to confirm the
+// new time too, through the exact same Schedule page UI that already
+// handles a fresh request - a customer unilaterally moving a job the
+// business already planned a crew/day around would otherwise go
+// unnoticed until someone showed up at the wrong time. An appointment
+// already sitting at "requested" just keeps its own status; there's
+// nothing to downgrade.
+const rescheduleMyAppointment = async (req, res) => {
+
+  try {
+
+    const { start_time } = req.body;
+
+    if (!start_time || Number.isNaN(new Date(start_time).getTime())) {
+
+      return res.status(400).json({
+        error: "A valid start_time is required"
+      });
+
+    }
+
+    const appointment = await loadOwnEditableAppointment(req, res);
+
+    if (!appointment) {
+      return;
+    }
+
+    const business = await getBusinessById(req.customer.business_id);
+
+    // Same guard requestAppointment applies to a brand-new booking - a
+    // customer-proposed time shouldn't bypass the business's configured
+    // hours just because it's a reschedule instead of a fresh request.
+    const hoursCheck = checkWithinBusinessHours(business.business_hours, start_time, business.timezone);
+
+    if (!hoursCheck.allowed) {
+
+      return res.status(400).json({
+        error: hoursCheck.error
+      });
+
+    }
+
+    await rescheduleAppointmentService(appointment.id, req.customer.business_id, new Date(start_time).toISOString());
+
+    if (appointment.status === "scheduled") {
+
+      await updateAppointmentStatus(appointment.id, req.customer.business_id, "requested");
+
+    }
+
+    // Best-effort, same reasoning as every other notification here.
+    try {
+
+      const customer = await getActiveCustomerById(req.customer.customer_id, req.customer.business_id);
+
+      await createNotification(
+
+        req.customer.business_id,
+
+        "appointment_reschedule_requested",
+
+        `🔁 ${customer?.name || "A customer"} asked to reschedule an appointment`,
+
+        appointment.title,
+
+        "/schedule"
+
+      );
+
+    } catch (notificationError) {
+
+      console.error("APPOINTMENT RESCHEDULE NOTIFICATION FAILED:", notificationError);
+
+    }
+
+    res.json({
+      message: "Appointment reschedule requested"
+    });
 
   } catch (error) {
 
@@ -964,6 +1170,10 @@ module.exports = {
   requestAppointment,
 
   getMyAppointments,
+
+  cancelMyAppointment,
+
+  rescheduleMyAppointment,
 
   getMyQuotes,
 

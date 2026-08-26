@@ -1381,6 +1381,17 @@ export const requestPortalAppointment = (title, notes, start_time, end_time) =>
     body: JSON.stringify({ title, notes, start_time, end_time })
   });
 
+export const cancelPortalAppointment = (id) =>
+  portalRequest(`/portal/account/appointments/${id}/cancel`, {
+    method: "POST"
+  });
+
+export const reschedulePortalAppointment = (id, start_time) =>
+  portalRequest(`/portal/account/appointments/${id}/reschedule`, {
+    method: "POST",
+    body: JSON.stringify({ start_time })
+  });
+
 export const getPortalQuotes = () =>
   portalRequest("/portal/account/quotes");
 
