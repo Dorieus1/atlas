@@ -7,6 +7,21 @@ const path = require("path");
 const app = express();
 
 
+// Stops naming the framework in every response for free - not a real
+// barrier on its own, but there's no reason to hand a would-be attacker
+// even this much for zero cost.
+app.disable("x-powered-by");
+
+// Defense in depth alongside the photoController fix that forces
+// uploaded files onto a safe image extension: without this, an older
+// browser can still "content-sniff" a response and render it as HTML
+// based on its bytes rather than its declared Content-Type. This tells
+// every browser to trust the Content-Type header as-is instead.
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
 app.use(cors());
 
 // Registered before express.json() and given its own raw-body parser:
