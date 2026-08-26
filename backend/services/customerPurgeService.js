@@ -89,6 +89,11 @@ const purgeCustomer = async (customer) => {
         [customer.id]
       );
 
+      await runAsync(
+        `DELETE FROM quote_expenses WHERE quote_id IN (SELECT id FROM quotes WHERE customer_id = ?)`,
+        [customer.id]
+      );
+
       await runAsync(`DELETE FROM quotes WHERE customer_id = ?`, [customer.id]);
 
       await runAsync(`DELETE FROM photos WHERE customer_id = ?`, [customer.id]);

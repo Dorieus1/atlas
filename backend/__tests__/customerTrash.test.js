@@ -250,13 +250,18 @@ describe("Customer trash", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, title: "should be purged", start_time: "2026-09-01T10:00:00.000Z" });
 
-    await request(app)
+    const quoteRes = await request(app)
       .post("/api/quotes")
       .set("Authorization", authHeader)
       .send({
         customer_id: customerId,
         items: [{ description: "Job", quantity: 1, unit_price: 100 }]
       });
+
+    await request(app)
+      .post(`/api/quotes/${quoteRes.body.id}/expenses`)
+      .set("Authorization", authHeader)
+      .send({ description: "Materials", amount: 40 });
 
     await request(app)
       .delete(`/api/customers/${customerId}`)
@@ -278,11 +283,16 @@ describe("Customer trash", () => {
       "SELECT * FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE customer_id = ?)",
       [customerId]
     );
+    const quoteExpenses = await allAsync(
+      "SELECT * FROM quote_expenses WHERE quote_id = ?",
+      [quoteRes.body.id]
+    );
 
     expect(notes).toHaveLength(0);
     expect(appointments).toHaveLength(0);
     expect(quotes).toHaveLength(0);
     expect(quoteItems).toHaveLength(0);
+    expect(quoteExpenses).toHaveLength(0);
 
   });
 
