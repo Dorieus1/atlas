@@ -32,6 +32,22 @@ const generateMessage = async (req,res)=>{
 
     }
 
+    // Only ever "SMS" or "Email" from the real UI (see
+    // IntelligencePanel.jsx) - `type` gets interpolated directly into
+    // the AI prompt's instructions ("Create a customer ${type}."), so
+    // it's validated against a fixed allowlist here rather than trusted
+    // as free text from the request body.
+    if (type !== "SMS" && type !== "Email") {
+
+      return res.status(400).json({
+
+        error:
+        "type must be \"SMS\" or \"Email\""
+
+      });
+
+    }
+
     if (customer.length > 500 || interest.length > 2000) {
 
       return res.status(400).json({
