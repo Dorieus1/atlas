@@ -128,6 +128,14 @@ function App() {
   }
 />
           <Route
+  path="/customers/trash"
+  element={
+    <ProtectedRoute>
+      <Customers />
+    </ProtectedRoute>
+  }
+/>
+          <Route
   path="/customers/:id"
   element={
     <ProtectedRoute>

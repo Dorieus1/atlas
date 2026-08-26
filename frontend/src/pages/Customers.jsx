@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Users, X, Upload, Trash2 } from "lucide-react";
 import {
   getCustomers,
@@ -34,8 +34,6 @@ function Customers() {
 
   const fileInputRef = useRef(null);
 
-  const [showTrash, setShowTrash] = useState(false);
-
   const [trashedCustomers, setTrashedCustomers] = useState([]);
 
   const [trashError, setTrashError] = useState("");
@@ -45,6 +43,16 @@ function Customers() {
   const restoringRef = useRef(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Trash is a real, addressable route (/customers/trash) rather than
+  // hidden view-only state - it can be linked, bookmarked, and backed
+  // out of with the browser's own back button, and it means this exact
+  // path can never collide with the customer-detail route trying to
+  // treat "trash" as a customer id (which used to render a broken
+  // profile shell full of "couldn't load" errors instead of the actual
+  // trash list).
+  const showTrash = location.pathname === "/customers/trash";
 
 
 
@@ -279,12 +287,14 @@ function Customers() {
             font-bold
           ">
 
-            👥 Customers
+            {showTrash ? "🗑️ Trash" : "👥 Customers"}
 
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Every customer in one place.
+            {showTrash
+              ? "Customers deleted in the last 30 days. Restore one to bring it back."
+              : "Every customer in one place."}
           </p>
 
         </div>
@@ -293,7 +303,7 @@ function Customers() {
 
           <button
 
-            onClick={() => setShowTrash((prev) => !prev)}
+            onClick={() => navigate(showTrash ? "/customers" : "/customers/trash")}
 
             className="
               flex

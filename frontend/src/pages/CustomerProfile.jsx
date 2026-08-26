@@ -108,6 +108,19 @@ function CustomerProfile() {
 
     const data = await getCustomer(id);
 
+    // A defensive check, not the primary fix: this route id is expected
+    // to always resolve to a single customer object with a real id. If
+    // it ever doesn't (a malformed response, or some other route/id
+    // colliding with a backend path the way "/customers/trash" once
+    // did), treat it as "not found" instead of rendering a customer
+    // profile shell around garbage data.
+    if (!data || typeof data !== "object" || Array.isArray(data) || !data.id) {
+
+      setLoadError("This customer doesn't exist, or may have been deleted.");
+      return;
+
+    }
+
     setCustomer(data);
 
     if (data.business_id) {
