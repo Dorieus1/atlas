@@ -275,7 +275,8 @@ module.exports = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           reset_token TEXT,
           reset_token_expires DATETIME,
-          role TEXT NOT NULL DEFAULT 'owner'
+          role TEXT NOT NULL DEFAULT 'owner',
+          password_changed_at DATETIME
         )
       `);
 

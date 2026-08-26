@@ -55,7 +55,7 @@ const authMiddleware = (req, res, next) => {
     db.get(
 
       `
-      SELECT id, role
+      SELECT id, role, password_changed_at
       FROM users
       WHERE id = ? AND business_id = ?
       `,
@@ -75,6 +75,30 @@ const authMiddleware = (req, res, next) => {
         }
 
         if (!row) {
+
+          return res.status(401).json({
+            error: "Session expired. Please log in again."
+          });
+
+        }
+
+        // Tokens are otherwise long-lived (7 days, see login() in
+        // authController.js) with no other way to revoke one early - a
+        // leaked token used to keep working for the rest of its life
+        // even after the real owner changed their password specifically
+        // because they suspected a leak. `iat` (issued-at) is set
+        // automatically by jwt.sign, but only at whole-SECOND
+        // resolution - comparing it against password_changed_at's full
+        // millisecond precision would reject a brand-new token minted in
+        // the same second as the change (a real risk under fast,
+        // sequential test/API calls), so password_changed_at is floored
+        // to seconds here too before comparing. Any token issued in an
+        // earlier second than the account's last password change is
+        // rejected, the same way an already-logged-out session would be.
+        if (
+          row.password_changed_at &&
+          decoded.iat < Math.floor(new Date(row.password_changed_at).getTime() / 1000)
+        ) {
 
           return res.status(401).json({
             error: "Session expired. Please log in again."

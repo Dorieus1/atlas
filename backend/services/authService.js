@@ -231,6 +231,13 @@ const findUserByResetToken = (token) => {
 
 
 
+// Shared by both password-change paths (the authenticated changePassword
+// flow and the forgot/reset-password flow - see authController.js,
+// both call this same function) - stamping password_changed_at here
+// covers both in one place. authMiddleware rejects any token issued
+// before this timestamp, so this is what actually makes a password
+// change invalidate a leaked/stolen token instead of leaving it valid
+// for the rest of its 7-day life.
 const resetPasswordByUserId = async (userId, newPassword) => {
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -241,11 +248,11 @@ const resetPasswordByUserId = async (userId, newPassword) => {
 
       `
       UPDATE users
-      SET password = ?, reset_token = NULL, reset_token_expires = NULL
+      SET password = ?, reset_token = NULL, reset_token_expires = NULL, password_changed_at = ?
       WHERE id = ?
       `,
 
-      [hashedPassword, userId],
+      [hashedPassword, new Date().toISOString(), userId],
 
       function(err) {
 

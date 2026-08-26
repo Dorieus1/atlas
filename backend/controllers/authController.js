@@ -59,6 +59,24 @@ const register = async (req,res)=>{
     }
 
 
+
+    // This is a public, unauthenticated route (anyone can create a new
+    // business's owner account) - resetPassword and inviteTeammate below
+    // both already enforce this same minimum, register() was the one
+    // gap that let an account be created with a trivially-guessable
+    // one-character password.
+    if (password.length < 6) {
+
+      return res.status(400).json({
+
+        error:
+        "Password must be at least 6 characters"
+
+      });
+
+    }
+
+
     const existingUsers = await countUsersByBusiness(business_id);
 
     if (existingUsers > 0) {

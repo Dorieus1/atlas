@@ -37,6 +37,34 @@ describe("Auth: register and login", () => {
 
   });
 
+  test("registering with a too-short password is rejected", async () => {
+
+    const biz = await request(app)
+      .post("/api/business")
+      .send({ name: "Short Password Co" });
+
+    const register = await request(app)
+      .post("/api/auth/register")
+      .send({
+        business_id: biz.body.id,
+        name: "Owner",
+        email: "shortpass@test.com",
+        password: "abc"
+      });
+
+    expect(register.status).toBe(400);
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: "shortpass@test.com",
+        password: "abc"
+      });
+
+    expect(login.status).toBe(404);
+
+  });
+
   test("a whitespace-only business name is rejected, and a padded one gets trimmed", async () => {
 
     const blank = await request(app)
