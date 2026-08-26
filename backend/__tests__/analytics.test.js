@@ -71,6 +71,8 @@ describe("Analytics", () => {
     expect(res.body.revenueByMonth).toHaveLength(6);
     expect(res.body.revenueByMonth.every((m) => m.total === 0)).toBe(true);
     expect(res.body.leadsByStatus).toEqual({ new: 0, contacted: 0, qualified: 0, closed: 0 });
+    expect(res.body.expensesPaid).toBe(0);
+    expect(res.body.totalMargin).toBe(0);
 
   });
 
@@ -153,6 +155,55 @@ describe("Analytics", () => {
 
     const currentMonthTotal = res.body.revenueByMonth[res.body.revenueByMonth.length - 1].total;
     expect(currentMonthTotal).toBe(500);
+
+  });
+
+
+  test("margin nets expenses against paid invoices only - an expense on an unpaid invoice doesn't count yet", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AnalyticsMargin");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Margin Customer" });
+
+    const customerId = customerRes.body.id;
+
+    const paidId = await createInvoice(authHeader, customerId, 1000);
+
+    await request(app)
+      .post(`/api/quotes/${paidId}/expenses`)
+      .set("Authorization", authHeader)
+      .send({ description: "Materials", amount: 300 });
+
+    await request(app)
+      .patch(`/api/quotes/${paidId}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    // Expense logged against a still-outstanding invoice - shouldn't be
+    // netted against anything yet, since the business hasn't actually
+    // collected that revenue.
+    const outstandingId = await createInvoice(authHeader, customerId, 800);
+
+    await request(app)
+      .post(`/api/quotes/${outstandingId}/expenses`)
+      .set("Authorization", authHeader)
+      .send({ description: "Materials", amount: 150 });
+
+    await request(app)
+      .patch(`/api/quotes/${outstandingId}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", authHeader);
+
+    expect(res.body.revenuePaid).toBe(1000);
+    expect(res.body.expensesPaid).toBe(300);
+    expect(res.body.totalMargin).toBe(700);
 
   });
 

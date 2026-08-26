@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BarChart3, DollarSign, Hourglass } from "lucide-react";
+import { BarChart3, DollarSign, Hourglass, PiggyBank } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -45,7 +45,9 @@ function Analytics() {
     revenueOutstanding: 0,
     paidInvoiceCount: 0,
     outstandingInvoiceCount: 0,
-    revenueByMonth: []
+    revenueByMonth: [],
+    expensesPaid: 0,
+    totalMargin: 0
   });
 
   const [loadError, setLoadError] = useState("");
@@ -93,7 +95,7 @@ function Analytics() {
         </p>
       )}
 
-      <div className="mt-6 grid gap-5 sm:grid-cols-2">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
 
         <StatCard
           title="Revenue Collected"
@@ -109,6 +111,14 @@ function Analytics() {
           format={formatMoney}
           icon={<Hourglass size={20} />}
           description={`${stats.outstandingInvoiceCount} unpaid invoice${stats.outstandingInvoiceCount === 1 ? "" : "s"}`}
+        />
+
+        <StatCard
+          title="Profit Margin"
+          value={stats.totalMargin}
+          format={formatMoney}
+          icon={<PiggyBank size={20} />}
+          description={stats.expensesPaid > 0 ? `After ${formatMoney(stats.expensesPaid)} in job costs` : "Collected revenue minus job costs"}
         />
 
       </div>

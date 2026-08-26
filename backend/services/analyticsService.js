@@ -61,7 +61,8 @@ const getAnalytics = async (business_id) => {
     revenueOutstanding,
     paidInvoices,
     outstandingInvoices,
-    monthlyRows
+    monthlyRows,
+    expensesPaid
   ] = await Promise.all([
 
     getAsync(`SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND deleted_at IS NULL`, [business_id]),
@@ -138,6 +139,26 @@ const getAnalytics = async (business_id) => {
 
       [business_id]
 
+    ),
+
+    // Only counted against PAID invoices, matching revenuePaid's own
+    // definition of "real" revenue - an expense logged against a draft
+    // or still-outstanding invoice hasn't actually been recovered by
+    // anything yet, so it shouldn't be netted against money the
+    // business hasn't collected.
+    getAsync(
+
+      `
+      SELECT COALESCE(SUM(quote_expenses.amount), 0) as total
+      FROM quotes
+      JOIN quote_expenses ON quote_expenses.quote_id = quotes.id
+      WHERE quotes.business_id = ?
+      AND quotes.type = 'invoice'
+      AND quotes.status = 'paid'
+      `,
+
+      [business_id]
+
     )
 
   ]);
@@ -180,7 +201,10 @@ const getAnalytics = async (business_id) => {
     revenueOutstanding: revenueOutstanding.total,
     paidInvoiceCount: paidInvoices.count,
     outstandingInvoiceCount: outstandingInvoices.count,
-    revenueByMonth
+    revenueByMonth,
+
+    expensesPaid: expensesPaid.total,
+    totalMargin: revenuePaid.total - expensesPaid.total
 
   };
 
