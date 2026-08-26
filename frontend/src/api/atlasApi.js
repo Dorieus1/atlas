@@ -328,7 +328,9 @@ export const createCustomer = (
 
   email,
 
-  phone
+  phone,
+
+  address
 
 ) =>
 
@@ -342,7 +344,9 @@ export const createCustomer = (
 
       email,
 
-      phone
+      phone,
+
+      address
 
     })
 
@@ -443,7 +447,9 @@ export const updateCustomerInfo = (
 
   email,
 
-  phone
+  phone,
+
+  address
 
 ) =>
 
@@ -457,7 +463,9 @@ export const updateCustomerInfo = (
 
       email,
 
-      phone
+      phone,
+
+      address
 
     })
 

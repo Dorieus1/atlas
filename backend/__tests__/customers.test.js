@@ -126,7 +126,7 @@ describe("Customers", () => {
     const edit = await request(app)
       .put(`/api/customers/${created.body.id}`)
       .set("Authorization", authHeader)
-      .send({ name: "Renamed", email: "renamed@test.com", phone: "555-0100" });
+      .send({ name: "Renamed", email: "renamed@test.com", phone: "555-0100", address: "123 Main St" });
 
     expect(edit.status).toBe(200);
 
@@ -137,23 +137,25 @@ describe("Customers", () => {
     expect(fetched.body.name).toBe("Renamed");
     expect(fetched.body.email).toBe("renamed@test.com");
     expect(fetched.body.phone).toBe("555-0100");
+    expect(fetched.body.address).toBe("123 Main St");
 
   });
 
-  test("a customer's phone number is saved when creating them", async () => {
+  test("a customer's phone number and service address are saved when creating them", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "CustPhone");
 
     const created = await request(app)
       .post("/api/customers")
       .set("Authorization", authHeader)
-      .send({ name: "Phone Customer", phone: "555-0199" });
+      .send({ name: "Phone Customer", phone: "555-0199", address: "456 Oak Ave" });
 
     const fetched = await request(app)
       .get(`/api/customers/${created.body.id}`)
       .set("Authorization", authHeader);
 
     expect(fetched.body.phone).toBe("555-0199");
+    expect(fetched.body.address).toBe("456 Oak Ave");
 
   });
 

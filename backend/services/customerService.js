@@ -58,7 +58,8 @@ const createCustomer = (
   email,
   phone,
   created_by_user_id = null,
-  created_by_name = null
+  created_by_name = null,
+  address = null
 
 ) => {
 
@@ -81,9 +82,10 @@ const createCustomer = (
         email,
         phone,
         created_by_user_id,
-        created_by_name
+        created_by_name,
+        address
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -93,7 +95,8 @@ const createCustomer = (
         email || null,
         phone || null,
         created_by_user_id || null,
-        created_by_name || null
+        created_by_name || null,
+        address || null
       ],
 
 
@@ -762,7 +765,8 @@ const updateCustomer = (
   business_id,
   name,
   email,
-  phone
+  phone,
+  address = null
 
 ) => {
 
@@ -774,7 +778,7 @@ const updateCustomer = (
 
       `
       UPDATE customers
-      SET name = ?, email = ?, phone = ?
+      SET name = ?, email = ?, phone = ?, address = ?
       WHERE id = ?
       AND business_id = ?
       `,
@@ -783,6 +787,7 @@ const updateCustomer = (
         name,
         email || null,
         phone || null,
+        address || null,
         id,
         business_id
       ],

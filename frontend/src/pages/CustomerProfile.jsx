@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign, CalendarClock } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign, CalendarClock, MapPin } from "lucide-react";
 
 import {
   getCustomer,
@@ -65,6 +65,7 @@ function CustomerProfile() {
   const [editCustomerName, setEditCustomerName] = useState("");
   const [editCustomerEmail, setEditCustomerEmail] = useState("");
   const [editCustomerPhone, setEditCustomerPhone] = useState("");
+  const [editCustomerAddress, setEditCustomerAddress] = useState("");
   const [customerEditError, setCustomerEditError] = useState("");
   const [savingCustomerEdit, setSavingCustomerEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -631,6 +632,7 @@ function CustomerProfile() {
     setEditCustomerName(customer.name || "");
     setEditCustomerEmail(customer.email || "");
     setEditCustomerPhone(customer.phone || "");
+    setEditCustomerAddress(customer.address || "");
     setCustomerEditError("");
     setEditingCustomer(true);
 
@@ -659,7 +661,8 @@ function CustomerProfile() {
         id,
         editCustomerName.trim(),
         editCustomerEmail.trim(),
-        editCustomerPhone.trim()
+        editCustomerPhone.trim(),
+        editCustomerAddress.trim()
       );
 
       setCustomer({
@@ -667,7 +670,8 @@ function CustomerProfile() {
         ...customer,
         name: editCustomerName.trim(),
         email: editCustomerEmail.trim(),
-        phone: editCustomerPhone.trim()
+        phone: editCustomerPhone.trim(),
+        address: editCustomerAddress.trim()
 
       });
 
@@ -867,6 +871,18 @@ function CustomerProfile() {
 
               />
 
+              <input
+
+                value={editCustomerAddress}
+
+                onChange={(e) => setEditCustomerAddress(e.target.value)}
+
+                placeholder="Service address"
+
+                className="mt-2 block w-full max-w-md bg-ink-800 text-white border border-ink-700 rounded-lg p-2"
+
+              />
+
               <div className="flex gap-2">
 
                 <button
@@ -935,6 +951,17 @@ function CustomerProfile() {
                 <p className="text-slate-400">
 
                   {customer.phone}
+
+                </p>
+
+              )}
+
+              {customer.address && (
+
+                <p className="mt-1 flex items-center gap-1.5 text-slate-400">
+
+                  <MapPin size={14} className="shrink-0" />
+                  {customer.address}
 
                 </p>
 

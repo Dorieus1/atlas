@@ -54,7 +54,9 @@ const createCustomer = async (req, res) => {
 
       email,
 
-      phone
+      phone,
+
+      address
 
     } = req.body;
 
@@ -99,7 +101,9 @@ const createCustomer = async (req, res) => {
 
         req.user.id,
 
-        actingUser ? actingUser.name : null
+        actingUser ? actingUser.name : null,
+
+        address ? address.trim() : address
 
       );
 
@@ -649,7 +653,7 @@ const updateCustomer = async (req, res) => {
   try {
 
 
-    const { name, email, phone } = req.body;
+    const { name, email, phone, address } = req.body;
 
 
     if (!name || !name.trim()) {
@@ -674,7 +678,9 @@ const updateCustomer = async (req, res) => {
 
       email,
 
-      phone
+      phone,
+
+      address
 
     );
 

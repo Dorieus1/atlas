@@ -65,7 +65,8 @@ module.exports = async () => {
           created_by_user_id TEXT,
           created_by_name TEXT,
           deleted_at DATETIME,
-          last_win_back_at DATETIME
+          last_win_back_at DATETIME,
+          address TEXT
         )
       `);
 

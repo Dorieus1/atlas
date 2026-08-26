@@ -11,6 +11,8 @@ function CustomerForm({ onCustomerCreated }) {
 
   const [phone, setPhone] = useState("");
 
+  const [address, setAddress] = useState("");
+
   const [error, setError] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -52,7 +54,9 @@ function CustomerForm({ onCustomerCreated }) {
 
         email.trim(),
 
-        phone.trim()
+        phone.trim(),
+
+        address.trim()
 
       );
 
@@ -62,6 +66,8 @@ function CustomerForm({ onCustomerCreated }) {
       setEmail("");
 
       setPhone("");
+
+      setAddress("");
 
 
       if(onCustomerCreated){
@@ -156,6 +162,18 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer phone"
   value={phone}
   onChange={(e) => setPhone(e.target.value)}
+  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
+/>
+
+<label htmlFor="customer-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+  Service Address
+</label>
+
+<input
+  id="customer-address"
+  placeholder="Service address (optional)"
+  value={address}
+  onChange={(e) => setAddress(e.target.value)}
   className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 focus:outline-none focus:border-ink-600"
 />
 
