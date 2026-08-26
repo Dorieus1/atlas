@@ -619,6 +619,18 @@ export const getBriefing = () =>
 
 
 
+export const askAssistant = (question) =>
+
+  request("/assistant/ask", {
+
+    method: "POST",
+
+    body: JSON.stringify({ question })
+
+  });
+
+
+
 export const getIntelligence = () =>
 
   request("/intelligence");
