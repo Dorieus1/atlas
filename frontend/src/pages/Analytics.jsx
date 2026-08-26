@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BarChart3, DollarSign, Hourglass, PiggyBank } from "lucide-react";
+import { BarChart3, DollarSign, Hourglass, PiggyBank, Repeat, Award } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -29,6 +29,10 @@ function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount || 0);
 }
 
+function formatPercent(value) {
+  return `${value || 0}%`;
+}
+
 function formatMonth(monthKey) {
   const [year, month] = monthKey.split("-");
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(undefined, { month: "short" });
@@ -47,7 +51,9 @@ function Analytics() {
     outstandingInvoiceCount: 0,
     revenueByMonth: [],
     expensesPaid: 0,
-    totalMargin: 0
+    totalMargin: 0,
+    repeatCustomerRate: 0,
+    avgCustomerValue: 0
   });
 
   const [loadError, setLoadError] = useState("");
@@ -119,6 +125,22 @@ function Analytics() {
           format={formatMoney}
           icon={<PiggyBank size={20} />}
           description={stats.expensesPaid > 0 ? `After ${formatMoney(stats.expensesPaid)} in job costs` : "Collected revenue minus job costs"}
+        />
+
+        <StatCard
+          title="Repeat Customer Rate"
+          value={stats.repeatCustomerRate}
+          format={formatPercent}
+          icon={<Repeat size={20} />}
+          description="Of customers who've paid, how many paid more than once"
+        />
+
+        <StatCard
+          title="Avg. Customer Value"
+          value={stats.avgCustomerValue}
+          format={formatMoney}
+          icon={<Award size={20} />}
+          description="Average revenue collected per paying customer"
         />
 
       </div>

@@ -91,6 +91,7 @@ const getAnalytics = async (business_id) => {
 
       `
       SELECT
+        quotes.customer_id,
         quotes.discount_type,
         quotes.discount_value,
         quotes.tax_rate,
@@ -173,12 +174,54 @@ const getAnalytics = async (business_id) => {
   // billed/collected, not the pre-discount subtotal.
   const paidTotals = paidQuoteRows.map((row) => ({
 
+    customerId: row.customer_id,
     paidAt: row.paid_at,
     total: applyDiscount(row.subtotal, row.discount_type, row.discount_value, row.tax_rate).total
 
   }));
 
   const revenuePaidTotal = round2(paidTotals.reduce((sum, row) => sum + row.total, 0));
+
+  // Repeat-customer rate and CLV both need "how many paid invoices, and
+  // how much, per customer" - built once here from the same per-quote
+  // paidTotals above rather than a second query, so there's exactly one
+  // definition of "revenue collected" (applyDiscount'd, per quote) behind
+  // every money figure this endpoint returns.
+  const revenueByCustomer = {};
+
+  paidTotals.forEach((row) => {
+
+    if (!row.customerId) {
+      return;
+    }
+
+    if (!revenueByCustomer[row.customerId]) {
+      revenueByCustomer[row.customerId] = { invoiceCount: 0, total: 0 };
+    }
+
+    revenueByCustomer[row.customerId].invoiceCount += 1;
+    revenueByCustomer[row.customerId].total += row.total;
+
+  });
+
+  const payingCustomers = Object.values(revenueByCustomer);
+  const repeatCustomers = payingCustomers.filter((c) => c.invoiceCount >= 2);
+
+  // Standard repeat-purchase-rate definition: of everyone who has ever
+  // paid at least once, what share came back and paid again. A business
+  // with zero paying customers yet reports 0%, not NaN/Infinity.
+  const repeatCustomerRate = payingCustomers.length > 0
+    ? round2((repeatCustomers.length / payingCustomers.length) * 100)
+    : 0;
+
+  // Average lifetime value per paying customer - total collected revenue
+  // divided across the customers who actually generated it, not the
+  // business's whole customer list (a customer who's never paid
+  // shouldn't dilute the average toward a number that undersells what a
+  // real paying customer is worth).
+  const avgCustomerValue = payingCustomers.length > 0
+    ? round2(revenuePaidTotal / payingCustomers.length)
+    : 0;
 
   const revenueOutstandingTotal = round2(
 
@@ -241,7 +284,10 @@ const getAnalytics = async (business_id) => {
     revenueByMonth,
 
     expensesPaid: expensesPaid.total,
-    totalMargin: round2(revenuePaidTotal - expensesPaid.total)
+    totalMargin: round2(revenuePaidTotal - expensesPaid.total),
+
+    repeatCustomerRate,
+    avgCustomerValue
 
   };
 

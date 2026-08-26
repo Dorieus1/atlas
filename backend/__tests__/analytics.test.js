@@ -73,6 +73,8 @@ describe("Analytics", () => {
     expect(res.body.leadsByStatus).toEqual({ new: 0, contacted: 0, qualified: 0, closed: 0 });
     expect(res.body.expensesPaid).toBe(0);
     expect(res.body.totalMargin).toBe(0);
+    expect(res.body.repeatCustomerRate).toBe(0);
+    expect(res.body.avgCustomerValue).toBe(0);
 
   });
 
@@ -172,6 +174,55 @@ describe("Analytics", () => {
 
     const currentMonthTotal = res.body.revenueByMonth[res.body.revenueByMonth.length - 1].total;
     expect(currentMonthTotal).toBe(800);
+
+  });
+
+
+  test("repeat customer rate and average customer value are computed per-customer, not per-invoice", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AnalyticsRepeatCustomers");
+
+    const repeatCustomer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Repeat Customer" });
+
+    const oneTimeCustomer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "One-Time Customer" });
+
+    const neverPaidCustomer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Never Paid Customer" });
+
+    // Repeat customer: two separate paid invoices, $100 and $300.
+    const repeatInvoice1 = await createInvoice(authHeader, repeatCustomer.body.id, 100);
+    await request(app).patch(`/api/quotes/${repeatInvoice1}`).set("Authorization", authHeader).send({ status: "paid" });
+
+    const repeatInvoice2 = await createInvoice(authHeader, repeatCustomer.body.id, 300);
+    await request(app).patch(`/api/quotes/${repeatInvoice2}`).set("Authorization", authHeader).send({ status: "paid" });
+
+    // One-time customer: a single paid invoice, $200.
+    const oneTimeInvoice = await createInvoice(authHeader, oneTimeCustomer.body.id, 200);
+    await request(app).patch(`/api/quotes/${oneTimeInvoice}`).set("Authorization", authHeader).send({ status: "paid" });
+
+    // Never-paid customer: a draft invoice that should count toward
+    // neither the paying-customer pool nor its rate/value.
+    await createInvoice(authHeader, neverPaidCustomer.body.id, 500);
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", authHeader);
+
+    // 1 of 2 paying customers (repeatCustomer) paid more than once = 50%.
+    expect(res.body.repeatCustomerRate).toBe(50);
+
+    // $600 total collected across 2 paying customers = $300 average -
+    // the never-paid customer must not dilute this toward a 3rd share.
+    expect(res.body.revenuePaid).toBe(600);
+    expect(res.body.avgCustomerValue).toBe(300);
 
   });
 
