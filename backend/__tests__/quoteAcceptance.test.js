@@ -954,3 +954,95 @@ describe("Stripe webhook - deposit vs full payment", () => {
   });
 
 });
+
+
+const getPdfBuffer = (req) =>
+
+  req.buffer(true).parse((res, callback) => {
+    res.setEncoding("binary");
+    let data = "";
+    res.on("data", (chunk) => { data += chunk; });
+    res.on("end", () => callback(null, Buffer.from(data, "binary")));
+  });
+
+
+describe("Deposit info on the generated PDF", () => {
+
+  test("a quote with an unpaid deposit renders without crashing", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "DepositPdfUnpaid");
+    const customerId = await createCustomer(authHeader, "PDF Deposit Customer", "pdfdeposit@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: ITEMS,
+        deposit_type: "fixed",
+        deposit_value: 100
+      });
+
+    const pdf = await getPdfBuffer(
+      request(app)
+        .get(`/api/quotes/${created.body.id}/pdf`)
+        .set("Authorization", authHeader)
+    );
+
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers["content-type"]).toBe("application/pdf");
+    expect(pdf.body.slice(0, 4).toString()).toBe("%PDF");
+    expect(pdf.body.length).toBeGreaterThan(500);
+
+  });
+
+
+  test("a quote with a paid deposit (and the resulting remaining-balance line) renders without crashing", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "DepositPdfPaid");
+    const customerId = await createCustomer(authHeader, "PDF Paid Deposit Customer", "pdfpaiddeposit@test.com");
+    const businessId = await getBusinessId(authHeader);
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: ITEMS,
+        deposit_type: "percent",
+        deposit_value: 25
+      });
+
+    global.__mockStripe.webhooksConstructEvent.mockReturnValue({
+
+      type: "checkout.session.completed",
+
+      data: {
+        object: {
+          metadata: { quote_id: created.body.id, business_id: businessId, payment_type: "deposit" }
+        }
+      }
+
+    });
+
+    await request(app)
+      .post("/api/stripe/webhook")
+      .set("stripe-signature", "test_signature")
+      .send({ type: "checkout.session.completed" });
+
+    const pdf = await getPdfBuffer(
+      request(app)
+        .get(`/api/quotes/${created.body.id}/pdf`)
+        .set("Authorization", authHeader)
+    );
+
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers["content-type"]).toBe("application/pdf");
+    expect(pdf.body.slice(0, 4).toString()).toBe("%PDF");
+    expect(pdf.body.length).toBeGreaterThan(500);
+
+  });
+
+});

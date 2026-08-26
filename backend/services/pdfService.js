@@ -38,6 +38,17 @@ function formatDiscountLabel(quote) {
 }
 
 
+function formatDepositLabel(quote) {
+
+  if (quote.deposit_type === "percent") {
+    return `Deposit (${quote.deposit_value}%)`;
+  }
+
+  return "Deposit";
+
+}
+
+
 function drawTableHeader(doc, y) {
 
   doc
@@ -173,15 +184,27 @@ function streamQuotePdf(res, quote, business) {
   // "Total" line this PDF has always shown, so existing quotes' PDFs
   // don't suddenly grow a "Discount: $0.00" line that was never there.
   const hasDiscount = !!quote.discount_type;
+  const hasDeposit = !!quote.deposit_type;
+  const depositPaid = hasDeposit && !!quote.deposit_paid_at;
 
   const DISCOUNT_LABEL_X = 250;
   const DISCOUNT_LABEL_WIDTH = 210;
   const BREAKDOWN_LINE_HEIGHT = 18;
 
   // The "30" here is the same rough single-line height the page-break
-  // math always used for the Total line - two extra lines are added on
-  // top of it when a discount also needs to be drawn.
-  const totalsBlockHeight = hasDiscount ? (BREAKDOWN_LINE_HEIGHT * 2 + 30) : 30;
+  // math always used for the Total line - extra lines are added on top
+  // of it for each optional block (discount, deposit, and, once a
+  // deposit has actually been paid, the remaining balance still owed)
+  // that also needs to be drawn.
+  let totalsBlockHeight = 30;
+
+  if (hasDiscount) {
+    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT * 2;
+  }
+
+  if (hasDeposit) {
+    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT * (depositPaid ? 2 : 1);
+  }
 
   if (y + 20 + totalsBlockHeight > bottomOf(doc)) {
 
@@ -225,6 +248,43 @@ function streamQuotePdf(res, quote, business) {
     .text("Total", COLUMNS.unitPrice, y, { width: 70, align: "right" })
     .fillColor(BRAND_COLOR)
     .text(formatMoney(quote.total), COLUMNS.amount, y, { width: 65, align: "right" });
+
+  if (hasDeposit) {
+
+    y += BREAKDOWN_LINE_HEIGHT + 6;
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(MUTED_COLOR)
+      // The "(paid)" note lives on the label side, which has 210px to
+      // work with - cramming it into the narrow 65px amount column
+      // alongside the dollar figure wrapped onto a second line and
+      // visually collided with the Remaining Balance line right below it.
+      .text(
+        `${formatDepositLabel(quote)}${depositPaid ? " (paid)" : ""}`,
+        DISCOUNT_LABEL_X,
+        y,
+        { width: DISCOUNT_LABEL_WIDTH, align: "right" }
+      )
+      .fillColor(depositPaid ? "#16a34a" : INK_COLOR)
+      .text(formatMoney(quote.deposit_amount), COLUMNS.amount, y, { width: 65, align: "right" });
+
+    if (depositPaid) {
+
+      y += BREAKDOWN_LINE_HEIGHT;
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .fillColor(MUTED_COLOR)
+        .text("Remaining Balance", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+        .fillColor(INK_COLOR)
+        .text(formatMoney(Math.max(quote.total - quote.deposit_amount, 0)), COLUMNS.amount, y, { width: 65, align: "right" });
+
+    }
+
+  }
 
   if (quote.notes) {
 
