@@ -298,7 +298,13 @@ function BusinessProfile({ business }) {
         </p>
       )}
 
+      <label htmlFor="business-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Business Name
+      </label>
+
       <input
+
+        id="business-name"
 
         value={form.name}
 
@@ -316,7 +322,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Phone
+      </label>
+
       <input
+
+        id="business-phone"
 
         value={form.phone}
 
@@ -334,7 +346,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Email
+      </label>
+
       <input
+
+        id="business-email"
 
         value={form.email}
 
@@ -352,7 +370,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Address
+      </label>
+
       <input
+
+        id="business-address"
 
         value={form.address}
 
@@ -370,7 +394,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-industry" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Industry
+      </label>
+
       <input
+
+        id="business-industry"
 
         value={form.industry}
 
@@ -388,7 +418,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Services
+      </label>
+
       <textarea
+
+        id="business-services"
 
         value={form.services}
 
@@ -406,7 +442,13 @@ function BusinessProfile({ business }) {
       />
 
 
+      <label htmlFor="business-review-link" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Review Link
+      </label>
+
       <input
+
+        id="business-review-link"
 
         value={form.review_link}
 
@@ -517,6 +559,7 @@ function BusinessProfile({ business }) {
 
                       <input
                         type="time"
+                        aria-label={`${label} opening time`}
                         value={day.open}
                         onChange={(e) => setDayTime(key, "open", e.target.value)}
                         className="bg-ink-900 border border-ink-700 rounded-md px-2 py-1"
@@ -526,6 +569,7 @@ function BusinessProfile({ business }) {
 
                       <input
                         type="time"
+                        aria-label={`${label} closing time`}
                         value={day.close}
                         onChange={(e) => setDayTime(key, "close", e.target.value)}
                         className="bg-ink-900 border border-ink-700 rounded-md px-2 py-1"
