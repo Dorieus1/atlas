@@ -476,7 +476,7 @@ function CustomerTimeline({ customerId }) {
                   </div>
 
                   {index < events.length - 1 && (
-                    <div className="mt-1 w-px flex-1 bg-ink-700" />
+                    <div className="mt-1 w-0.5 flex-1 bg-ink-600" />
                   )}
 
                 </div>
