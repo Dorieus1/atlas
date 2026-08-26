@@ -18,6 +18,31 @@ const { generateEstimateFromPhoto } = require("../services/aiService");
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+// The extension a saved file gets is picked from THIS map, keyed by the
+// (fileFilter-validated) mimetype - never from the client-supplied
+// original filename. file.mimetype is just the multipart field's
+// Content-Type, which the uploader fully controls (curl, a hand-built
+// FormData, etc.) - nothing stops someone naming their upload
+// "x.html" while still passing fileFilter by claiming "image/jpeg".
+// Since these are served back out via a plain express.static mount
+// (see server.js's "/uploads" route) with no per-file Content-Type
+// override, that static server decides the response's Content-Type
+// from the FILE'S OWN EXTENSION - if the original filename's extension
+// were trusted, an ".html" (or ".svg", etc) upload would come back out
+// as real, browser-executed HTML/script instead of an image, giving
+// anyone who later opens that "photo" directly (the owner, a
+// teammate, or a customer in their portal) a stored-XSS payload
+// running in Atlas's own origin. Forcing the extension from the
+// validated mimetype means a saved file's extension is always one of
+// these four safe, non-executable image types, regardless of what the
+// uploader named it.
+const EXTENSION_BY_MIME_TYPE = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif"
+};
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 
@@ -29,7 +54,7 @@ const storage = multer.diskStorage({
 
   filename: (req, file, cb) => {
 
-    const ext = path.extname(file.originalname).toLowerCase().slice(0, 10);
+    const ext = EXTENSION_BY_MIME_TYPE[file.mimetype] || "";
     cb(null, `${uuidv4()}${ext}`);
 
   }

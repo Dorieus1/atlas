@@ -60,6 +60,48 @@ describe("Photos", () => {
 
   });
 
+  // A saved file's extension must come from its validated mimetype, not
+  // the uploader's claimed filename - express.static (see server.js's
+  // "/uploads" mount) sets the response Content-Type from the file's
+  // OWN extension, with no per-file override. If an upload named
+  // "evil.html" (a real risk - the multipart filename and Content-Type
+  // are both fully attacker-controlled, e.g. via curl or a hand-built
+  // FormData) kept that extension just because it also claimed
+  // "image/jpeg", it would be saved as "{uuid}.html" and later served
+  // back out as real, browser-executed HTML - a stored XSS reachable by
+  // anyone who opens that "photo" directly (the owner, a teammate, or a
+  // customer in their own portal).
+  test("a mismatched filename extension is ignored - the saved file's extension always matches its real, validated mimetype", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PhotoExtensionSpoof");
+    const customerId = await createCustomer(app, authHeader, "Extension Spoof Customer");
+
+    const uploaded = await request(app)
+      .post("/api/photos")
+      .set("Authorization", authHeader)
+      .field("customer_id", customerId)
+      .attach("photo", Buffer.from("<script>alert(document.cookie)</script>"), {
+        filename: "evil.html",
+        contentType: "image/jpeg"
+      });
+
+    expect(uploaded.status).toBe(201);
+
+    const list = await request(app)
+      .get(`/api/photos/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(list.body[0].url).toMatch(/\.jpg$/);
+    expect(list.body[0].url).not.toMatch(/\.html/);
+
+    const savedFilename = list.body[0].url.split("/").pop();
+    const onDisk = fs.readdirSync(UPLOAD_DIR);
+
+    expect(onDisk).toContain(savedFilename);
+    expect(savedFilename.endsWith(".jpg")).toBe(true);
+
+  });
+
   test("an upload with no customer_id is rejected", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "PhotoNoCustomer");
