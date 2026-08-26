@@ -9,6 +9,7 @@ const {
   getAppointments,
   getCustomerAppointments,
   updateAppointmentStatus,
+  rescheduleAppointment,
   deleteAppointment
 } = require("../controllers/appointmentController");
 
@@ -35,6 +36,12 @@ router.patch(
   "/:id",
   authMiddleware,
   updateAppointmentStatus
+);
+
+router.patch(
+  "/:id/reschedule",
+  authMiddleware,
+  rescheduleAppointment
 );
 
 router.delete(

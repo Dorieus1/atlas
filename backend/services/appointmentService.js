@@ -868,6 +868,80 @@ const updateAppointmentStatus = async (id, business_id, status, assigned_user_id
 
 
 
+// Moves a single appointment to a new start_time - the drag-to-
+// reschedule action in Schedule.jsx's month view. Deliberately its own
+// function rather than folded into updateAppointmentStatus above: that
+// one's shape (an optional assigned_user_id that leaves everything else
+// untouched when omitted) is already doing one job well, and rescheduling
+// has a genuinely different rule to get right - preserving the
+// appointment's original duration rather than its clock time. Always
+// reschedules just the single row, never a whole recurring series - a
+// drag gesture has no natural "and future occurrences too" signal the
+// way the explicit cancel/status UI does, so shifting only what was
+// actually dragged is the safer default.
+const rescheduleAppointment = async (id, business_id, new_start_time) => {
+
+  const existing = await getAppointmentById(id, business_id);
+
+  if (!existing) {
+    return false;
+  }
+
+  const durationMs = existing.end_time
+    ? new Date(existing.end_time).getTime() - new Date(existing.start_time).getTime()
+    : null;
+
+  const newEndTime = durationMs !== null
+    ? new Date(new Date(new_start_time).getTime() + durationMs).toISOString()
+    : null;
+
+  const updated = await new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE appointments
+      SET start_time = ?, end_time = ?
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [new_start_time, newEndTime, id, business_id],
+
+      function (err) {
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes > 0);
+        }
+
+      }
+
+    );
+
+  });
+
+  if (updated) {
+
+    // Detached, not awaited - same reasoning as updateAppointmentStatus
+    // above.
+    getAppointmentById(id, business_id)
+      .then((appt) => pushAppointmentUpdateToGoogle(appt))
+      .catch((err) => console.error("GOOGLE CALENDAR SYNC (reschedule) FAILED:", err));
+
+    getAppointmentById(id, business_id)
+      .then((appt) => pushAppointmentUpdateToApple(appt))
+      .catch((err) => console.error("APPLE CALENDAR SYNC (reschedule) FAILED:", err));
+
+  }
+
+  return updated;
+
+};
+
+
+
 const deleteAppointment = async (id, business_id) => {
 
   // Fetched before the DELETE below so google_event_id is still available
@@ -1105,6 +1179,8 @@ module.exports = {
   updateAppointmentStatus,
 
   updateAppointmentStatusForSeries,
+
+  rescheduleAppointment,
 
   deleteAppointment,
 

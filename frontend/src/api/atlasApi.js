@@ -894,6 +894,18 @@ export const updateAppointmentStatus = (id, status, scope, assigned_user_id) =>
 
 
 
+export const rescheduleAppointment = (id, start_time) =>
+
+  request(`/appointments/${id}/reschedule`, {
+
+    method: "PATCH",
+
+    body: JSON.stringify({ start_time })
+
+  });
+
+
+
 // scope: "this" (default, single row) or "future" (this and every later
 // occurrence in the same recurring series).
 export const deleteAppointment = (id, scope) =>

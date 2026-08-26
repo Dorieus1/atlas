@@ -18,6 +18,7 @@ import {
   getAppointments,
   createAppointment,
   updateAppointmentStatus,
+  rescheduleAppointment,
   deleteAppointment,
   getCustomers,
   getTeammates
@@ -58,6 +59,39 @@ function sameDay(a, b) {
 function toDateKey(date) {
   return date.toISOString().slice(0, 10);
 }
+
+// A small, fixed palette rather than anything derived from a teammate's
+// own data (there's nothing color-like to derive from) - hashed from
+// their id so the SAME teammate always gets the SAME color across
+// reloads and regardless of the teammates list's fetch order, without
+// needing to persist a color choice anywhere.
+const TEAMMATE_COLORS = [
+  "bg-sky-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-fuchsia-500",
+  "bg-rose-500",
+  "bg-indigo-500",
+  "bg-teal-500",
+  "bg-orange-500"
+];
+
+function teammateColor(userId) {
+
+  if (!userId) {
+    return "bg-slate-600";
+  }
+
+  let hash = 0;
+
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  }
+
+  return TEAMMATE_COLORS[hash % TEAMMATE_COLORS.length];
+
+}
+
 
 function buildMonthGrid(monthDate) {
 
@@ -143,6 +177,10 @@ function Schedule() {
 
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
+
+  const [draggedAppointmentId, setDraggedAppointmentId] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState(null);
+  const [reschedulingId, setReschedulingId] = useState(null);
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [deleteScope, setDeleteScope] = useState("this");
@@ -347,6 +385,66 @@ function Schedule() {
   };
 
 
+  // Drag-to-reschedule: drops an appointment onto a different day cell in
+  // the month grid. Keeps the original time-of-day and duration, only the
+  // calendar date changes - dragging is a spatial "move this to that day"
+  // gesture, not a way to also retype the time, which the existing Edit
+  // form already covers.
+  const handleDropOnDay = async (targetDay) => {
+
+    const appointmentId = draggedAppointmentId;
+
+    setDraggedAppointmentId(null);
+    setDragOverKey(null);
+
+    if (!appointmentId) {
+      return;
+    }
+
+    const appt = appointments.find((a) => a.id === appointmentId);
+
+    if (!appt) {
+      return;
+    }
+
+    const originalStart = new Date(appt.start_time);
+
+    const newStart = new Date(
+      targetDay.getFullYear(),
+      targetDay.getMonth(),
+      targetDay.getDate(),
+      originalStart.getHours(),
+      originalStart.getMinutes(),
+      originalStart.getSeconds()
+    );
+
+    // Dropped back on the day it already lived on - nothing to do.
+    if (sameDay(newStart, originalStart)) {
+      return;
+    }
+
+    setReschedulingId(appointmentId);
+    setActionError("");
+
+    try {
+
+      await rescheduleAppointment(appointmentId, newStart.toISOString());
+      await loadAppointments();
+
+    } catch (error) {
+
+      console.error("RESCHEDULE APPOINTMENT ERROR:", error);
+      setActionError("Couldn't reschedule that appointment. Please try again.");
+
+    } finally {
+
+      setReschedulingId(null);
+
+    }
+
+  };
+
+
   const handleDelete = async (id, scope) => {
 
     setDeletingId(id);
@@ -529,14 +627,30 @@ function Schedule() {
               const isSelected = sameDay(day, selectedDate);
               const dayHasConflict = dayAppointments.some((appt) => appt.has_conflict);
 
+              const isDragTarget = dragOverKey === key && draggedAppointmentId;
+
               return (
 
                 <button
                   key={key}
                   onClick={() => setSelectedDate(day)}
+                  onDragOver={(e) => {
+                    if (draggedAppointmentId) {
+                      e.preventDefault();
+                      if (dragOverKey !== key) setDragOverKey(key);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverKey === key) setDragOverKey(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDropOnDay(day);
+                  }}
                   className={`
                     relative flex min-h-[76px] flex-col items-start rounded-xl border p-2 text-left transition
                     ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
+                    ${isDragTarget ? "border-brand-400 bg-brand-600/20" : ""}
                     ${!isCurrentMonth ? "opacity-40" : ""}
                   `}
                 >
@@ -562,10 +676,26 @@ function Schedule() {
                     {dayAppointments.slice(0, 2).map((appt) => (
                       <span
                         key={appt.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggedAppointmentId(appt.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedAppointmentId(null);
+                          setDragOverKey(null);
+                        }}
                         title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
-                        className="truncate rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300"
+                        className={`
+                          flex items-center gap-1 truncate rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300 transition
+                          ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
+                        `}
                       >
-                        {appt.title}
+                        {teammates.length > 1 && (
+                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${teammateColor(appt.assigned_user_id)}`} />
+                        )}
+                        <span className="truncate">{appt.title}</span>
                       </span>
                     ))}
 
@@ -631,7 +761,10 @@ function Schedule() {
 
                     <div className="min-w-0">
 
-                      <p className="truncate font-semibold">
+                      <p className="flex items-center gap-1.5 truncate font-semibold">
+                        {teammates.length > 1 && (
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${teammateColor(appt.assigned_user_id)}`} />
+                        )}
                         {appt.title}
                       </p>
 

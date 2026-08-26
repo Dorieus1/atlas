@@ -6,6 +6,7 @@ const {
   getAppointmentsByCustomer: getAppointmentsByCustomerService,
   updateAppointmentStatus: updateAppointmentStatusService,
   updateAppointmentStatusForSeries: updateAppointmentStatusForSeriesService,
+  rescheduleAppointment: rescheduleAppointmentService,
   deleteAppointment: deleteAppointmentService,
   deleteAppointmentForSeries: deleteAppointmentForSeriesService,
   RECURRENCE_RULES,
@@ -403,6 +404,56 @@ const updateAppointmentStatus = async (req, res) => {
 
 
 
+// Drag-to-reschedule from Schedule.jsx's month view - its own endpoint
+// rather than folded into updateAppointmentStatus above, which already
+// has enough going on (status transitions, series scope, reassignment,
+// auto-invoicing) without also owning date math. Always single-row -
+// see rescheduleAppointment's own comment in appointmentService.js for
+// why a drag never touches a whole recurring series.
+const rescheduleAppointment = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const { start_time } = req.body;
+    const business_id = req.user.business_id;
+
+    if (!start_time || Number.isNaN(new Date(start_time).getTime())) {
+
+      return res.status(400).json({
+        error: "A valid start_time is required"
+      });
+
+    }
+
+    const updated = await rescheduleAppointmentService(id, business_id, new Date(start_time).toISOString());
+
+    if (!updated) {
+
+      return res.status(404).json({
+        error: "Appointment not found"
+      });
+
+    }
+
+    res.json({
+      message: "Appointment rescheduled"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const deleteAppointment = async (req, res) => {
 
   try {
@@ -451,6 +502,8 @@ module.exports = {
   getCustomerAppointments,
 
   updateAppointmentStatus,
+
+  rescheduleAppointment,
 
   deleteAppointment
 
