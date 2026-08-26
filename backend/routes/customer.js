@@ -13,6 +13,7 @@ const {
   getCustomers,
 
   getCustomerById,
+  getCustomerTimeline,
   getCustomersByBusiness,
   deleteCustomer,
   getTrashedCustomers,
@@ -89,6 +90,14 @@ router.get(
   "/:id",
   authMiddleware,
   getCustomerById
+);
+
+
+
+router.get(
+  "/:id/timeline",
+  authMiddleware,
+  getCustomerTimeline
 );
 
 

@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, StickyNote, DollarSign, CalendarClock, MapPin } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, DollarSign, MapPin } from "lucide-react";
 
 import {
   getCustomer,
   getCustomerSummary,
   getCustomerLead,
-  getNotes,
-  createNote,
-  updateNote,
-  deleteNote,
   updateLeadStatus,
   getBusinesses,
   deleteCustomer,
@@ -19,11 +15,11 @@ import {
   createTag,
   addCustomerTag,
   removeCustomerTag,
-  getCustomerQuotes,
-  getCustomerAppointments
+  getCustomerQuotes
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
+import CustomerTimeline from "../components/CustomerTimeline";
 import MemoryPanel from "../components/MemoryPanel";
 import PhotoGallery from "../components/PhotoGallery";
 import ReviewRequestPanel from "../components/ReviewRequestPanel";
@@ -50,15 +46,6 @@ function CustomerProfile() {
   const [leadError, setLeadError] = useState("");
   const [quoteStats, setQuoteStats] = useState(null);
   const [quoteStatsError, setQuoteStatsError] = useState("");
-  const [appointments, setAppointments] = useState([]);
-  const [appointmentsError, setAppointmentsError] = useState("");
-  const [notes, setNotes] = useState([]);
-  const [notesLoadError, setNotesLoadError] = useState("");
-  const [newNote, setNewNote] = useState("");
-  const [noteError, setNoteError] = useState("");
-  const [editingNoteId, setEditingNoteId] = useState(null);
-  const [editNoteText, setEditNoteText] = useState("");
-  const [confirmingDeleteNoteId, setConfirmingDeleteNoteId] = useState(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [editingCustomer, setEditingCustomer] = useState(false);
@@ -89,19 +76,13 @@ function CustomerProfile() {
     setSummaryError("");
     setLead(null);
     setLeadError("");
-    setNotes([]);
-    setNotesLoadError("");
     setQuoteStats(null);
     setQuoteStatsError("");
-    setAppointments([]);
-    setAppointmentsError("");
 
     loadCustomer();
     loadSummary();
     loadLead();
-    loadNotes();
     loadQuoteStats();
-    loadAppointments();
 
   }, [id]);
 
@@ -272,58 +253,6 @@ function CustomerProfile() {
 
 
 
-  // Most recent first, so a repeat customer's latest visit is always the
-  // first thing shown - matches the ordering convention already used for
-  // notes and messages elsewhere on this page.
-  const loadAppointments = async () => {
-
-    try {
-
-      const data = await getCustomerAppointments(id);
-
-      setAppointments(
-        [...data].sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
-      );
-
-      setAppointmentsError("");
-
-    } catch (err) {
-
-      console.error("APPOINTMENTS LOAD ERROR:", err);
-      setAppointmentsError("Couldn't load this customer's appointment history. Please refresh to try again.");
-
-    }
-
-  };
-
-
-
-  const loadNotes = async () => {
-
-    try {
-
-      const data =
-        await getNotes(id);
-
-      setNotes(data);
-
-      setNotesLoadError("");
-
-    } catch (err) {
-
-      console.error(
-        "NOTES LOAD ERROR:",
-        err
-      );
-
-      setNotesLoadError("Couldn't load notes. Please refresh to try again.");
-
-    }
-
-  };
-
-
-
   const loadAllTags = async () => {
 
     try {
@@ -424,104 +353,6 @@ function CustomerProfile() {
     } finally {
 
       setCreatingTag(false);
-
-    }
-
-  };
-
-
-
-  const addNote = async () => {
-
-    if (!newNote.trim()) {
-
-      setNoteError("Note cannot be empty.");
-
-      return;
-
-    }
-
-    try {
-
-      await createNote(
-        id,
-        newNote.trim()
-      );
-
-      setNewNote("");
-
-      setNoteError("");
-
-      await loadNotes();
-
-    } catch (err) {
-
-      console.error(
-        "NOTE CREATE ERROR:",
-        err
-      );
-
-      setNoteError("Failed to add note. Please try again.");
-
-    }
-
-  };
-
-
-
-  const startEditNote = (note) => {
-
-    setEditingNoteId(note.id);
-    setEditNoteText(note.note);
-    setConfirmingDeleteNoteId(null);
-    setNoteError("");
-
-  };
-
-  const cancelEditNote = () => {
-
-    setEditingNoteId(null);
-
-  };
-
-  const saveEditNote = async (noteId) => {
-
-    if (!editNoteText.trim()) {
-
-      setNoteError("Note cannot be empty.");
-      return;
-
-    }
-
-    try {
-
-      await updateNote(noteId, editNoteText.trim());
-      setEditingNoteId(null);
-      setNoteError("");
-      await loadNotes();
-
-    } catch (err) {
-
-      console.error("NOTE UPDATE ERROR:", err);
-      setNoteError("Failed to update note. Please try again.");
-
-    }
-
-  };
-
-  const handleDeleteNote = async (noteId) => {
-
-    try {
-
-      await deleteNote(noteId);
-      setConfirmingDeleteNoteId(null);
-      setNoteError("");
-      await loadNotes();
-
-    } catch (err) {
-
-      console.error("NOTE DELETE ERROR:", err);
-      setNoteError("Failed to delete note. Please try again.");
 
     }
 
@@ -1104,78 +935,6 @@ function CustomerProfile() {
 
 
 
-      {/* APPOINTMENT HISTORY */}
-
-      <div className="
-        rounded-2xl
-        border
-        border-ink-700
-        bg-ink-900/60
-        p-6
-      ">
-
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <CalendarClock size={20} />
-          Appointment History
-        </h2>
-
-        {appointmentsError ? (
-
-          <p className="mt-4 text-sm text-red-400">{appointmentsError}</p>
-
-        ) : appointments.length === 0 ? (
-
-          <p className="mt-4 text-sm text-slate-400">No appointments scheduled yet.</p>
-
-        ) : (
-
-          <div className="mt-4 space-y-3">
-
-            {appointments.map((appt) => (
-
-              <div
-                key={appt.id}
-                className="flex flex-wrap items-center justify-between gap-3 bg-ink-800 rounded-lg p-4"
-              >
-
-                <div>
-
-                  <p className="font-medium">{appt.title}</p>
-
-                  <p className="mt-1 text-sm text-slate-400">
-                    {new Date(appt.start_time).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short"
-                    })}
-                  </p>
-
-                </div>
-
-                <span className={
-                  "shrink-0 rounded-full px-3 py-1 text-xs font-medium " +
-                  (appt.status === "completed"
-                    ? "bg-green-500/20 text-green-400"
-                    : appt.status === "cancelled"
-                      ? "bg-slate-500/20 text-slate-400"
-                      : "bg-brand-500/20 text-brand-400")
-                }>
-
-                  {appt.status}
-
-                </span>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        )}
-
-      </div>
-
-
-
       {/* TAGS */}
 
       <div className="
@@ -1278,6 +1037,9 @@ function CustomerProfile() {
         </div>
 
       </div>
+
+
+      <CustomerTimeline customerId={id} />
 
 
 
@@ -1487,236 +1249,6 @@ function CustomerProfile() {
           </p>
 
         )}
-
-      </div>
-
-
-
-      {/* NOTES */}
-
-      <div className="
-        rounded-2xl
-        border
-        border-ink-700
-        bg-ink-900/60
-        p-6
-      ">
-
-        <h2 className="text-xl font-bold flex items-center gap-2">
-
-          <StickyNote size={20} />
-          Notes
-
-        </h2>
-
-        {noteError && (
-
-          <p className="text-red-400 mt-3">
-
-            {noteError}
-
-          </p>
-
-        )}
-
-        {notesLoadError && (
-
-          <p className="text-red-400 mt-3">
-
-            {notesLoadError}
-
-          </p>
-
-        )}
-
-
-        <div className="
-          flex
-          gap-3
-          mt-4
-        ">
-
-          <input
-
-            value={newNote}
-
-            onChange={(e) =>
-              setNewNote(
-                e.target.value
-              )
-            }
-
-            placeholder="Add a note..."
-
-            className="
-              flex-1
-              bg-ink-900/60
-              border
-              border-ink-700
-              rounded-lg
-              p-3
-              text-white
-              placeholder:text-slate-500
-            "
-
-          />
-
-
-          <button
-
-            onClick={addNote}
-
-            className="
-              bg-brand-600
-              hover:bg-brand-500
-              px-5
-              rounded-lg
-            "
-
-          >
-
-            Add
-
-          </button>
-
-        </div>
-
-
-
-        {notes.map((note) => (
-
-          <div
-
-            key={note.id}
-
-            className="
-              bg-ink-800
-              rounded-lg
-              p-4
-              mt-4
-            "
-
-          >
-
-            {editingNoteId === note.id ? (
-
-              <>
-
-                <textarea
-
-                  value={editNoteText}
-
-                  onChange={(e) => setEditNoteText(e.target.value)}
-
-                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2"
-
-                />
-
-                <div className="flex gap-2 mt-2">
-
-                  <button
-
-                    onClick={() => saveEditNote(note.id)}
-
-                    className="bg-brand-600 hover:bg-brand-500 px-3 py-1 rounded-lg text-sm"
-
-                  >
-
-                    Save
-
-                  </button>
-
-                  <button
-
-                    onClick={cancelEditNote}
-
-                    className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
-
-                  >
-
-                    Cancel
-
-                  </button>
-
-                </div>
-
-              </>
-
-            ) : (
-
-              <div className="flex justify-between items-start gap-3">
-
-                <p>{note.note}</p>
-
-                {confirmingDeleteNoteId === note.id ? (
-
-                  <div className="flex gap-2 shrink-0">
-
-                    <button
-
-                      onClick={() => handleDeleteNote(note.id)}
-
-                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm"
-
-                    >
-
-                      Confirm
-
-                    </button>
-
-                    <button
-
-                      onClick={() => setConfirmingDeleteNoteId(null)}
-
-                      className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
-
-                    >
-
-                      Cancel
-
-                    </button>
-
-                  </div>
-
-                ) : (
-
-                  <div className="flex gap-2 shrink-0">
-
-                    <button
-
-                      onClick={() => startEditNote(note)}
-
-                      className="text-slate-400 hover:text-white text-sm"
-
-                    >
-
-                      Edit
-
-                    </button>
-
-                    <button
-
-                      onClick={() => setConfirmingDeleteNoteId(note.id)}
-
-                      className="text-red-400 hover:text-red-300 text-sm"
-
-                    >
-
-                      Delete
-
-                    </button>
-
-                  </div>
-
-                )}
-
-              </div>
-
-            )}
-
-          </div>
-
-        ))}
 
       </div>
 

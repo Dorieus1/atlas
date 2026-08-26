@@ -360,6 +360,12 @@ export const getCustomer = (id) =>
 
 
 
+export const getCustomerTimeline = (id) =>
+
+  request(`/customers/${id}/timeline`);
+
+
+
 export const deleteCustomer = (id) =>
 
   request(`/customers/${id}`, {

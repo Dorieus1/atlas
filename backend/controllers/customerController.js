@@ -15,6 +15,8 @@ const {
   removeCustomerTag: removeCustomerTagService
 } = require("../services/customerService");
 
+const { getCustomerTimeline: getCustomerTimelineService } = require("../services/customerTimelineService");
+
 const { importCustomersFromCsv } = require("../services/customerImportService");
 
 const { getUserById } = require("../services/authService");
@@ -255,6 +257,38 @@ const getCustomerById = async (req,res)=>{
 
   }
 
+
+};
+
+
+
+const getCustomerTimeline = async (req, res) => {
+
+  try {
+
+    const customer = await getCustomerByIdService(req.params.id, req.user.business_id);
+
+    if (!customer) {
+
+      return res.status(404).json({
+        error: "Customer not found"
+      });
+
+    }
+
+    const timeline = await getCustomerTimelineService(customer, req.user.business_id);
+
+    res.json(timeline);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
 
 };
 
@@ -797,6 +831,8 @@ module.exports = {
   getCustomers,
 
   getCustomerById,
+
+  getCustomerTimeline,
 
   deleteCustomer,
 
