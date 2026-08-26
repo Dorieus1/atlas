@@ -1,5 +1,5 @@
 const { constructWebhookEvent } = require("../services/stripeService");
-const { markQuotePaid, markQuoteDepositPaid } = require("../services/quotePaymentService");
+const { markQuotePaid, markQuoteDepositPaid, notifyQuotePaymentFailed } = require("../services/quotePaymentService");
 
 
 // No auth here - Stripe calls this directly. The signature check below is
@@ -47,6 +47,24 @@ const handleStripeWebhook = async (req, res) => {
           await markQuotePaid(quote_id, business_id);
 
         }
+
+      }
+
+    }
+
+    // A delayed payment method (e.g. ACH) failing after the customer has
+    // already left the portal - the owner has no other way to find out,
+    // since nothing on the customer's end surfaces this back to them
+    // either. Deliberately doesn't touch the quote's status - see the
+    // comment on notifyQuotePaymentFailed.
+    if (event.type === "checkout.session.async_payment_failed") {
+
+      const session = event.data.object;
+      const { quote_id, business_id } = session.metadata || {};
+
+      if (quote_id && business_id) {
+
+        await notifyQuotePaymentFailed(quote_id, business_id);
 
       }
 

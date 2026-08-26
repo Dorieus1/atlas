@@ -487,4 +487,69 @@ describe("Stripe webhook", () => {
 
   });
 
+
+  test("checkout.session.async_payment_failed notifies the owner without changing the invoice's status", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "WebhookAsyncFailed");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Failed Payment Customer", email: "webhookasyncfailed@test.com" });
+
+    const invoiceRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, type: "invoice", items: [{ description: "Job", quantity: 1, unit_price: 300 }] });
+
+    await request(app)
+      .patch(`/api/quotes/${invoiceRes.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    const business = await request(app)
+      .get("/api/business")
+      .set("Authorization", authHeader);
+
+    const businessId = business.body[0].id;
+
+    global.__mockStripe.webhooksConstructEvent.mockReturnValue({
+
+      type: "checkout.session.async_payment_failed",
+
+      data: {
+        object: {
+          metadata: { quote_id: invoiceRes.body.id, business_id: businessId }
+        }
+      }
+
+    });
+
+    const webhook = await request(app)
+      .post("/api/stripe/webhook")
+      .set("stripe-signature", "test_signature")
+      .send({ type: "checkout.session.async_payment_failed" });
+
+    expect(webhook.status).toBe(200);
+
+    const quote = await request(app)
+      .get(`/api/quotes/${invoiceRes.body.id}`)
+      .set("Authorization", authHeader);
+
+    // A failed delayed payment doesn't undo the invoice's status - the
+    // customer can simply try again.
+    expect(quote.body.status).toBe("sent");
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const failureNotification = notifications.body.find((n) => n.type === "payment_failed");
+
+    expect(failureNotification).toBeTruthy();
+    expect(failureNotification.title).toContain("Failed Payment Customer");
+    expect(failureNotification.link).toBe("/quotes");
+
+  });
+
 });
