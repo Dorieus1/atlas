@@ -6,6 +6,7 @@ const {
   getQuotes: getQuotesService,
   getQuotesForExport: getQuotesForExportService,
   getQuoteItemsForQuoteIds: getQuoteItemsForQuoteIdsService,
+  getQuoteExpensesForQuoteIds: getQuoteExpensesForQuoteIdsService,
   getQuotesByCustomer: getQuotesByCustomerService,
   getQuoteById: getQuoteByIdService,
   updateQuoteFields: updateQuoteFieldsService,
@@ -373,7 +374,12 @@ const exportQuotesCsv = async (req, res) => {
 
     const quotes = await getQuotesForExportService(business_id, { type, status });
 
-    const items = await getQuoteItemsForQuoteIdsService(quotes.map((quote) => quote.id));
+    const quoteIds = quotes.map((quote) => quote.id);
+
+    const [items, expenses] = await Promise.all([
+      getQuoteItemsForQuoteIdsService(quoteIds),
+      getQuoteExpensesForQuoteIdsService(quoteIds)
+    ]);
 
     const itemsByQuoteId = {};
 
@@ -387,7 +393,19 @@ const exportQuotesCsv = async (req, res) => {
 
     }
 
-    const csv = quotesToCsv(quotes, itemsByQuoteId);
+    const expensesByQuoteId = {};
+
+    for (const expense of expenses) {
+
+      if (!expensesByQuoteId[expense.quote_id]) {
+        expensesByQuoteId[expense.quote_id] = [];
+      }
+
+      expensesByQuoteId[expense.quote_id].push(expense);
+
+    }
+
+    const csv = quotesToCsv(quotes, itemsByQuoteId, expensesByQuoteId);
 
     const business = await getBusinessById(business_id);
 

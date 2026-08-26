@@ -426,6 +426,31 @@ const getQuoteItemsForQuoteIds = async (quoteIds) => {
 
 
 
+const getQuoteExpensesForQuoteIds = async (quoteIds) => {
+
+  if (quoteIds.length === 0) {
+    return [];
+  }
+
+  const placeholders = quoteIds.map(() => "?").join(", ");
+
+  return allAsync(
+
+    `
+    SELECT *
+    FROM quote_expenses
+    WHERE quote_id IN (${placeholders})
+    ORDER BY created_at ASC
+    `,
+
+    quoteIds
+
+  );
+
+};
+
+
+
 const getQuotesByCustomer = async (customer_id, business_id) => {
 
   const rows = await allAsync(
@@ -792,6 +817,8 @@ module.exports = {
   getQuotesForExport,
 
   getQuoteItemsForQuoteIds,
+
+  getQuoteExpensesForQuoteIds,
 
   getQuotesByCustomer,
 

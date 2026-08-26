@@ -51,7 +51,12 @@ function toCsvRow(values) {
 // quote/invoice total to a payment, not reconciling individual line items,
 // and a flattened summary keeps "one CSV row = one quote total" true,
 // which is what makes the Total column safe to sum in a spreadsheet.
-function quotesToCsv(quotes, itemsByQuoteId) {
+//
+// Job Costs/Margin are included here (unlike the customer-facing PDF,
+// which deliberately never shows them) because an accountant/bookkeeper
+// - the actual audience for this export - is exactly who needs to see
+// real profitability, not just what was billed.
+function quotesToCsv(quotes, itemsByQuoteId, expensesByQuoteId = {}) {
 
   const header = [
     "Type",
@@ -60,6 +65,8 @@ function quotesToCsv(quotes, itemsByQuoteId) {
     "Customer Email",
     "Items",
     "Total",
+    "Job Costs",
+    "Margin",
     "Created Date",
     "Paid Date"
   ];
@@ -80,6 +87,10 @@ function quotesToCsv(quotes, itemsByQuoteId) {
       })
       .join("; ");
 
+    const expenses = expensesByQuoteId[quote.id] || [];
+    const jobCosts = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const margin = Number(quote.total) - jobCosts;
+
     lines.push(toCsvRow([
       quote.type,
       quote.status,
@@ -87,6 +98,8 @@ function quotesToCsv(quotes, itemsByQuoteId) {
       quote.customer_email || "",
       itemsSummary,
       Number(quote.total).toFixed(2),
+      jobCosts.toFixed(2),
+      margin.toFixed(2),
       quote.created_at || "",
       quote.paid_at || ""
     ]));
