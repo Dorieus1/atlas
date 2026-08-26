@@ -93,7 +93,13 @@ function ChangePasswordPanel() {
         </p>
       )}
 
+      <label htmlFor="current-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Current Password
+      </label>
+
       <input
+
+        id="current-password"
 
         value={currentPassword}
 
@@ -107,7 +113,13 @@ function ChangePasswordPanel() {
 
       />
 
+      <label htmlFor="new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        New Password
+      </label>
+
       <input
+
+        id="new-password"
 
         value={newPassword}
 
@@ -121,7 +133,13 @@ function ChangePasswordPanel() {
 
       />
 
+      <label htmlFor="confirm-new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Confirm New Password
+      </label>
+
       <input
+
+        id="confirm-new-password"
 
         value={confirmPassword}
 

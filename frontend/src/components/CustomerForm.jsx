@@ -123,21 +123,36 @@ function CustomerForm({ onCustomerCreated }) {
       )}
 
 
-     <input
+     <label htmlFor="customer-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+  Customer Name
+</label>
+
+<input
+  id="customer-name"
   placeholder="Customer name"
   value={name}
   onChange={(e) => setName(e.target.value)}
   className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
 />
 
+<label htmlFor="customer-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+  Customer Email
+</label>
+
 <input
+  id="customer-email"
   placeholder="Customer email"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
   className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
 />
 
+<label htmlFor="customer-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+  Customer Phone
+</label>
+
 <input
+  id="customer-phone"
   placeholder="Customer phone"
   value={phone}
   onChange={(e) => setPhone(e.target.value)}

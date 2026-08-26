@@ -221,7 +221,13 @@ function KnowledgeSetup() {
       )}
 
 
+      <label htmlFor="knowledge-hours" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Business Hours
+      </label>
+
       <textarea
+
+        id="knowledge-hours"
 
         name="hours"
 
@@ -248,7 +254,13 @@ function KnowledgeSetup() {
 
 
 
+      <label htmlFor="knowledge-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Services You Offer
+      </label>
+
       <textarea
+
+        id="knowledge-services"
 
         name="services"
 
@@ -275,7 +287,13 @@ function KnowledgeSetup() {
 
 
 
+      <label htmlFor="knowledge-service-area" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Areas You Serve
+      </label>
+
       <textarea
+
+        id="knowledge-service-area"
 
         name="serviceArea"
 
@@ -302,7 +320,13 @@ function KnowledgeSetup() {
 
 
 
+      <label htmlFor="knowledge-faq" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Common Customer Questions
+      </label>
+
       <textarea
+
+        id="knowledge-faq"
 
         name="faq"
 

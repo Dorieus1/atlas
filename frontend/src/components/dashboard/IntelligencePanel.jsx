@@ -484,6 +484,8 @@ function IntelligencePanel() {
 
             <textarea
 
+              aria-label={`Generated ${messageType} message`}
+
               value={generatedMessage}
 
               onChange={(e)=>

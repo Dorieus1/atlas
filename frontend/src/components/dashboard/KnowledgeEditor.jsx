@@ -78,15 +78,25 @@ function KnowledgeEditor() {
         </p>
       )}
 
+      <label htmlFor="knowledge-title" className="mt-5 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Title
+      </label>
+
       <input
-        className="w-full mt-5 bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
+        id="knowledge-title"
+        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
         placeholder="Title"
         value={title}
         onChange={(e)=>setTitle(e.target.value)}
       />
 
+      <label htmlFor="knowledge-content" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Content
+      </label>
+
       <textarea
-        className="w-full mt-4 bg-ink-800 border border-ink-700 rounded-xl p-3 h-32 placeholder:text-slate-500"
+        id="knowledge-content"
+        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 h-32 placeholder:text-slate-500"
         placeholder="Content"
         value={content}
         onChange={(e)=>setContent(e.target.value)}

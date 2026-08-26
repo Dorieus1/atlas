@@ -195,7 +195,12 @@ function PortalLogin() {
                 </p>
               )}
 
+              <label htmlFor="portal-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Email
+              </label>
+
               <input
+                id="portal-email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}

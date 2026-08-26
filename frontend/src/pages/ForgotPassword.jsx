@@ -112,7 +112,13 @@ function ForgotPassword() {
 
           )}
 
+          <label htmlFor="forgot-password-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Email
+          </label>
+
           <input
+
+            id="forgot-password-email"
 
             placeholder="Email"
 

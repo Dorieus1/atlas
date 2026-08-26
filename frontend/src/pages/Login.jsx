@@ -191,7 +191,13 @@ function Login() {
 
 
 
+      <label htmlFor="login-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Email
+      </label>
+
       <input
+
+        id="login-email"
 
         placeholder="Email"
 
@@ -219,7 +225,13 @@ function Login() {
 
 
 
+      <label htmlFor="login-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Password
+      </label>
+
       <input
+
+        id="login-password"
 
         type="password"
 

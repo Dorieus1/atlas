@@ -261,14 +261,24 @@ function PublicChat() {
                 </p>
               )}
 
+              <label htmlFor="public-chat-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Your Name
+              </label>
+
               <input
+                id="public-chat-name"
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mb-3 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
               />
 
+              <label htmlFor="public-chat-contact" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Phone or Email (optional)
+              </label>
+
               <input
+                id="public-chat-contact"
                 placeholder="Phone or email (optional)"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
@@ -318,6 +328,7 @@ function PublicChat() {
               <div className="mt-4 flex gap-3">
 
                 <input
+                  aria-label="Type a message"
                   placeholder="Type a message..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}

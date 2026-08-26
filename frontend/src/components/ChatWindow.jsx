@@ -230,6 +230,7 @@ function ChatWindow({ business, customer }) {
 
         <input
           type="text"
+          aria-label="Type a message"
           placeholder="Type a message..."
           value={message}
           onChange={(e) =>

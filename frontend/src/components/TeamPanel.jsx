@@ -276,7 +276,13 @@ function TeamPanel() {
             </p>
           )}
 
+          <label htmlFor="teammate-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Name
+          </label>
+
           <input
+
+            id="teammate-name"
 
             value={name}
 
@@ -288,7 +294,13 @@ function TeamPanel() {
 
           />
 
+          <label htmlFor="teammate-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Email
+          </label>
+
           <input
+
+            id="teammate-email"
 
             value={email}
 
@@ -300,7 +312,13 @@ function TeamPanel() {
 
           />
 
+          <label htmlFor="teammate-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Password
+          </label>
+
           <input
+
+            id="teammate-password"
 
             value={password}
 
@@ -314,7 +332,13 @@ function TeamPanel() {
 
           />
 
+          <label htmlFor="teammate-role" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Role
+          </label>
+
           <select
+
+            id="teammate-role"
 
             value={role}
 

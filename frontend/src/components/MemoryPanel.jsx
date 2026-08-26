@@ -255,6 +255,8 @@ function MemoryPanel({ customer }) {
 
         <input
 
+          aria-label="Add something to remember"
+
           placeholder="Add something to remember"
 
           value={memory}

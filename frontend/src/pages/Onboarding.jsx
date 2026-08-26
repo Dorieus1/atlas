@@ -293,33 +293,40 @@ function Onboarding() {
       ].map(([name,label])=>(
 
 
-        <input
+        <div key={name} className="mb-4">
 
-          key={name}
+          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            {label}
+          </label>
 
-          name={name}
+          <input
 
-          placeholder={label}
+            id={`onboarding-${name}`}
 
-          value={form[name]}
+            name={name}
 
-          onChange={update}
+            placeholder={label}
 
-          className="
-            w-full
-            mb-4
-            bg-ink-800
-            border
-            border-ink-700
-            rounded-lg
-            p-3
-            text-white
-            placeholder:text-slate-500
-            focus:outline-none
-            focus:border-ink-600
-          "
+            value={form[name]}
 
-        />
+            onChange={update}
+
+            className="
+              w-full
+              bg-ink-800
+              border
+              border-ink-700
+              rounded-lg
+              p-3
+              text-white
+              placeholder:text-slate-500
+              focus:outline-none
+              focus:border-ink-600
+            "
+
+          />
+
+        </div>
 
 
       ))}
@@ -337,37 +344,50 @@ function Onboarding() {
 
       ].map(([name,label])=>(
 
-        <input
+        <div key={name} className="mb-4">
 
-          key={name}
+          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+            {label}
+          </label>
 
-          name={name}
+          <input
 
-          placeholder={label}
+            id={`onboarding-${name}`}
 
-          value={form[name]}
+            name={name}
 
-          onChange={update}
+            placeholder={label}
 
-          className="
-            w-full
-            mb-4
-            bg-ink-800
-            border
-            border-ink-700
-            rounded-lg
-            p-3
-            text-white
-            placeholder:text-slate-500
-            focus:outline-none
-            focus:border-ink-600
-          "
+            value={form[name]}
 
-        />
+            onChange={update}
+
+            className="
+              w-full
+              bg-ink-800
+              border
+              border-ink-700
+              rounded-lg
+              p-3
+              text-white
+              placeholder:text-slate-500
+              focus:outline-none
+              focus:border-ink-600
+            "
+
+          />
+
+        </div>
 
       ))}
 
+      <label htmlFor="onboarding-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Password
+      </label>
+
       <input
+
+        id="onboarding-password"
 
         name="password"
 

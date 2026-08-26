@@ -120,7 +120,13 @@ function ResetPassword() {
 
       )}
 
+      <label htmlFor="reset-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        New Password
+      </label>
+
       <input
+
+        id="reset-password"
 
         type="password"
 
@@ -146,7 +152,13 @@ function ResetPassword() {
 
       />
 
+      <label htmlFor="reset-confirm-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Confirm New Password
+      </label>
+
       <input
+
+        id="reset-confirm-password"
 
         type="password"
 

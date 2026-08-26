@@ -195,18 +195,28 @@ function KnowledgeGapsPanel({ onApproved }) {
                 Customer asked: <span className="text-slate-400">"{gap.question}"</span>
               </p>
 
+              <label htmlFor={`gap-title-${gap.id}`} className="mt-3 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Title
+              </label>
+
               <input
+                id={`gap-title-${gap.id}`}
                 value={draft.title}
                 onChange={(e) => updateDraft(gap.id, "title", e.target.value)}
                 placeholder="Title"
-                className="mt-3 w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm font-medium text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm font-medium text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
               />
 
+              <label htmlFor={`gap-content-${gap.id}`} className="mt-2 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Content
+              </label>
+
               <textarea
+                id={`gap-content-${gap.id}`}
                 value={draft.content}
                 onChange={(e) => updateDraft(gap.id, "content", e.target.value)}
                 placeholder="Content"
-                className="mt-2 h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
               />
 
               <div className="mt-3 flex items-center gap-2">

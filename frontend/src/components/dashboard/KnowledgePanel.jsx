@@ -213,7 +213,13 @@ function KnowledgePanel() {
 
               <>
 
+                <label htmlFor={`knowledge-title-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Title
+                </label>
+
                 <input
+
+                  id={`knowledge-title-${item.id}`}
 
                   value={editTitle}
 
@@ -223,7 +229,13 @@ function KnowledgePanel() {
 
                 />
 
+                <label htmlFor={`knowledge-content-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Content
+                </label>
+
                 <textarea
+
+                  id={`knowledge-content-${item.id}`}
 
                   value={editContent}
 
