@@ -1386,6 +1386,25 @@ export const disconnectGoogleCalendar = () =>
 
 
 
+/* ---------- Apple Calendar sync ---------- */
+
+
+export const getAppleCalendarStatus = () =>
+  request("/calendar/apple/status");
+
+export const connectAppleCalendar = (email, appPassword) =>
+  request("/calendar/apple/connect", {
+    method: "POST",
+    body: JSON.stringify({ email, app_password: appPassword })
+  });
+
+export const disconnectAppleCalendar = () =>
+  request("/calendar/apple/disconnect", {
+    method: "POST"
+  });
+
+
+
 /* ---------- Search ---------- */
 
 

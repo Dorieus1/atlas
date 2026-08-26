@@ -44,7 +44,11 @@ module.exports = async () => {
           last_digest_sent_date TEXT,
           google_calendar_connected INTEGER NOT NULL DEFAULT 0,
           google_refresh_token TEXT,
-          google_calendar_email TEXT
+          google_calendar_email TEXT,
+          apple_calendar_connected INTEGER NOT NULL DEFAULT 0,
+          apple_calendar_email TEXT,
+          apple_calendar_app_password TEXT,
+          apple_calendar_url TEXT
         )
       `);
 

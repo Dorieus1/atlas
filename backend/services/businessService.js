@@ -143,6 +143,66 @@ const clearGoogleCalendarConnection = (business_id) => {
 
 
 
+// Same shape as setGoogleCalendarConnection above, for Apple's CalDAV-
+// based connection instead of an OAuth token: the app-specific password
+// (plaintext, same precedent as google_refresh_token) plus the specific
+// calendar URL discovered at connect time (see
+// appleCalendarService.discoverCalendarUrl) so every later sync writes
+// straight to it without re-discovering the account's calendar layout.
+const setAppleCalendarConnection = (business_id, email, appPassword, calendarUrl) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE businesses
+      SET apple_calendar_connected = 1,
+          apple_calendar_email = ?,
+          apple_calendar_app_password = ?,
+          apple_calendar_url = ?
+      WHERE id = ?
+      `,
+
+      [email, appPassword, calendarUrl, business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
+const clearAppleCalendarConnection = (business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE businesses
+      SET apple_calendar_connected = 0,
+          apple_calendar_email = NULL,
+          apple_calendar_app_password = NULL,
+          apple_calendar_url = NULL
+      WHERE id = ?
+      `,
+
+      [business_id],
+
+      (err) => (err ? reject(err) : resolve())
+
+    );
+
+  });
+
+};
+
+
+
 const slugExists = (slug) => {
 
   return new Promise((resolve, reject) => {
@@ -209,6 +269,10 @@ module.exports = {
   setGoogleCalendarConnection,
 
   clearGoogleCalendarConnection,
+
+  setAppleCalendarConnection,
+
+  clearAppleCalendarConnection,
 
   slugify,
 

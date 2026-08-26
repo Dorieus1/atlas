@@ -1,10 +1,15 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
-const { getBusinessById, clearGoogleCalendarConnection } = require("./businessService");
+const {
+  getBusinessById,
+  clearGoogleCalendarConnection,
+  clearAppleCalendarConnection
+} = require("./businessService");
 const { createNotification } = require("./notificationService");
 
 const googleCalendarService = require("./googleCalendarService");
+const appleCalendarService = require("./appleCalendarService");
 
 
 // A revoked/expired refresh token means every future sync will fail the
@@ -34,6 +39,35 @@ async function handleGoogleAuthFailure(business_id) {
   } catch (cleanupError) {
 
     console.error("GOOGLE CALENDAR AUTH-FAILURE CLEANUP FAILED:", cleanupError);
+
+  }
+
+}
+
+
+// Same reasoning as handleGoogleAuthFailure - a revoked/rotated Apple
+// app-specific password fails identically on every future sync, so
+// clearing the connection turns that into a one-time notification
+// instead of a silent forever-failure.
+async function handleAppleAuthFailure(business_id) {
+
+  try {
+
+    await clearAppleCalendarConnection(business_id);
+
+    await createNotification(
+
+      business_id,
+      "calendar_disconnected",
+      "Apple Calendar disconnected",
+      "Atlas lost access to your Apple Calendar - the app-specific password may have been revoked. Reconnect it to resume syncing.",
+      "/settings"
+
+    );
+
+  } catch (cleanupError) {
+
+    console.error("APPLE CALENDAR AUTH-FAILURE CLEANUP FAILED:", cleanupError);
 
   }
 
@@ -400,6 +434,124 @@ async function pushAppointmentDeleteToGoogle(appointment) {
 
 
 
+// Same one-way, best-effort sync discipline as the Google functions
+// above, for Apple Calendar via CalDAV instead. Simpler than Google's
+// create/update/delete split: since an Apple event's URL is derived
+// deterministically from the appointment's own id (see
+// appleCalendarService.js), create and update are the exact same
+// operation (CalDAV PUT overwrites in place) and there's no per-
+// appointment event id to persist or to gate update/delete on - a
+// business that connects Apple Calendar after an appointment already
+// exists still syncs it correctly the next time that appointment is
+// touched, instead of requiring it to have been created after
+// connecting.
+async function pushAppointmentCreateToApple(business_id, appointmentId, appointment) {
+
+  try {
+
+    const business = await getBusinessById(business_id);
+
+    if (!business || !business.apple_calendar_connected || !business.apple_calendar_app_password) {
+      return;
+    }
+
+    await appleCalendarService.upsertCalendarEvent(
+
+      business.apple_calendar_email,
+      business.apple_calendar_app_password,
+      business.apple_calendar_url,
+      { id: appointmentId, ...appointment }
+
+    );
+
+  } catch (error) {
+
+    console.error("APPLE CALENDAR SYNC (create) FAILED:", error);
+
+    if (error.isAuthError) {
+      await handleAppleAuthFailure(business_id);
+    }
+
+  }
+
+}
+
+
+
+async function pushAppointmentUpdateToApple(appointment) {
+
+  try {
+
+    if (!appointment) {
+      return;
+    }
+
+    const business = await getBusinessById(appointment.business_id);
+
+    if (!business || !business.apple_calendar_connected || !business.apple_calendar_app_password) {
+      return;
+    }
+
+    await appleCalendarService.upsertCalendarEvent(
+
+      business.apple_calendar_email,
+      business.apple_calendar_app_password,
+      business.apple_calendar_url,
+      appointment
+
+    );
+
+  } catch (error) {
+
+    console.error("APPLE CALENDAR SYNC (update) FAILED:", error);
+
+    if (error.isAuthError) {
+      await handleAppleAuthFailure(appointment.business_id);
+    }
+
+  }
+
+}
+
+
+
+async function pushAppointmentDeleteToApple(appointment) {
+
+  try {
+
+    if (!appointment) {
+      return;
+    }
+
+    const business = await getBusinessById(appointment.business_id);
+
+    if (!business || !business.apple_calendar_connected || !business.apple_calendar_app_password) {
+      return;
+    }
+
+    await appleCalendarService.deleteCalendarEvent(
+
+      business.apple_calendar_email,
+      business.apple_calendar_app_password,
+      business.apple_calendar_url,
+      appointment.id
+
+    );
+
+  } catch (error) {
+
+    console.error("APPLE CALENDAR SYNC (delete) FAILED:", error);
+
+    if (error.isAuthError) {
+      await handleAppleAuthFailure(appointment.business_id);
+    }
+
+  }
+
+}
+
+
+
 const createAppointment = async (
 
   business_id,
@@ -439,6 +591,9 @@ const createAppointment = async (
   // here is just a safety net against anything outside that.
   pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time, end_time })
     .catch((err) => console.error("GOOGLE CALENDAR SYNC (create) FAILED:", err));
+
+  pushAppointmentCreateToApple(business_id, id, { title, notes, start_time, end_time })
+    .catch((err) => console.error("APPLE CALENDAR SYNC (create) FAILED:", err));
 
   return id;
 
@@ -519,6 +674,9 @@ const createRecurringAppointments = async (
     // invisible to the caller.
     pushAppointmentCreateToGoogle(business_id, id, { title, notes, start_time: occStart, end_time: occEnd })
       .catch((err) => console.error("GOOGLE CALENDAR SYNC (create) FAILED:", err));
+
+    pushAppointmentCreateToApple(business_id, id, { title, notes, start_time: occStart, end_time: occEnd })
+      .catch((err) => console.error("APPLE CALENDAR SYNC (create) FAILED:", err));
 
     ids.push(id);
 
@@ -698,6 +856,10 @@ const updateAppointmentStatus = async (id, business_id, status, assigned_user_id
       .then((appt) => pushAppointmentUpdateToGoogle(appt))
       .catch((err) => console.error("GOOGLE CALENDAR SYNC (update) FAILED:", err));
 
+    getAppointmentById(id, business_id)
+      .then((appt) => pushAppointmentUpdateToApple(appt))
+      .catch((err) => console.error("APPLE CALENDAR SYNC (update) FAILED:", err));
+
   }
 
   return updated;
@@ -749,6 +911,9 @@ const deleteAppointment = async (id, business_id) => {
     // Detached, not awaited - same reasoning as createAppointment.
     pushAppointmentDeleteToGoogle(appt)
       .catch((err) => console.error("GOOGLE CALENDAR SYNC (delete) FAILED:", err));
+
+    pushAppointmentDeleteToApple(appt)
+      .catch((err) => console.error("APPLE CALENDAR SYNC (delete) FAILED:", err));
 
   }
 
@@ -832,6 +997,9 @@ const updateAppointmentStatusForSeries = async (id, business_id, status) => {
     Promise.all(affected.map((row) => pushAppointmentUpdateToGoogle(row)))
       .catch((err) => console.error("GOOGLE CALENDAR SYNC (series update) FAILED:", err));
 
+    Promise.all(affected.map((row) => pushAppointmentUpdateToApple(row)))
+      .catch((err) => console.error("APPLE CALENDAR SYNC (series update) FAILED:", err));
+
   }
 
   return changes;
@@ -910,6 +1078,9 @@ const deleteAppointmentForSeries = async (id, business_id) => {
     // updateAppointmentStatusForSeries above.
     Promise.all(affected.map((row) => pushAppointmentDeleteToGoogle(row)))
       .catch((err) => console.error("GOOGLE CALENDAR SYNC (series delete) FAILED:", err));
+
+    Promise.all(affected.map((row) => pushAppointmentDeleteToApple(row)))
+      .catch((err) => console.error("APPLE CALENDAR SYNC (series delete) FAILED:", err));
 
   }
 

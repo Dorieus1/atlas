@@ -22,6 +22,7 @@
     "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "fast-xml-parser": "^5.11.0",
     "googleapis": "^176.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
