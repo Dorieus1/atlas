@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { CreditCard, CheckCircle2 } from "lucide-react";
 
 import { getStripeConnectStatus, startStripeOnboarding } from "../api/atlasApi";
+import SettingsCardSkeleton from "./SettingsCardSkeleton";
 
 
 function StripeConnectCard() {
@@ -51,7 +52,7 @@ function StripeConnectCard() {
 
 
   if (loading) {
-    return null;
+    return <SettingsCardSkeleton />;
   }
 
   return (

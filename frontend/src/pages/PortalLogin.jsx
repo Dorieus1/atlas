@@ -114,9 +114,14 @@ function PortalLogin() {
 
   if (loadingBusiness) {
 
+    // Same branded treatment as PublicChat's loading state - this is a
+    // customer's first impression of their portal, not just an internal
+    // waiting screen.
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-950">
-        <p className="text-slate-500">Loading...</p>
+        <div className="animate-pulse">
+          <Logo size={40} />
+        </div>
       </div>
     );
 

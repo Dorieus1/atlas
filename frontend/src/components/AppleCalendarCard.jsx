@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle2 } from "lucide-react";
 
 import { getAppleCalendarStatus, connectAppleCalendar, disconnectAppleCalendar } from "../api/atlasApi";
+import SettingsCardSkeleton from "./SettingsCardSkeleton";
 
 
 // Apple has no OAuth consent screen for Calendar the way Google does -
@@ -83,7 +84,7 @@ function AppleCalendarCard() {
 
 
   if (loading) {
-    return null;
+    return <SettingsCardSkeleton />;
   }
 
   return (

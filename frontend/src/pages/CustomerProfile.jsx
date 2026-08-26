@@ -26,7 +26,7 @@ import ChatWindow from "../components/ChatWindow";
 import MemoryPanel from "../components/MemoryPanel";
 import PhotoGallery from "../components/PhotoGallery";
 import ReviewRequestPanel from "../components/ReviewRequestPanel";
-import { SkeletonText } from "../components/Skeleton";
+import Skeleton, { SkeletonText } from "../components/Skeleton";
 
 
 function formatMoney(amount) {
@@ -663,9 +663,23 @@ function CustomerProfile() {
 
       return (
 
-        <div className="p-8 text-slate-400">
+        <div className="p-8">
 
-          Loading...
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="mt-2 h-4 w-32" />
+
+          <div className="mt-6 flex flex-col gap-4">
+
+            {[0, 1, 2].map((i) => (
+
+              <div key={i} className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+                <Skeleton className="h-5 w-40" />
+                <SkeletonText lines={2} className="mt-4" />
+              </div>
+
+            ))}
+
+          </div>
 
         </div>
 

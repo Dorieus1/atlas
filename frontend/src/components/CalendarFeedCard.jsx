@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarRange, Copy, Check, RefreshCw } from "lucide-react";
 
 import { getCalendarFeedToken, regenerateCalendarFeed, API_BASE } from "../api/atlasApi";
+import SettingsCardSkeleton from "./SettingsCardSkeleton";
 
 
 // Separate from GoogleCalendarCard/AppleCalendarCard - this isn't a
@@ -79,7 +80,7 @@ function CalendarFeedCard() {
 
 
   if (loading) {
-    return null;
+    return <SettingsCardSkeleton />;
   }
 
   return (

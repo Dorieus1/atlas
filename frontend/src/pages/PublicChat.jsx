@@ -204,9 +204,15 @@ function PublicChat() {
 
   if (loadingBusiness) {
 
+    // Branded rather than a bare loading sentence - this is the very
+    // first thing a customer sees clicking a business's chat link, the
+    // same reason the not-found state below it already gets the logo
+    // treatment instead of plain text.
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-950">
-        <p className="text-slate-500">Loading...</p>
+        <div className="animate-pulse">
+          <Logo size={40} />
+        </div>
       </div>
     );
 

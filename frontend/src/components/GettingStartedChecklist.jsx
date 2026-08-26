@@ -38,7 +38,41 @@ function GettingStartedChecklist() {
   };
 
 
-  if (!status || status.dismissed) {
+  // Only the initial fetch (status === null) gets a skeleton - this is
+  // the first thing a new user's dashboard renders, so popping in on
+  // top of an already-settled layout was the most visible instance of
+  // this pattern in the app. Once status has actually loaded and turns
+  // out dismissed/complete, hiding entirely (return null) is the
+  // correct real state, not a loading state, so that stays as-is.
+  if (!status) {
+
+    return (
+
+      <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-gradient-to-br from-ink-900 to-ink-850 p-6 animate-pulse">
+
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-ink-800" />
+          <div>
+            <div className="h-4 w-24 rounded bg-ink-800" />
+            <div className="mt-2 h-3 w-20 rounded bg-ink-800" />
+          </div>
+        </div>
+
+        <div className="mt-4 h-1.5 w-full rounded-full bg-ink-800" />
+
+        <div className="mt-4 flex flex-col gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-5 w-2/3 rounded bg-ink-800" />
+          ))}
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+  if (status.dismissed) {
     return null;
   }
 

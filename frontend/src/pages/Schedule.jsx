@@ -24,6 +24,7 @@ import {
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
+import Skeleton from "../components/Skeleton";
 
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -594,9 +595,18 @@ function Schedule() {
 
           {loading ? (
 
-            <p className="mt-4 text-sm text-slate-500">
-              Loading...
-            </p>
+            <div className="mt-4 flex flex-col gap-3">
+
+              {[0, 1].map((i) => (
+
+                <div key={i} className="rounded-xl border border-ink-700 bg-ink-800 p-3.5">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="mt-2 h-3 w-1/3" />
+                </div>
+
+              ))}
+
+            </div>
 
           ) : selectedDayAppointments.length === 0 ? (
 

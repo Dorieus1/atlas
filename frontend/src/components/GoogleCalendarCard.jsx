@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { CalendarDays, CheckCircle2 } from "lucide-react";
 
 import { getGoogleCalendarStatus, startGoogleCalendarConnect, disconnectGoogleCalendar } from "../api/atlasApi";
+import SettingsCardSkeleton from "./SettingsCardSkeleton";
 
 
 function GoogleCalendarCard() {
@@ -76,7 +77,7 @@ function GoogleCalendarCard() {
 
 
   if (loading) {
-    return null;
+    return <SettingsCardSkeleton />;
   }
 
   return (
