@@ -1,7 +1,7 @@
 const db = require("../../database/db");
 const OpenAI = require("openai");
 const { getAnalytics } = require("./analyticsService");
-const { findDormantCustomers } = require("./winBackService");
+const { countDormantCustomers } = require("./winBackService");
 
 
 const client = new OpenAI({
@@ -43,7 +43,7 @@ const gatherBusinessSnapshot = async (business_id) => {
 
   const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [appointmentsToday, appointmentsThisWeek, pendingTasks, dormantCustomers] = await Promise.all([
+  const [appointmentsToday, appointmentsThisWeek, pendingTasks, dormantCustomerCount] = await Promise.all([
 
     getAsync(
 
@@ -75,7 +75,7 @@ const gatherBusinessSnapshot = async (business_id) => {
 
     ),
 
-    findDormantCustomers()
+    countDormantCustomers(business_id)
 
   ]);
 
@@ -96,9 +96,12 @@ const gatherBusinessSnapshot = async (business_id) => {
     appointmentsThisWeek: appointmentsThisWeek.count,
     pendingTasks: pendingTasks.count,
 
-    // findDormantCustomers() is deliberately cross-tenant (same job it
-    // powers), so it's filtered down to just this business here.
-    dormantCustomers: dormantCustomers.filter((c) => c.business_id === business_id).length
+    // countDormantCustomers() (unlike winBackService's own
+    // findDormantCustomers) deliberately ignores the win-back cooldown -
+    // this is answering "how many customers are dormant right now", not
+    // "how many still need a draft", so a customer the job already
+    // messaged shouldn't silently disappear from this count for 90 days.
+    dormantCustomers: dormantCustomerCount
 
   };
 

@@ -14,6 +14,17 @@ const allAsync = (sql, params = []) => {
 };
 
 
+const getAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
+
+  });
+
+};
+
+
 const runAsync = (sql, params = []) => {
 
   return new Promise((resolve, reject) => {
@@ -84,6 +95,55 @@ const findDormantCustomers = async () => {
     [cutoff, cooldownCutoff]
 
   );
+
+};
+
+
+// Reports the TRUE current count of dormant customers for one business -
+// deliberately does NOT apply the cooldown filter findDormantCustomers()
+// uses. That filter answers "who still needs a win-back draft", which is
+// the wrong question for anything just reporting a fact to the owner: a
+// customer the job already drafted a message for stops being genuinely
+// dormant the moment they come back, not the moment the cooldown expires,
+// so counting them out for 90 days after a draft would make this number
+// silently (and misleadingly) drop right after every job run even though
+// nothing about their actual activity changed. Used by assistantService.js
+// so "how many dormant customers do I have" answers the real question.
+const countDormantCustomers = async (business_id) => {
+
+  const cutoff = new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const row = await getAsync(
+
+    `
+    SELECT COUNT(*) AS count
+    FROM (
+      SELECT customers.id
+      FROM customers
+      JOIN (
+        SELECT customer_id, MAX(start_time) AS last_activity_at
+        FROM appointments
+        WHERE customer_id IS NOT NULL
+        GROUP BY customer_id
+
+        UNION ALL
+
+        SELECT customer_id, MAX(created_at) AS last_activity_at
+        FROM quotes
+        GROUP BY customer_id
+      ) activity ON activity.customer_id = customers.id
+      WHERE customers.deleted_at IS NULL
+      AND customers.business_id = ?
+      GROUP BY customers.id
+      HAVING MAX(activity.last_activity_at) <= ?
+    )
+    `,
+
+    [business_id, cutoff]
+
+  );
+
+  return row.count;
 
 };
 
@@ -167,5 +227,6 @@ const sendWinBackCampaign = async () => {
 
 module.exports = {
   sendWinBackCampaign,
-  findDormantCustomers
+  findDormantCustomers,
+  countDormantCustomers
 };

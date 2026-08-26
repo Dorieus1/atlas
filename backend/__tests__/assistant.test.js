@@ -1,6 +1,39 @@
 const request = require("supertest");
+const { v4: uuidv4 } = require("uuid");
 const app = require("../server");
+const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
+const { sendWinBackCampaign } = require("../services/winBackService");
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
+
+
+const daysAgoIso = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+
+const insertOldAppointment = (business_id, customer_id) => {
+
+  return runAsync(
+
+    `
+    INSERT INTO appointments (id, business_id, customer_id, title, start_time, status)
+    VALUES (?, ?, ?, ?, ?, 'completed')
+    `,
+
+    [uuidv4(), business_id, customer_id, "Old job", daysAgoIso(120)]
+
+  );
+
+};
 
 
 describe("Ask Atlas", () => {
@@ -105,6 +138,37 @@ describe("Ask Atlas", () => {
 
     const promptSent = global.__mockOpenAICreate.mock.calls[0][0].input;
     expect(promptSent).toContain("\"customers\":1");
+
+  });
+
+
+  test("a dormant customer still counts as dormant right after the win-back job has already drafted a message for them - the count shouldn't drop just because the cooldown started", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "AskAtlasDormantCooldown");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Long Gone Customer" });
+
+    await insertOldAppointment(business_id, customerRes.body.id);
+
+    // Run the actual win-back job first - this stamps last_win_back_at
+    // on the customer, which is exactly the condition that used to make
+    // them silently vanish from Ask Atlas's dormant count for 90 days.
+    global.__mockOpenAICreate.mockResolvedValueOnce({ output_text: "Draft message" });
+    await sendWinBackCampaign();
+
+    await request(app)
+      .post("/api/assistant/ask")
+      .set("Authorization", authHeader)
+      .send({ question: "How many dormant customers do I have?" });
+
+    const promptSent = global.__mockOpenAICreate.mock.calls[
+      global.__mockOpenAICreate.mock.calls.length - 1
+    ][0].input;
+
+    expect(promptSent).toContain("\"dormantCustomers\":1");
 
   });
 
