@@ -45,6 +45,43 @@ beforeEach(() => {
 
 describe("Send quote to customer", () => {
 
+  test("a quote with an unpaid deposit mentions it in the email; one with no deposit doesn't", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SendQuoteDeposit");
+    const customerId = await createCustomer(authHeader, "Deposit Send Customer", "depositsend@test.com");
+
+    const withDeposit = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        items: [{ description: "Roof inspection", quantity: 1, unit_price: 1000 }],
+        deposit_type: "fixed",
+        deposit_value: 200
+      });
+
+    await request(app)
+      .post(`/api/quotes/${withDeposit.body.id}/send`)
+      .set("Authorization", authHeader);
+
+    expect(lastEmail().html).toContain("deposit of $200.00 is required");
+
+    const withoutDeposit = await createQuote(authHeader, customerId);
+
+    await request(app)
+      .post(`/api/quotes/${withoutDeposit}/send`)
+      .set("Authorization", authHeader);
+
+    // Checks the specific added phrase, not the bare word "deposit" - the
+    // portal URL embeds the business's own slug, and a business (or in
+    // this test, a fixture) named anything containing "deposit" would
+    // otherwise trip a bare substring check via its own URL, which has
+    // nothing to do with whether the deposit paragraph was added.
+    expect(lastEmail().html).not.toContain("is required to get started");
+
+  });
+
+
   test("sending a draft emails the customer, bumps it to sent, and the emailed link logs them into the portal", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "SendQuoteFlow");

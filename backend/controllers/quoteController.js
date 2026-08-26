@@ -532,6 +532,7 @@ const sendQuote = async (req, res) => {
       html: `
         <p>Hi ${customer.name || "there"},</p>
         <p>${business.name} has sent you a${label === "invoice" ? "n" : ""} ${label} for ${formatMoneyForEmail(quote.total)}.</p>
+        ${quote.deposit_type && !quote.deposit_paid_at ? `<p>A deposit of ${formatMoneyForEmail(quote.deposit_amount)} is required to get started.</p>` : ""}
         <p><a href="${portalUrl}">View and respond to it here</a></p>
         <p>This link works for the next 7 days. If you didn't expect this, you can ignore this email.</p>
       `
