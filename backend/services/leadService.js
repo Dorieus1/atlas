@@ -340,9 +340,54 @@ const getCustomerLead = (customer_id, business_id) => {
 
 
 
+// Deliberately NOT "is the customer's most recent lead still open" -
+// getCustomerLead above only ever looks at the single newest row, so a
+// customer with an older lead still sitting at "contacted" and a
+// NEWER, already-closed one would slip past that check entirely (the
+// newest row looks closed, even though an older one is still a live
+// open opportunity) and get a duplicate lead created anyway - exactly
+// the bug runLeadDetection's own dedup check is supposed to prevent.
+// This checks across ALL of the customer's leads, not just the latest.
+const hasOpenLead = (customer_id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT 1
+      FROM leads
+      WHERE customer_id = ?
+      AND business_id = ?
+      AND status != 'closed'
+      LIMIT 1
+      `,
+
+      [customer_id, business_id],
+
+      (err, row) => {
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve(!!row);
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
 module.exports = {
 
   createLead,
+
+  hasOpenLead,
 
   getLeads,
 

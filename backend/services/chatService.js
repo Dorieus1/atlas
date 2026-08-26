@@ -4,7 +4,7 @@ const { saveConversation } = require("./conversationService");
 const { getBusinessKnowledge } = require("./knowledgeService");
 const { createMemory } = require("./memoryCreationService");
 const { createActivity } = require("./activityService");
-const { createLead, getCustomerLead } = require("./leadService");
+const { createLead, hasOpenLead } = require("./leadService");
 const { createTask } = require("./taskService");
 const { createNotification } = require("./notificationService");
 const { createKnowledgeGap } = require("./knowledgeGapService");
@@ -123,10 +123,11 @@ const runLeadDetection = async (customer, business_id, message) => {
   // two separate lead cards, two follow-up tasks, and two notifications
   // for what the owner experiences as a single conversation. A lead the
   // owner has already closed is a genuinely new opportunity if the
-  // customer comes back, so only an existing OPEN lead blocks a new one.
-  const existingLead = await getCustomerLead(customer.id, business_id);
-
-  if (existingLead && existingLead.status !== "closed") {
+  // customer comes back, so only an existing OPEN lead blocks a new one -
+  // checked across ALL of the customer's leads (hasOpenLead), not just
+  // their most recent one, since a customer can have an older lead
+  // still open and a newer one already closed.
+  if (await hasOpenLead(customer.id, business_id)) {
     return;
   }
 

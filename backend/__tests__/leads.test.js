@@ -1,6 +1,38 @@
 const request = require("supertest");
 const app = require("../server");
+const db = require("../../database/db");
+const { v4: uuidv4 } = require("uuid");
 const { createBusinessAndUser } = require("./setup/helpers");
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
+
+// No dedicated "create a lead directly" route (leads only ever come
+// from chat) - inserted straight into the table, same pattern
+// analytics.test.js already uses for the same reason. sentAt lets a
+// test control ordering explicitly, since hasOpenLead's whole bug was
+// about which of a customer's leads is newest.
+const insertLead = (business_id, customer_id, status, createdAt) => {
+
+  return runAsync(
+
+    `
+    INSERT INTO leads (id, customer_id, business_id, name, priority, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+
+    [uuidv4(), customer_id, business_id, "Direct Insert Lead", "warm", status, createdAt]
+
+  );
+
+};
 
 // Lead creation now runs detached from the chat response (see
 // chatService.js's runLeadDetection), so it isn't guaranteed to exist
@@ -140,6 +172,55 @@ describe("Leads", () => {
 
     });
 
+    expect(leads.body.length).toBe(2);
+
+  });
+
+  // Regression test for a gap a peer review caught in the fix above:
+  // the dedup check must look at whether the customer has ANY open
+  // lead, not just their single most recent one. An older lead can
+  // still be genuinely open (staff handled it by phone and never
+  // updated its status) while a NEWER lead for the same customer
+  // happens to be closed - checking only the newest row would see
+  // "closed" and wrongly create a duplicate open lead alongside the
+  // still-open older one.
+  test("an older still-open lead blocks a new one, even if the customer's most recent lead is already closed", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "LeadOlderStillOpen");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Older Open Lead Customer" });
+
+    const customerId = customerRes.body.id;
+
+    // Older lead, still open ("contacted") - created first.
+    await insertLead(business_id, customerId, "contacted", "2026-01-01T00:00:00.000Z");
+
+    // Newer lead, already closed - created after, so it's the one
+    // getCustomerLead's own "most recent" query would return.
+    await insertLead(business_id, customerId, "closed", "2026-01-02T00:00:00.000Z");
+
+    await request(app)
+      .post("/api/chat")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        message: "Following up on my repair request"
+      });
+
+    // No waitFor here on purpose, same reasoning as the duplicate-
+    // message test above - there's nothing new to wait for, and a short
+    // real delay is what actually proves the detached lead detection
+    // ran and correctly did nothing.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const leads = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    // Still exactly the two seeded leads - no third one snuck in.
     expect(leads.body.length).toBe(2);
 
   });
