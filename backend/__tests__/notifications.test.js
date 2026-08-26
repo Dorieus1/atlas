@@ -139,17 +139,25 @@ describe("Notifications", () => {
   test("unread count, mark-as-read, and mark-all-as-read all work correctly", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "NotifyReadState");
-    const customerId = await createCustomer(app, authHeader, "Read State Customer");
+
+    // Two different customers, not two messages from the same one - a
+    // second message from an already-open lead's own customer is now
+    // deliberately a no-op (chatService.js's runLeadDetection only
+    // creates one lead/notification per open opportunity, not one per
+    // message), so this needs two independent leads to get two
+    // notifications.
+    const customerOneId = await createCustomer(app, authHeader, "Read State Customer One");
+    const customerTwoId = await createCustomer(app, authHeader, "Read State Customer Two");
 
     await request(app)
       .post("/api/chat")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "I need a repair estimate" });
+      .send({ customer_id: customerOneId, message: "I need a repair estimate" });
 
     await request(app)
       .post("/api/chat")
       .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "What's the price for a repair?" });
+      .send({ customer_id: customerTwoId, message: "What's the price for a repair?" });
 
     const listAfterBoth = await waitFor(async () => {
 

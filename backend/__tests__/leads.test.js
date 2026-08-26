@@ -76,6 +76,74 @@ describe("Leads", () => {
 
   });
 
+  // Regression test for a real bug found during live testing: a second
+  // buying-intent message from the same customer, in the same ongoing
+  // conversation, was creating a SECOND lead card (plus a duplicate
+  // follow-up task and notification) instead of leaving the existing
+  // open opportunity alone.
+  test("a second buying-intent message in the same conversation does not create a duplicate lead", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "LeadNoDuplicate");
+
+    const { customerId, lead } = await createCustomerWithLead(app, authHeader, "No Duplicate Customer");
+
+    await request(app)
+      .post("/api/chat")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        message: "Also, how soon could someone come out?"
+      });
+
+    // No waitFor here on purpose - there's nothing new to wait for. A
+    // short real delay is what actually proves the second message's
+    // detached lead-detection had time to run and correctly did nothing,
+    // rather than the test just not having waited long enough to see a
+    // duplicate that would show up later.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const leads = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    expect(leads.body.length).toBe(1);
+    expect(leads.body[0].id).toBe(lead.id);
+
+  });
+
+  test("a new message after the existing lead is closed creates a fresh lead - a returning customer is a new opportunity", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "LeadReopenAfterClosed");
+
+    const { customerId, lead } = await createCustomerWithLead(app, authHeader, "Reopen Customer");
+
+    await request(app)
+      .patch(`/api/leads/${lead.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "closed" });
+
+    await request(app)
+      .post("/api/chat")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        message: "I'd like to book another repair"
+      });
+
+    const leads = await waitFor(async () => {
+
+      const res = await request(app)
+        .get("/api/leads")
+        .set("Authorization", authHeader);
+
+      return res.body.length > 1 ? res : null;
+
+    });
+
+    expect(leads.body.length).toBe(2);
+
+  });
+
   test("status must be one of the real values, garbage is rejected", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "LeadStatusValidation");
