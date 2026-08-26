@@ -36,7 +36,7 @@ describe("Search", () => {
       .set("Authorization", authHeader);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ customers: [], leads: [], appointments: [], quotes: [] });
+    expect(res.body).toEqual({ customers: [], leads: [], appointments: [], quotes: [], knowledge: [], notes: [] });
 
   });
 
@@ -151,6 +151,65 @@ describe("Search", () => {
     });
 
     expect(byInterest.body.leads.length).toBeGreaterThanOrEqual(1);
+
+  });
+
+
+  test("finds a knowledge entry by title or content", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SearchKnowledge");
+
+    await request(app)
+      .post("/api/knowledge")
+      .set("Authorization", authHeader)
+      .send({ title: "Emergency leak policy", content: "We offer 24/7 emergency response for active leaks." });
+
+    const byTitle = await request(app)
+      .get("/api/search?q=Emergency leak")
+      .set("Authorization", authHeader);
+
+    expect(byTitle.body.knowledge.length).toBe(1);
+    expect(byTitle.body.knowledge[0].title).toBe("Emergency leak policy");
+
+    const byContent = await request(app)
+      .get("/api/search?q=24/7 emergency")
+      .set("Authorization", authHeader);
+
+    expect(byContent.body.knowledge.length).toBe(1);
+
+  });
+
+
+  test("finds a note by its content, but never a trashed customer's note", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SearchNote");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Note Customer" });
+
+    await request(app)
+      .post("/api/notes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, note: "Prefers text messages over phone calls." });
+
+    const found = await request(app)
+      .get("/api/search?q=text messages")
+      .set("Authorization", authHeader);
+
+    expect(found.body.notes.length).toBe(1);
+    expect(found.body.notes[0].title).toBe("Note Customer");
+
+    await request(app)
+      .delete(`/api/customers/${customerRes.body.id}`)
+      .set("Authorization", authHeader);
+
+    const afterTrash = await request(app)
+      .get("/api/search?q=text messages")
+      .set("Authorization", authHeader);
+
+    expect(afterTrash.body.notes.length).toBe(0);
 
   });
 

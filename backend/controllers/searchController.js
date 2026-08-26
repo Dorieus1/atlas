@@ -13,7 +13,7 @@ const search = async (req, res) => {
 
     if (query.length < MIN_QUERY_LENGTH) {
 
-      return res.json({ customers: [], leads: [], appointments: [], quotes: [] });
+      return res.json({ customers: [], leads: [], appointments: [], quotes: [], knowledge: [], notes: [] });
 
     }
 

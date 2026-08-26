@@ -29,7 +29,7 @@ const search = async (business_id, query) => {
 
   const like = likeParam(query);
 
-  const [customers, leads, appointments, quotes] = await Promise.all([
+  const [customers, leads, appointments, quotes, knowledge, notes] = await Promise.all([
 
     allAsync(
 
@@ -101,6 +101,42 @@ const search = async (business_id, query) => {
 
       [business_id, like]
 
+    ),
+
+    allAsync(
+
+      `
+      SELECT id, title, content
+      FROM knowledge
+      WHERE business_id = ?
+      AND (title LIKE ? OR content LIKE ?)
+      ORDER BY created_at DESC
+      LIMIT ${RESULTS_PER_TYPE}
+      `,
+
+      [business_id, like, like]
+
+    ),
+
+    // notes has no business_id of its own - scoped through the same
+    // customers join (and the same deleted_at IS NULL exclusion) the
+    // customers search above uses, so a note never leaks across
+    // businesses or surfaces a trashed customer's note.
+    allAsync(
+
+      `
+      SELECT notes.id, notes.customer_id, notes.note, customers.name AS customer_name
+      FROM notes
+      JOIN customers ON customers.id = notes.customer_id
+      WHERE customers.business_id = ?
+      AND customers.deleted_at IS NULL
+      AND notes.note LIKE ?
+      ORDER BY notes.created_at DESC
+      LIMIT ${RESULTS_PER_TYPE}
+      `,
+
+      [business_id, like]
+
     )
 
   ]);
@@ -135,6 +171,21 @@ const search = async (business_id, query) => {
       id: q.id,
       title: `${q.type === "invoice" ? "Invoice" : "Quote"} for ${q.customer_name || "customer"}`,
       subtitle: q.status
+    })),
+
+    knowledge: knowledge.map((k) => ({
+      type: "knowledge",
+      id: k.id,
+      title: k.title,
+      subtitle: k.content
+    })),
+
+    notes: notes.map((n) => ({
+      type: "note",
+      id: n.id,
+      customerId: n.customer_id,
+      title: n.customer_name || "Unnamed customer",
+      subtitle: n.note
     }))
 
   };

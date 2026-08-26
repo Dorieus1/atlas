@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Users, Flame, CalendarDays, FileText, X } from "lucide-react";
+import { Search, Users, Flame, CalendarDays, FileText, BookOpen, StickyNote, X } from "lucide-react";
 
 import { search } from "../api/atlasApi";
 
@@ -9,10 +9,12 @@ const SECTIONS = [
   { key: "customers", label: "Customers", icon: Users },
   { key: "leads", label: "Leads", icon: Flame },
   { key: "appointments", label: "Appointments", icon: CalendarDays },
-  { key: "quotes", label: "Quotes & Invoices", icon: FileText }
+  { key: "quotes", label: "Quotes & Invoices", icon: FileText },
+  { key: "knowledge", label: "Knowledge", icon: BookOpen },
+  { key: "notes", label: "Notes", icon: StickyNote }
 ];
 
-const EMPTY_RESULTS = { customers: [], leads: [], appointments: [], quotes: [] };
+const EMPTY_RESULTS = { customers: [], leads: [], appointments: [], quotes: [], knowledge: [], notes: [] };
 
 
 // A global Cmd/Ctrl+K palette so finding a customer, lead, appointment,
@@ -124,6 +126,12 @@ function SearchPalette({ open, onClose }) {
       case "quote":
         return `/quotes?open=${item.id}`;
 
+      case "knowledge":
+        return "/knowledge";
+
+      case "note":
+        return `/customers/${item.customerId}`;
+
       default:
         return "/dashboard";
 
@@ -166,7 +174,7 @@ function SearchPalette({ open, onClose }) {
               }
 
             }}
-            placeholder="Search customers, leads, appointments, invoices..."
+            placeholder="Search customers, leads, appointments, invoices, knowledge..."
             className="w-full bg-transparent text-white placeholder:text-slate-500 focus:outline-none"
           />
 
