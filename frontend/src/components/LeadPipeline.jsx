@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Flame } from "lucide-react";
-import { API_BASE, handleSessionExpired } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired, generateFollowUpMessage } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
 
@@ -13,6 +13,12 @@ function LeadPipeline() {
   const [updatingId, setUpdatingId] = useState(null);
 
   const updatingRef = useRef(null);
+
+  // Per-lead AI follow-up drafting - keyed by lead id, since any number
+  // of these cards can be open/loading/showing a result independently.
+  const [followUpMessages, setFollowUpMessages] = useState({});
+  const [followUpLoadingId, setFollowUpLoadingId] = useState(null);
+  const [followUpErrors, setFollowUpErrors] = useState({});
 
   const token = localStorage.getItem("token");
 
@@ -172,6 +178,35 @@ function LeadPipeline() {
 
   };
 
+  const generateFollowUp = async (lead) => {
+
+    setFollowUpLoadingId(lead.id);
+
+    setFollowUpErrors((prev) => ({ ...prev, [lead.id]: "" }));
+
+    try {
+
+      const data = await generateFollowUpMessage(lead.name, lead.interest);
+
+      setFollowUpMessages((prev) => ({ ...prev, [lead.id]: data.message || "" }));
+
+    } catch (err) {
+
+      console.error("FOLLOW UP ERROR:", err);
+
+      setFollowUpErrors((prev) => ({
+        ...prev,
+        [lead.id]: "Couldn't generate a follow-up message. Please try again."
+      }));
+
+    } finally {
+
+      setFollowUpLoadingId(null);
+
+    }
+
+  };
+
   return (
 
     <div className="h-full rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
@@ -296,29 +331,58 @@ function LeadPipeline() {
 
               <div className="flex flex-wrap gap-3 mt-4">
 
-                <button
-                  onClick={() => updateStatus(lead.id, "contacted")}
-                  disabled={updatingId === lead.id}
-                  className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  Contacted
-                </button>
+                {["contacted", "qualified", "closed"].map((statusOption) => {
+
+                  const isActive = (lead.status || "new") === statusOption;
+
+                  return (
+
+                    <button
+                      key={statusOption}
+                      onClick={() => updateStatus(lead.id, statusOption)}
+                      disabled={updatingId === lead.id || isActive}
+                      className={
+                        isActive
+                          ? "bg-brand-600/20 text-brand-400 border border-brand-500 px-4 py-2 rounded-lg capitalize disabled:opacity-100"
+                          : "bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg capitalize disabled:opacity-50"
+                      }
+                    >
+                      {statusOption}
+                    </button>
+
+                  );
+
+                })}
+
+              </div>
+
+              <div className="mt-4 border-t border-ink-700 pt-4">
 
                 <button
-                  onClick={() => updateStatus(lead.id, "qualified")}
-                  disabled={updatingId === lead.id}
-                  className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-lg disabled:opacity-50"
+                  onClick={() => generateFollowUp(lead)}
+                  disabled={followUpLoadingId === lead.id}
+                  className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50"
                 >
-                  Qualified
+                  {followUpLoadingId === lead.id
+                    ? "Generating..."
+                    : "🧠 Generate Follow-Up Message"}
                 </button>
 
-                <button
-                  onClick={() => updateStatus(lead.id, "closed")}
-                  disabled={updatingId === lead.id}
-                  className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  Closed
-                </button>
+                {followUpErrors[lead.id] && (
+
+                  <p className="mt-2 text-sm text-red-400">
+                    {followUpErrors[lead.id]}
+                  </p>
+
+                )}
+
+                {followUpMessages[lead.id] && (
+
+                  <div className="mt-3 whitespace-pre-wrap rounded-lg bg-ink-900 p-4 text-sm">
+                    {followUpMessages[lead.id]}
+                  </div>
+
+                )}
 
               </div>
 

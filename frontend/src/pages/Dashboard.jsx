@@ -1,10 +1,8 @@
 import Dashboard from "../components/Dashboard";
 import DailyBriefing from "../components/dashboard/DailyBriefing";
 import KnowledgePanel from "../components/dashboard/KnowledgePanel";
-import KnowledgeEditor from "../components/dashboard/KnowledgeEditor";
 import IntelligencePanel from "../components/dashboard/IntelligencePanel";
 import LeadPipeline from "../components/LeadPipeline";
-import FollowUpAssistant from "../components/dashboard/FollowUpAssistant";
 import TaskPanel from "../components/dashboard/TaskPanel";
 import GettingStartedChecklist from "../components/GettingStartedChecklist";
 
@@ -45,14 +43,6 @@ function DashboardPage() {
 
         <div className="lg:col-span-4">
           <LeadPipeline />
-        </div>
-
-        <div className="lg:col-span-12">
-          <KnowledgeEditor />
-        </div>
-
-        <div className="lg:col-span-12">
-          <FollowUpAssistant />
         </div>
 
       </div>
