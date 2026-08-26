@@ -2,6 +2,28 @@ const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
 
+// Lead creation now runs detached from the chat response (see
+// chatService.js's runLeadDetection), so it isn't guaranteed to be
+// indexed yet the instant POST /api/chat returns. Polls briefly
+// rather than asserting immediately.
+const waitFor = async (checkFn, { timeout = 1000, interval = 20 } = {}) => {
+
+  const start = Date.now();
+
+  while (true) {
+
+    const result = await checkFn();
+
+    if (result || Date.now() - start > timeout) {
+      return result;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
+  }
+
+};
+
 
 describe("Search", () => {
 
@@ -118,9 +140,15 @@ describe("Search", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerRes.body.id, message: "Can I get a price estimate for a new roof?" });
 
-    const byInterest = await request(app)
-      .get("/api/search?q=price estimate")
-      .set("Authorization", authHeader);
+    const byInterest = await waitFor(async () => {
+
+      const res = await request(app)
+        .get("/api/search?q=price estimate")
+        .set("Authorization", authHeader);
+
+      return res.body.leads.length > 0 ? res : null;
+
+    });
 
     expect(byInterest.body.leads.length).toBeGreaterThanOrEqual(1);
 

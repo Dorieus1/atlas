@@ -52,9 +52,10 @@ describe("AI failures don't take down the server", () => {
     // First call: the actual chat reply - succeeds.
     global.__mockOpenAICreate.mockResolvedValueOnce({ output_text: "Sure, I can help with that." });
 
-    // Second call: lead classification, triggered by the buying-intent
-    // keyword below - fails. This must not make the reply above look
-    // like it failed, since it already succeeded and was already saved.
+    // Second call: classifyLead, run detached (runLeadDetection) right
+    // after the reply above - fails. This must not make the reply above
+    // look like it failed, since it already succeeded and was already
+    // saved before this detached call even starts.
     global.__mockOpenAICreate.mockRejectedValueOnce(new Error("Request timed out"));
 
     const res = await request(app)

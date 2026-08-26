@@ -3,6 +3,37 @@ const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
 const db = require("../../database/db");
 
+const allAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)));
+  });
+
+};
+
+// Lead creation now runs detached from the chat response (see
+// chatService.js's runLeadDetection), so it isn't guaranteed to exist
+// the instant POST /api/chat returns. Polls briefly rather than
+// deleting the customer out from under a lead insert that hasn't
+// landed yet.
+const waitForLead = async (customerId, { timeout = 1000, interval = 20 } = {}) => {
+
+  const start = Date.now();
+
+  while (true) {
+
+    const rows = await allAsync("SELECT * FROM leads WHERE customer_id = ?", [customerId]);
+
+    if (rows.length > 0 || Date.now() - start > timeout) {
+      return rows;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
+  }
+
+};
+
 describe("Customers", () => {
 
   test("creating a customer requires a valid token", async () => {
@@ -201,6 +232,8 @@ describe("Customers", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "I need an estimate for a repair" });
 
+    await waitForLead(customerId);
+
     const del = await request(app)
       .delete(`/api/customers/${customerId}`)
       .set("Authorization", authHeader);
@@ -211,13 +244,7 @@ describe("Customers", () => {
 
     for (const table of tables) {
 
-      const rows = await new Promise((resolve, reject) => {
-        db.all(
-          `SELECT * FROM ${table} WHERE customer_id = ?`,
-          [customerId],
-          (err, r) => err ? reject(err) : resolve(r)
-        );
-      });
+      const rows = await allAsync(`SELECT * FROM ${table} WHERE customer_id = ?`, [customerId]);
 
       expect(rows.length).toBeGreaterThan(0);
 

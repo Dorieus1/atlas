@@ -2,6 +2,28 @@ const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
 
+// Lead creation now runs detached from the chat response (see
+// chatService.js's runLeadDetection), so it isn't guaranteed to exist
+// the instant POST /api/chat returns. Polls briefly rather than
+// asserting immediately.
+const waitFor = async (checkFn, { timeout = 1000, interval = 20 } = {}) => {
+
+  const start = Date.now();
+
+  while (true) {
+
+    const result = await checkFn();
+
+    if (result || Date.now() - start > timeout) {
+      return result;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
+  }
+
+};
+
 const createCustomerWithLead = async (app, authHeader, customerName, phone) => {
 
   const customer = await request(app)
@@ -17,9 +39,15 @@ const createCustomerWithLead = async (app, authHeader, customerName, phone) => {
       message: "I need an estimate for a repair"
     });
 
-  const leads = await request(app)
-    .get("/api/leads")
-    .set("Authorization", authHeader);
+  const leads = await waitFor(async () => {
+
+    const res = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    return res.body.length > 0 ? res : null;
+
+  });
 
   return { customerId: customer.body.id, lead: leads.body[0] };
 

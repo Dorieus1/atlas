@@ -54,6 +54,10 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "I'm not totally sure, let me find out for you." })
+      // classifyLead runs concurrently (runLeadDetection) and draws from
+      // this same shared mock queue - pinned to "cold" here so it can't
+      // eat the gap-detection response meant for the next call below.
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({
 
         output_text: JSON.stringify({
@@ -94,6 +98,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "We're open 9-5, Monday through Friday." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({ output_text: JSON.stringify({ has_gap: false }) });
 
     await request(app)
@@ -117,6 +122,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "Here's an answer for you." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({ output_text: "not json at all" });
 
     const chat = await request(app)
@@ -143,6 +149,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "I believe so, but let me confirm." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({
 
         output_text: JSON.stringify({
@@ -190,6 +197,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "Not sure, I'll check." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({
 
         output_text: JSON.stringify({
@@ -230,6 +238,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "Hmm, good question." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({
 
         output_text: JSON.stringify({
@@ -275,6 +284,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
     global.__mockOpenAICreate
       .mockResolvedValueOnce({ output_text: "Not sure." })
+      .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({
 
         output_text: JSON.stringify({

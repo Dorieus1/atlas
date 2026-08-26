@@ -1,29 +1,34 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 
-const {
-  classifyLead
-} = require("./aiService");
 
 
-
+// priority is now passed in already-computed (see chatService.js's
+// runLeadDetection) rather than classified internally here - the caller
+// needs to know hot/warm/cold BEFORE deciding whether to create a lead
+// at all (a "cold" message shouldn't become a lead in the first place),
+// so classifying here too would either duplicate that same OpenAI call
+// for nothing or force this function to make its own irreversible
+// decision about whether it's worth creating. createLead's only other
+// caller was this same chatService.js path, so this is a safe, fully
+// contained signature change.
 const createLead = (
 
   customer_id,
 
   business_id,
 
-  interest
+  interest,
+
+  priority
 
 ) => {
 
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
 
     try {
 
       const id = uuidv4();
-
-      const priority = await classifyLead(interest);
 
       db.get(
 
