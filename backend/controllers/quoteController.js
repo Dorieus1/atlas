@@ -19,6 +19,20 @@ const { getUserById } = require("../services/authService");
 const { markQuotePaid } = require("../services/quotePaymentService");
 const { streamQuotePdf } = require("../services/pdfService");
 const { quotesToCsv } = require("../services/csvService");
+const { createLoginToken } = require("../services/portalAuthService");
+const { sendEmail } = require("../services/emailService");
+
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// A week gives a customer real time to notice the email, unlike the
+// 15-minute window used for a customer-initiated "log me in right now"
+// link (backend/controllers/portalController.js's requestLogin).
+const QUOTE_EMAIL_LINK_TTL_MINUTES = 7 * 24 * 60;
+
+function formatMoneyForEmail(amount) {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
+}
 
 
 const VALID_TYPES = ["quote", "invoice"];
@@ -470,6 +484,83 @@ const getQuote = async (req, res) => {
 
 
 
+const sendQuote = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.user.business_id;
+
+    const quote = await getQuoteByIdService(id, business_id);
+
+    if (!quote) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    const customer = await getCustomerById(quote.customer_id, business_id);
+
+    if (!customer || !customer.email) {
+
+      return res.status(400).json({
+        error: "This customer doesn't have an email on file."
+      });
+
+    }
+
+    const business = await getBusinessById(business_id);
+
+    const token = await createLoginToken(customer.id, business_id, QUOTE_EMAIL_LINK_TTL_MINUTES);
+    const portalUrl = `${FRONTEND_URL}/portal/${business.slug}?token=${token}`;
+
+    const label = quote.type === "invoice" ? "invoice" : "quote";
+
+    // Sent before the status flips to "sent" - if this throws, the quote
+    // must stay whatever it was, not get marked as delivered when the
+    // customer was never actually notified.
+    await sendEmail({
+
+      to: customer.email,
+
+      subject: `Your ${label} from ${business.name} — ${formatMoneyForEmail(quote.total)}`,
+
+      html: `
+        <p>Hi ${customer.name || "there"},</p>
+        <p>${business.name} has sent you a${label === "invoice" ? "n" : ""} ${label} for ${formatMoneyForEmail(quote.total)}.</p>
+        <p><a href="${portalUrl}">View and respond to it here</a></p>
+        <p>This link works for the next 7 days. If you didn't expect this, you can ignore this email.</p>
+      `
+
+    });
+
+    // Only advances draft -> sent - re-sending an already-accepted/paid
+    // quote (e.g. because the customer lost the email) shouldn't roll its
+    // status backward.
+    if (quote.status === "draft") {
+      await updateQuoteFieldsService(id, business_id, { status: "sent" });
+    }
+
+    res.json({
+      message: "Sent"
+    });
+
+  } catch (error) {
+
+    console.error("SEND QUOTE ERROR:", error);
+
+    res.status(500).json({
+      error: "Couldn't send this to the customer. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const updateQuote = async (req, res) => {
 
   try {
@@ -767,6 +858,8 @@ module.exports = {
   getCustomerQuotes,
 
   getQuote,
+
+  sendQuote,
 
   updateQuote,
 

@@ -10,6 +10,7 @@ const {
   exportQuotesCsv,
   getCustomerQuotes,
   getQuote,
+  sendQuote,
   updateQuote,
   deleteQuote,
   downloadQuotePdf
@@ -53,6 +54,12 @@ router.get(
   "/:id/pdf",
   authMiddleware,
   downloadQuotePdf
+);
+
+router.post(
+  "/:id/send",
+  authMiddleware,
+  sendQuote
 );
 
 router.patch(

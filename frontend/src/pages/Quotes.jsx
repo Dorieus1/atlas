@@ -7,7 +7,9 @@ import {
   FileText,
   ArrowRightLeft,
   Download,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Send
 } from "lucide-react";
 
 import {
@@ -15,6 +17,7 @@ import {
   getQuote,
   createQuote,
   updateQuote,
+  sendQuote,
   deleteQuote,
   downloadQuotePdf,
   exportQuotesCsv,
@@ -98,6 +101,7 @@ function Quotes() {
   const [loadError, setLoadError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
+  const [editingQuoteId, setEditingQuoteId] = useState(null);
   const [formCustomerId, setFormCustomerId] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState([emptyItem()]);
@@ -118,6 +122,7 @@ function Quotes() {
   const [deleting, setDeleting] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [sendingToCustomer, setSendingToCustomer] = useState(false);
 
 
   const loadQuotes = async () => {
@@ -187,6 +192,7 @@ function Quotes() {
 
   const openCreateForm = () => {
 
+    setEditingQuoteId(null);
     setFormCustomerId("");
     setFormNotes("");
     setFormItems([emptyItem()]);
@@ -194,6 +200,34 @@ function Quotes() {
     setFormDiscountValue("");
     setFormDepositType("");
     setFormDepositValue("");
+    setFormError("");
+    setDraftSummary("");
+    setShowForm(true);
+
+  };
+
+
+  // Pre-fills the same form used for creating, so editing a quote's line
+  // items/notes/discount/deposit reuses one UI instead of a second one.
+  // Only reachable from the detail view, so `quote` is always a full
+  // detail payload (with items) - never the summary shape from the list.
+  const openEditForm = (quote) => {
+
+    setActiveQuote(null);
+    setEditingQuoteId(quote.id);
+    setFormCustomerId(quote.customer_id || "");
+    setFormNotes(quote.notes || "");
+    setFormItems(
+      (quote.items || []).map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      }))
+    );
+    setFormDiscountType(quote.discount_type || "");
+    setFormDiscountValue(quote.discount_type ? String(quote.discount_value) : "");
+    setFormDepositType(quote.deposit_type || "");
+    setFormDepositValue(quote.deposit_type ? String(quote.deposit_value) : "");
     setFormError("");
     setDraftSummary("");
     setShowForm(true);
@@ -262,7 +296,7 @@ function Quotes() {
   const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue, formDepositType, formDepositValue);
 
 
-  const handleCreate = async () => {
+  const handleSaveQuote = async () => {
 
     if (!formCustomerId) {
       setFormError("Choose a customer.");
@@ -347,24 +381,43 @@ function Quotes() {
 
     try {
 
-      await createQuote(
-        formCustomerId,
-        "quote",
-        formNotes.trim() || null,
-        cleanItems,
-        formDiscountType || null,
-        formDiscountType ? Number(formDiscountValue) : null,
-        formDepositType || null,
-        formDepositType ? Number(formDepositValue) : null
-      );
+      if (editingQuoteId) {
 
-      setShowForm(false);
-      await loadQuotes();
+        await updateQuote(editingQuoteId, {
+          notes: formNotes.trim() || null,
+          items: cleanItems,
+          discount_type: formDiscountType || null,
+          discount_value: formDiscountType ? Number(formDiscountValue) : null,
+          deposit_type: formDepositType || null,
+          deposit_value: formDepositType ? Number(formDepositValue) : null
+        });
+
+        setShowForm(false);
+        await loadQuotes();
+        await openDetail(editingQuoteId);
+
+      } else {
+
+        await createQuote(
+          formCustomerId,
+          "quote",
+          formNotes.trim() || null,
+          cleanItems,
+          formDiscountType || null,
+          formDiscountType ? Number(formDiscountValue) : null,
+          formDepositType || null,
+          formDepositType ? Number(formDepositValue) : null
+        );
+
+        setShowForm(false);
+        await loadQuotes();
+
+      }
 
     } catch (error) {
 
-      console.error("CREATE QUOTE ERROR:", error);
-      setFormError(error.message || "Couldn't create that quote. Please try again.");
+      console.error("SAVE QUOTE ERROR:", error);
+      setFormError(error.message || "Couldn't save that quote. Please try again.");
 
     } finally {
 
@@ -471,6 +524,36 @@ function Quotes() {
     } finally {
 
       setDownloadingPdf(false);
+
+    }
+
+  };
+
+
+  const handleSendToCustomer = async () => {
+
+    if (!activeQuote) return;
+
+    setSendingToCustomer(true);
+    setDetailError("");
+    setDetailSuccess("");
+
+    try {
+
+      await sendQuote(activeQuote.id);
+      setDetailSuccess(`Emailed to ${activeQuote.customer_name || "the customer"}.`);
+      await loadQuotes();
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+
+    } catch (error) {
+
+      console.error("SEND QUOTE ERROR:", error);
+      setDetailError(error.message || "Couldn't send this to the customer. Please try again.");
+
+    } finally {
+
+      setSendingToCustomer(false);
 
     }
 
@@ -661,7 +744,7 @@ function Quotes() {
             <div className="flex items-center justify-between">
 
               <h3 className="font-display text-lg font-bold">
-                {draftSummary ? "AI-Drafted Quote" : "New Quote"}
+                {editingQuoteId ? "Edit Quote" : draftSummary ? "AI-Drafted Quote" : "New Quote"}
               </h3>
 
               <button
@@ -692,7 +775,9 @@ function Quotes() {
               <select
                 value={formCustomerId}
                 onChange={(e) => setFormCustomerId(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                disabled={!!editingQuoteId}
+                title={editingQuoteId ? "The customer on a quote can't be changed after it's created" : undefined}
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none disabled:opacity-60"
               >
                 <option value="">Choose a customer</option>
                 {customers.map((c) => (
@@ -722,6 +807,13 @@ function Quotes() {
               )}
 
               <div className="flex flex-col gap-2">
+
+                <div className="flex items-center gap-2 px-0.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <span className="min-w-0 flex-1">Description</span>
+                  <span className="w-16">Qty</span>
+                  <span className="w-24">Price</span>
+                  <span className="w-[27px] shrink-0" aria-hidden="true" />
+                </div>
 
                 {formItems.map((item, index) => (
 
@@ -883,11 +975,13 @@ function Quotes() {
               </div>
 
               <button
-                onClick={handleCreate}
+                onClick={handleSaveQuote}
                 disabled={saving}
                 className="mt-1 rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
               >
-                {saving ? "Creating..." : "Create Quote"}
+                {saving
+                  ? (editingQuoteId ? "Saving..." : "Creating...")
+                  : (editingQuoteId ? "Save Changes" : "Create Quote")}
               </button>
 
             </div>
@@ -1067,7 +1161,24 @@ function Quotes() {
 
                 </div>
 
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+
+                  <button
+                    onClick={() => openEditForm(activeQuote)}
+                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={handleSendToCustomer}
+                    disabled={sendingToCustomer}
+                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                  >
+                    <Send size={14} />
+                    {sendingToCustomer ? "Sending..." : "Send to Customer"}
+                  </button>
 
                   <button
                     onClick={handleDownloadPdf}

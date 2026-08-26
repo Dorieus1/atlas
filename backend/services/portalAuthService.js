@@ -4,12 +4,17 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 
 
-const createLoginToken = (customer_id, business_id) => {
+// ttlMinutes defaults to 15 - long enough for a customer to click a login
+// link they just requested, but short-lived enough not to sit as a
+// standing credential. A business owner emailing a customer about a new
+// quote/invoice needs a longer window (the customer may not check email
+// right away), so that flow passes a longer ttlMinutes explicitly.
+const createLoginToken = (customer_id, business_id, ttlMinutes = 15) => {
 
   return new Promise((resolve, reject) => {
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
 
     db.run(
 

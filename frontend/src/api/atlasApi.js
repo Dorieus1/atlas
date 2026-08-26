@@ -950,6 +950,16 @@ export const updateQuote = (id, fields) =>
 
 
 
+export const sendQuote = (id) =>
+
+  request(`/quotes/${id}/send`, {
+
+    method: "POST"
+
+  });
+
+
+
 export const deleteQuote = (id) =>
 
   request(`/quotes/${id}`, {
