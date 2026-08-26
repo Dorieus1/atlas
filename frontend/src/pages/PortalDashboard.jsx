@@ -54,6 +54,39 @@ function formatDate(dateString) {
   });
 }
 
+// <input type="date">/<input type="time"> both take plain "local time"
+// strings with no timezone attached - whatever gets typed into them is
+// later parsed back as local time (see handleConfirmReschedule's own
+// `new Date(...)` call, and handleRequestAppointment's identical
+// pattern). Pre-filling the reschedule modal from appt.start_time (a
+// UTC ISO string) requires converting to the LOCAL date/time first, not
+// slicing the UTC string directly - slicing would show, say, "15:00" in
+// the time field while actually meaning 15:00 UTC, and resubmitting
+// that unchanged would silently reinterpret it as 15:00 *local*,
+// shifting the appointment by the timezone offset.
+function toLocalDateInputValue(dateString) {
+
+  const d = new Date(dateString);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+
+}
+
+function toLocalTimeInputValue(dateString) {
+
+  const d = new Date(dateString);
+
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+
+}
+
 // Mirrors the backend's own guard in loadOwnEditableAppointment
 // (portalController.js) - an appointment that's already cancelled,
 // already completed, or already in the past isn't something a customer
@@ -270,10 +303,8 @@ function PortalDashboard() {
 
     setRescheduleError("");
 
-    const start = new Date(appt.start_time);
-
-    setRescheduleDate(start.toISOString().slice(0, 10));
-    setRescheduleTime(start.toISOString().slice(11, 16));
+    setRescheduleDate(toLocalDateInputValue(appt.start_time));
+    setRescheduleTime(toLocalTimeInputValue(appt.start_time));
     setReschedulingAppointment(appt);
 
   };
