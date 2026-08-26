@@ -1,18 +1,24 @@
 import { useEffect, useState, useRef } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import { getKnowledge, updateKnowledge, deleteKnowledge } from "../../api/atlasApi";
 import EmptyState from "../EmptyState";
+
+const UNCATEGORIZED_LABEL = "Uncategorized";
 
 function KnowledgePanel() {
 
 
   const [knowledge, setKnowledge] = useState([]);
 
+  const [search, setSearch] = useState("");
+
   const [editingId, setEditingId] = useState(null);
 
   const [editTitle, setEditTitle] = useState("");
 
   const [editContent, setEditContent] = useState("");
+
+  const [editCategory, setEditCategory] = useState("");
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
@@ -66,6 +72,7 @@ function KnowledgePanel() {
     setEditingId(item.id);
     setEditTitle(item.title);
     setEditContent(item.content);
+    setEditCategory(item.category || "");
     setConfirmingDeleteId(null);
     setError("");
 
@@ -98,7 +105,7 @@ function KnowledgePanel() {
 
     try {
 
-      await updateKnowledge(id, editTitle.trim(), editContent.trim());
+      await updateKnowledge(id, editTitle.trim(), editContent.trim(), editCategory.trim() || null);
       setEditingId(null);
       setError("");
       await loadKnowledge();
@@ -153,6 +160,54 @@ function KnowledgePanel() {
   };
 
 
+  // Client-side only - the knowledge base is small enough per business
+  // (this isn't a search across thousands of rows) that a second round
+  // trip to the server for a filter this simple would just add latency
+  // for no real benefit.
+  const filteredKnowledge = knowledge.filter((item) => {
+
+    if (!search.trim()) {
+      return true;
+    }
+
+    const query = search.trim().toLowerCase();
+
+    return (
+      item.title.toLowerCase().includes(query) ||
+      item.content.toLowerCase().includes(query) ||
+      (item.category || "").toLowerCase().includes(query)
+    );
+
+  });
+
+  // Grouped so a growing knowledge base reads as sections (Pricing,
+  // Hours & Location, ...) instead of one long undifferentiated list -
+  // uncategorized entries collect into their own group at the end
+  // rather than being scattered or hidden.
+  const groups = {};
+
+  filteredKnowledge.forEach((item) => {
+
+    const groupName = item.category || UNCATEGORIZED_LABEL;
+
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+
+    groups[groupName].push(item);
+
+  });
+
+  const groupNames = Object.keys(groups).sort((a, b) => {
+
+    if (a === UNCATEGORIZED_LABEL) return 1;
+    if (b === UNCATEGORIZED_LABEL) return -1;
+
+    return a.localeCompare(b);
+
+  });
+
+
   return (
 
     <div className="
@@ -181,6 +236,23 @@ function KnowledgePanel() {
 
       )}
 
+      {knowledge.length > 0 && (
+
+        <div className="relative mt-4">
+
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search your knowledge base..."
+            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 p-2.5 pl-9 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+          />
+
+        </div>
+
+      )}
+
 
 
       {knowledge.length === 0 && !error ? (
@@ -192,9 +264,23 @@ function KnowledgePanel() {
         />
 
 
+      ) : knowledge.length > 0 && filteredKnowledge.length === 0 ? (
+
+        <p className="mt-4 text-sm text-slate-400">
+          No knowledge entries match "{search.trim()}".
+        </p>
+
       ) : knowledge.length === 0 ? null : (
 
-        knowledge.map((item) => (
+        groupNames.map((groupName) => (
+
+          <div key={groupName} className="mt-5">
+
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {groupName} ({groups[groupName].length})
+            </h3>
+
+            {groups[groupName].map((item) => (
 
           <div
 
@@ -242,6 +328,24 @@ function KnowledgePanel() {
                   onChange={(e) => setEditContent(e.target.value)}
 
                   className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 h-24"
+
+                />
+
+                <label htmlFor={`knowledge-category-${item.id}`} className="mb-1 mt-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Category
+                </label>
+
+                <input
+
+                  id={`knowledge-category-${item.id}`}
+
+                  value={editCategory}
+
+                  onChange={(e) => setEditCategory(e.target.value)}
+
+                  placeholder="e.g. Pricing, Hours & Location"
+
+                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 placeholder:text-slate-500"
 
                 />
 
@@ -377,6 +481,10 @@ function KnowledgePanel() {
 
             )}
 
+
+          </div>
+
+            ))}
 
           </div>
 

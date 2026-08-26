@@ -1,14 +1,37 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Plus } from "lucide-react";
-import { createKnowledge } from "../../api/atlasApi";
+import { createKnowledge, getKnowledge } from "../../api/atlasApi";
 
 function KnowledgeEditor({ onSaved }) {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [category, setCategory] = useState("");
+  const [existingCategories, setExistingCategories] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const savingRef = useRef(false);
+
+  // Suggestions only, via a <datalist> - not a hard-coded taxonomy, so a
+  // business can name categories however makes sense to them, but
+  // reusing "Pricing" instead of accidentally typing "Prices" a second
+  // time is one click away instead of requiring them to remember their
+  // own past spelling.
+  useEffect(() => {
+
+    const business_id = localStorage.getItem("business_id");
+
+    getKnowledge(business_id)
+      .then((data) => {
+
+        const categories = [...new Set(data.map((item) => item.category).filter(Boolean))].sort();
+
+        setExistingCategories(categories);
+
+      })
+      .catch(() => {});
+
+  }, []);
 
   const saveKnowledge = async () => {
 
@@ -35,15 +58,24 @@ function KnowledgeEditor({ onSaved }) {
     try {
 
       const business_id = localStorage.getItem("business_id");
+      const trimmedCategory = category.trim();
 
       await createKnowledge(
   business_id,
   title.trim(),
-  content.trim()
+  content.trim(),
+  trimmedCategory || null
 );
+
+      if (trimmedCategory && !existingCategories.includes(trimmedCategory)) {
+
+        setExistingCategories([...existingCategories, trimmedCategory].sort());
+
+      }
 
       setTitle("");
       setContent("");
+      setCategory("");
 
       if (onSaved) {
 
@@ -105,6 +137,25 @@ function KnowledgeEditor({ onSaved }) {
         value={content}
         onChange={(e)=>setContent(e.target.value)}
       />
+
+      <label htmlFor="knowledge-category" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        Category (optional)
+      </label>
+
+      <input
+        id="knowledge-category"
+        list="knowledge-category-options"
+        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
+        placeholder="e.g. Pricing, Hours & Location"
+        value={category}
+        onChange={(e)=>setCategory(e.target.value)}
+      />
+
+      <datalist id="knowledge-category-options">
+        {existingCategories.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
 
       <button
         onClick={saveKnowledge}

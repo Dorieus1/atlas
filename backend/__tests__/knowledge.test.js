@@ -135,4 +135,51 @@ describe("Knowledge", () => {
 
   });
 
+  test("a category is saved on create, trimmed, and can be changed on update", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "KBCategory");
+
+    const created = await request(app)
+      .post("/api/knowledge")
+      .set("Authorization", authHeader)
+      .send({ title: "Hours", content: "9-5", category: "  Hours & Location  " });
+
+    expect(created.status).toBe(201);
+
+    const afterCreate = await request(app)
+      .get(`/api/knowledge/${business_id}`)
+      .set("Authorization", authHeader);
+
+    expect(afterCreate.body[0].category).toBe("Hours & Location");
+
+    await request(app)
+      .put(`/api/knowledge/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ title: "Hours", content: "9-5", category: "Policies" });
+
+    const afterUpdate = await request(app)
+      .get(`/api/knowledge/${business_id}`)
+      .set("Authorization", authHeader);
+
+    expect(afterUpdate.body[0].category).toBe("Policies");
+
+  });
+
+  test("an entry with no category on file is returned as null, not an empty string", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "KBNoCategory");
+
+    await request(app)
+      .post("/api/knowledge")
+      .set("Authorization", authHeader)
+      .send({ title: "Hours", content: "9-5" });
+
+    const list = await request(app)
+      .get(`/api/knowledge/${business_id}`)
+      .set("Authorization", authHeader);
+
+    expect(list.body[0].category).toBeNull();
+
+  });
+
 });

@@ -582,7 +582,9 @@ export const createKnowledge = (
 
   title,
 
-  content
+  content,
+
+  category
 
 ) =>
 
@@ -596,7 +598,9 @@ export const createKnowledge = (
 
       title,
 
-      content
+      content,
+
+      category
 
     })
 
@@ -610,7 +614,9 @@ export const updateKnowledge = (
 
   title,
 
-  content
+  content,
+
+  category
 
 ) =>
 
@@ -622,11 +628,49 @@ export const updateKnowledge = (
 
       title,
 
-      content
+      content,
+
+      category
 
     })
 
   });
+
+
+
+export const importKnowledgeCsv = async (file) => {
+
+  const token = localStorage.getItem("token");
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await fetch(`${API}/knowledge/import`, {
+
+    method: "POST",
+
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+
+    body: formData
+
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+
+    const error = new Error(data.error || "Import failed. Please try again.");
+    error.status = response.status;
+    throw error;
+
+  }
+
+  return data;
+
+};
 
 
 

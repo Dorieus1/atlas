@@ -8,11 +8,14 @@ const {
   createKnowledge,
   getKnowledge,
   updateKnowledge,
-  deleteKnowledge
+  deleteKnowledge,
+  importKnowledge
 } = require("../controllers/knowledgeController");
 
 
 router.post("/", authMiddleware, createKnowledge);
+
+router.post("/import", authMiddleware, importKnowledge);
 
 router.get("/:business_id", authMiddleware, getKnowledge);
 
