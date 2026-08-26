@@ -1,5 +1,18 @@
 const db = require("../../database/db");
 const { sendEmail } = require("./emailService");
+const { createLoginToken } = require("./portalAuthService");
+const { applyDiscount, calculateDeposit } = require("./quoteService");
+
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
+}
+
+// Same reasoning as invoiceReminderService.js's matching constant - a
+// week gives a customer real time to act before the link goes stale.
+const REMINDER_LINK_TTL_MINUTES = 7 * 24 * 60;
 
 
 const allAsync = (sql, params = []) => {
@@ -69,13 +82,22 @@ const sendQuoteReminders = async () => {
     `
     SELECT
       quotes.id,
+      quotes.customer_id,
+      quotes.business_id,
       quotes.reminder_count,
+      quotes.discount_type,
+      quotes.discount_value,
+      quotes.deposit_type,
+      quotes.deposit_value,
+      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal,
       customers.name AS customer_name,
       customers.email AS customer_email,
-      businesses.name AS business_name
+      businesses.name AS business_name,
+      businesses.slug AS business_slug
     FROM quotes
     JOIN customers ON customers.id = quotes.customer_id
     JOIN businesses ON businesses.id = quotes.business_id
+    LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
     WHERE quotes.type = 'quote'
     AND quotes.status = 'sent'
     AND quotes.sent_at IS NOT NULL
@@ -84,6 +106,7 @@ const sendQuoteReminders = async () => {
     AND quotes.reminder_count < 3
     AND customers.email IS NOT NULL
     AND customers.email != ''
+    GROUP BY quotes.id
     `,
 
     [sentCutoff, reminderCutoff]
@@ -99,16 +122,23 @@ const sendQuoteReminders = async () => {
     // rest of the batch from going out.
     try {
 
+      const { total } = applyDiscount(quote.subtotal, quote.discount_type, quote.discount_value);
+      const depositAmount = calculateDeposit(total, quote.deposit_type, quote.deposit_value);
+
+      const token = await createLoginToken(quote.customer_id, quote.business_id, REMINDER_LINK_TTL_MINUTES);
+      const portalUrl = `${FRONTEND_URL}/portal/${quote.business_slug}?token=${token}`;
+
       await sendEmail({
 
         to: quote.customer_email,
 
-        subject: `Following up on your estimate from ${quote.business_name}`,
+        subject: `Following up on your ${formatMoney(total)} estimate from ${quote.business_name}`,
 
         html: `
           <p>Hi ${quote.customer_name || "there"},</p>
-          <p>Just checking in - you still have an open estimate from ${quote.business_name} that hasn't been accepted yet.</p>
-          <p>If you'd like to move forward, reply to this email or give ${quote.business_name} a call and they'll take care of it. If you've decided not to proceed, no action is needed.</p>
+          <p>Just checking in - you still have an open estimate from ${quote.business_name} for ${formatMoney(total)} that hasn't been accepted yet${quote.deposit_type ? ` (accepting it starts with a ${formatMoney(depositAmount)} deposit)` : ""}.</p>
+          <p><a href="${portalUrl}">View and respond to it here</a></p>
+          <p>If you've decided not to proceed, no action is needed. This link works for the next 7 days.</p>
         `
 
       });

@@ -367,4 +367,47 @@ describe("Quote follow-up reminder emails", () => {
 
   });
 
+
+  test("the quote reminder states the actual estimate amount, mentions a deposit if one's required, and its link really logs the customer in", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuoteReminderLink");
+    const customerId = await createCustomer(authHeader, "Link Customer", "quotelink@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "quote",
+        items: [{ description: "Roof estimate", quantity: 1, unit_price: 800 }],
+        deposit_type: "percent",
+        deposit_value: 25
+      });
+
+    await setStatus(authHeader, created.body.id, "sent");
+    await backdateQuote(created.body.id, { sentDaysAgo: 4 });
+
+    await sendQuoteReminders();
+
+    const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
+    const body = JSON.parse(lastCall[1].body);
+
+    expect(body.subject).toContain("$800.00");
+    expect(body.html).toContain("$800.00");
+    expect(body.html).toContain("$200.00 deposit");
+
+    const slugRes = await request(app).get("/api/business").set("Authorization", authHeader);
+    const slug = slugRes.body[0].slug;
+
+    const token = body.html.match(/token=([a-f0-9]+)/)[1];
+
+    const verify = await request(app)
+      .post(`/api/portal/${slug}/verify`)
+      .send({ token });
+
+    expect(verify.status).toBe(200);
+    expect(verify.body.token).toBeTruthy();
+
+  });
+
 });

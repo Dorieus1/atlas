@@ -297,4 +297,47 @@ describe("Invoice payment reminder emails", () => {
 
   });
 
+
+  test("the reminder states the actual amount owed, mentions a deposit if one's required, and its link really logs the customer in", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ReminderLink");
+    const customerId = await createCustomer(authHeader, "Link Customer", "link@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        type: "invoice",
+        items: [{ description: "Roof repair", quantity: 1, unit_price: 500 }],
+        deposit_type: "fixed",
+        deposit_value: 100
+      });
+
+    await setStatus(authHeader, created.body.id, "sent");
+    await backdateInvoice(created.body.id, { sentDaysAgo: 4 });
+
+    await sendInvoiceReminders();
+
+    const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
+    const body = JSON.parse(lastCall[1].body);
+
+    expect(body.subject).toContain("$500.00");
+    expect(body.html).toContain("$500.00");
+    expect(body.html).toContain("$100.00 deposit");
+
+    const slugRes = await request(app).get("/api/business").set("Authorization", authHeader);
+    const slug = slugRes.body[0].slug;
+
+    const token = body.html.match(/token=([a-f0-9]+)/)[1];
+
+    const verify = await request(app)
+      .post(`/api/portal/${slug}/verify`)
+      .send({ token });
+
+    expect(verify.status).toBe(200);
+    expect(verify.body.token).toBeTruthy();
+
+  });
+
 });
