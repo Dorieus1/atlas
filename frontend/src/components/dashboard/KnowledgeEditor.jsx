@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Plus } from "lucide-react";
 import { createKnowledge } from "../../api/atlasApi";
 
-function KnowledgeEditor() {
+function KnowledgeEditor({ onSaved }) {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -45,7 +45,11 @@ function KnowledgeEditor() {
       setTitle("");
       setContent("");
 
-      window.location.reload();
+      if (onSaved) {
+
+        onSaved();
+
+      }
 
     } catch (err) {
 

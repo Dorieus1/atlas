@@ -32,7 +32,7 @@ function Knowledge() {
 
       <KnowledgePanel key={knowledgeListKey} />
 
-      <KnowledgeEditor />
+      <KnowledgeEditor onSaved={() => setKnowledgeListKey((k) => k + 1)} />
 
     </div>
 
