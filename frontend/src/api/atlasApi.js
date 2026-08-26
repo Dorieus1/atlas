@@ -960,6 +960,28 @@ export const sendQuote = (id) =>
 
 
 
+export const addQuoteExpense = (id, description, amount) =>
+
+  request(`/quotes/${id}/expenses`, {
+
+    method: "POST",
+
+    body: JSON.stringify({ description, amount })
+
+  });
+
+
+
+export const deleteQuoteExpense = (id, expenseId) =>
+
+  request(`/quotes/${id}/expenses/${expenseId}`, {
+
+    method: "DELETE"
+
+  });
+
+
+
 export const deleteQuote = (id) =>
 
   request(`/quotes/${id}`, {

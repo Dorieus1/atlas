@@ -10,7 +10,9 @@ const {
   getQuoteById: getQuoteByIdService,
   updateQuoteFields: updateQuoteFieldsService,
   replaceQuoteItems: replaceQuoteItemsService,
-  deleteQuote: deleteQuoteService
+  deleteQuote: deleteQuoteService,
+  addQuoteExpense: addQuoteExpenseService,
+  deleteQuoteExpense: deleteQuoteExpenseService
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -561,6 +563,93 @@ const sendQuote = async (req, res) => {
 
 
 
+const addQuoteExpense = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.user.business_id;
+    const { description, amount } = req.body;
+
+    if (!description || !description.trim()) {
+
+      return res.status(400).json({
+        error: "A description is required"
+      });
+
+    }
+
+    const numericAmount = Number(amount);
+
+    if (!Number.isFinite(numericAmount) || numericAmount < 0) {
+
+      return res.status(400).json({
+        error: "Enter a valid, non-negative amount"
+      });
+
+    }
+
+    const expense = await addQuoteExpenseService(id, business_id, description.trim(), numericAmount);
+
+    if (!expense) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    res.status(201).json(expense);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const deleteQuoteExpense = async (req, res) => {
+
+  try {
+
+    const { id, expenseId } = req.params;
+    const business_id = req.user.business_id;
+
+    const deleted = await deleteQuoteExpenseService(expenseId, id, business_id);
+
+    if (!deleted) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    res.json({
+      message: "Deleted"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const updateQuote = async (req, res) => {
 
   try {
@@ -860,6 +949,10 @@ module.exports = {
   getQuote,
 
   sendQuote,
+
+  addQuoteExpense,
+
+  deleteQuoteExpense,
 
   updateQuote,
 

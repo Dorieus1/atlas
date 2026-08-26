@@ -11,6 +11,8 @@ const {
   getCustomerQuotes,
   getQuote,
   sendQuote,
+  addQuoteExpense,
+  deleteQuoteExpense,
   updateQuote,
   deleteQuote,
   downloadQuotePdf
@@ -60,6 +62,18 @@ router.post(
   "/:id/send",
   authMiddleware,
   sendQuote
+);
+
+router.post(
+  "/:id/expenses",
+  authMiddleware,
+  addQuoteExpense
+);
+
+router.delete(
+  "/:id/expenses/:expenseId",
+  authMiddleware,
+  deleteQuoteExpense
 );
 
 router.patch(

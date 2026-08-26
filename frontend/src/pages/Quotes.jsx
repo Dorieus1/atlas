@@ -9,7 +9,8 @@ import {
   Download,
   Sparkles,
   Pencil,
-  Send
+  Send,
+  Receipt
 } from "lucide-react";
 
 import {
@@ -18,6 +19,8 @@ import {
   createQuote,
   updateQuote,
   sendQuote,
+  addQuoteExpense,
+  deleteQuoteExpense,
   deleteQuote,
   downloadQuotePdf,
   exportQuotesCsv,
@@ -123,6 +126,11 @@ function Quotes() {
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState("");
   const [sendingToCustomer, setSendingToCustomer] = useState(false);
+  const [expenseDescription, setExpenseDescription] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [addingExpense, setAddingExpense] = useState(false);
+  const [expenseError, setExpenseError] = useState("");
+  const [deletingExpenseId, setDeletingExpenseId] = useState(null);
 
 
   const loadQuotes = async () => {
@@ -435,6 +443,9 @@ function Quotes() {
     setDetailSuccess("");
     setDetailLoading(true);
     setConfirmingDelete(false);
+    setExpenseDescription("");
+    setExpenseAmount("");
+    setExpenseError("");
     setActiveQuote({ id });
 
     try {
@@ -554,6 +565,75 @@ function Quotes() {
     } finally {
 
       setSendingToCustomer(false);
+
+    }
+
+  };
+
+
+  const handleAddExpense = async () => {
+
+    if (!activeQuote) return;
+
+    if (!expenseDescription.trim()) {
+      setExpenseError("Enter a description.");
+      return;
+    }
+
+    const amount = Number(expenseAmount);
+
+    if (!Number.isFinite(amount) || amount < 0) {
+      setExpenseError("Enter a valid, non-negative amount.");
+      return;
+    }
+
+    setAddingExpense(true);
+    setExpenseError("");
+
+    try {
+
+      await addQuoteExpense(activeQuote.id, expenseDescription.trim(), amount);
+      setExpenseDescription("");
+      setExpenseAmount("");
+
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+
+    } catch (error) {
+
+      console.error("ADD EXPENSE ERROR:", error);
+      setExpenseError(error.message || "Couldn't add that expense. Please try again.");
+
+    } finally {
+
+      setAddingExpense(false);
+
+    }
+
+  };
+
+
+  const handleDeleteExpense = async (expenseId) => {
+
+    if (!activeQuote) return;
+
+    setDeletingExpenseId(expenseId);
+
+    try {
+
+      await deleteQuoteExpense(activeQuote.id, expenseId);
+
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+
+    } catch (error) {
+
+      console.error("DELETE EXPENSE ERROR:", error);
+      setExpenseError("Couldn't remove that expense. Please try again.");
+
+    } finally {
+
+      setDeletingExpenseId(null);
 
     }
 
@@ -1158,6 +1238,96 @@ function Quotes() {
                           : " · not yet paid"}
                       </span>
                     </div>
+                  )}
+
+                </div>
+
+                <div className="mt-4 rounded-lg border border-ink-700 p-4">
+
+                  <div className="flex items-center gap-2">
+                    <Receipt size={16} className="text-slate-400" />
+                    <h4 className="text-sm font-semibold">Job Costs</h4>
+                  </div>
+
+                  {activeQuote.expenses?.length > 0 && (
+
+                    <div className="mt-3 flex flex-col divide-y divide-ink-800 rounded-lg border border-ink-800">
+
+                      {activeQuote.expenses.map((expense) => (
+
+                        <div key={expense.id} className="flex items-center justify-between gap-3 p-2.5">
+
+                          <span className="min-w-0 truncate text-sm text-slate-300">
+                            {expense.description}
+                          </span>
+
+                          <div className="flex shrink-0 items-center gap-2">
+
+                            <span className="text-sm text-slate-400">
+                              {formatMoney(expense.amount)}
+                            </span>
+
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              disabled={deletingExpenseId === expense.id}
+                              className="rounded p-1 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                              aria-label="Remove expense"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+
+                          </div>
+
+                        </div>
+
+                      ))}
+
+                    </div>
+
+                  )}
+
+                  <div className="mt-3 flex items-center gap-2">
+
+                    <input
+                      placeholder="Materials, labor, subcontractor..."
+                      value={expenseDescription}
+                      onChange={(e) => setExpenseDescription(e.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                    />
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Amount"
+                      value={expenseAmount}
+                      onChange={(e) => setExpenseAmount(e.target.value)}
+                      className="w-24 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                    />
+
+                    <button
+                      onClick={handleAddExpense}
+                      disabled={addingExpense}
+                      className="shrink-0 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                    >
+                      {addingExpense ? "Adding..." : "Add"}
+                    </button>
+
+                  </div>
+
+                  {expenseError && (
+                    <p className="mt-2 text-xs text-red-400">{expenseError}</p>
+                  )}
+
+                  {activeQuote.expenses?.length > 0 && (
+
+                    <div className="mt-3 flex items-center justify-between border-t border-ink-800 pt-3">
+                      <span className="text-sm font-medium text-slate-300">Margin</span>
+                      <span className={`font-display text-lg font-bold ${activeQuote.margin < 0 ? "text-red-400" : "text-green-400"}`}>
+                        {formatMoney(activeQuote.margin)}
+                      </span>
+                    </div>
+
                   )}
 
                 </div>

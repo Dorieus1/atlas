@@ -504,7 +504,90 @@ const getQuoteById = async (id, business_id) => {
   quote.total = totals.total;
   quote.deposit_amount = calculateDeposit(totals.total, quote.deposit_type, quote.deposit_value);
 
+  const expenses = await allAsync(
+
+    `
+    SELECT *
+    FROM quote_expenses
+    WHERE quote_id = ?
+    ORDER BY created_at ASC
+    `,
+
+    [id]
+
+  );
+
+  quote.expenses = expenses;
+  quote.expense_total = round2(expenses.reduce((sum, expense) => sum + expense.amount, 0));
+  quote.margin = round2(quote.total - quote.expense_total);
+
   return quote;
+
+};
+
+
+
+// Every read/write here goes through this same "does this quote belong
+// to this business" check first, rather than storing business_id
+// directly on quote_expenses - mirrors how quote_items has never stored
+// its own business_id either, relying entirely on the parent quote for
+// tenant scoping.
+const getOwnedQuote = (quote_id, business_id) => {
+
+  return getAsync(
+
+    `SELECT id FROM quotes WHERE id = ? AND business_id = ?`,
+
+    [quote_id, business_id]
+
+  );
+
+};
+
+
+const addQuoteExpense = async (quote_id, business_id, description, amount) => {
+
+  const quote = await getOwnedQuote(quote_id, business_id);
+
+  if (!quote) {
+    return null;
+  }
+
+  const id = uuidv4();
+
+  await runAsync(
+
+    `
+    INSERT INTO quote_expenses (id, quote_id, description, amount)
+    VALUES (?, ?, ?, ?)
+    `,
+
+    [id, quote_id, description, amount]
+
+  );
+
+  return getAsync(`SELECT * FROM quote_expenses WHERE id = ?`, [id]);
+
+};
+
+
+const deleteQuoteExpense = async (expense_id, quote_id, business_id) => {
+
+  const quote = await getOwnedQuote(quote_id, business_id);
+
+  if (!quote) {
+    return false;
+  }
+
+  const result = await runAsync(
+
+    `DELETE FROM quote_expenses WHERE id = ? AND quote_id = ?`,
+
+    [expense_id, quote_id]
+
+  );
+
+  return result.changes > 0;
 
 };
 
@@ -656,6 +739,7 @@ const deleteQuote = async (id, business_id) => {
     try {
 
       await runAsync(`DELETE FROM quote_items WHERE quote_id = ?`, [id]);
+      await runAsync(`DELETE FROM quote_expenses WHERE quote_id = ?`, [id]);
 
       const result = await runAsync(
 
@@ -717,6 +801,10 @@ module.exports = {
 
   replaceQuoteItems,
 
-  deleteQuote
+  deleteQuote,
+
+  addQuoteExpense,
+
+  deleteQuoteExpense
 
 };
