@@ -32,6 +32,24 @@ function formatDate(dateString) {
   });
 }
 
+// Schedule.jsx's own day lookup (toDateKey) buckets appointments by
+// LOCAL calendar date, not UTC - linking to a day here has to agree
+// with that, or an evening appointment (whose stored UTC start_time can
+// already be on the next calendar day for any timezone behind UTC)
+// would land the owner on the wrong day. event.date.slice(0, 10) would
+// read the UTC date instead.
+function toLocalDateKey(dateString) {
+
+  const d = new Date(dateString);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+
+}
+
 const APPOINTMENT_STATUS_STYLES = {
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
@@ -316,7 +334,7 @@ function CustomerTimeline({ customerId }) {
 
         return (
           <button
-            onClick={() => navigate(`/schedule?date=${event.date.slice(0, 10)}`)}
+            onClick={() => navigate(`/schedule?date=${toLocalDateKey(event.date)}`)}
             className="text-left group/link"
           >
 
