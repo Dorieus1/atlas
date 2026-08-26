@@ -129,7 +129,7 @@ describe("Invoice payment reminder emails", () => {
 
   test("a sent invoice 4+ days old with a customer email gets a reminder", async () => {
 
-    const { authHeader } = await createBusinessAndUser(app, "ReminderDue");
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderDue");
     const customerId = await createCustomer(authHeader, "Due Customer", "due@test.com");
     const invoiceId = await createInvoice(authHeader, customerId);
 
@@ -220,7 +220,7 @@ describe("Invoice payment reminder emails", () => {
 
   test("a customer with no email on file is skipped, not crashed on", async () => {
 
-    const { authHeader } = await createBusinessAndUser(app, "ReminderNoEmail");
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderNoEmail");
     const customerId = await createCustomer(authHeader, "No Email Customer", undefined);
     const invoiceId = await createInvoice(authHeader, customerId);
 
@@ -279,7 +279,7 @@ describe("Invoice payment reminder emails", () => {
 
   test("the email content names the right business", async () => {
 
-    const { authHeader } = await createBusinessAndUser(app, "ReminderContent");
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderContent");
     const customerId = await createCustomer(authHeader, "Content Customer", "content@test.com");
     const invoiceId = await createInvoice(authHeader, customerId);
 
