@@ -93,6 +93,33 @@ function teammateColor(userId) {
 }
 
 
+// Sunday of the week containing `date` - matches WEEKDAYS/buildMonthGrid's
+// existing Sunday-first convention (JS Date#getDay(), 0 = Sunday).
+function getWeekStart(date) {
+
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  start.setDate(start.getDate() - start.getDay());
+
+  return start;
+
+}
+
+
+function buildWeekGrid(weekStart) {
+
+  const days = [];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    days.push(d);
+  }
+
+  return days;
+
+}
+
+
 function buildMonthGrid(monthDate) {
 
   const year = monthDate.getFullYear();
@@ -161,6 +188,15 @@ function Schedule() {
   });
 
   const [selectedDate, setSelectedDate] = useState(() => linkedDate || new Date());
+
+  // "month" (the original grid) or "week" (a 7-day agenda side by side) -
+  // week is the better default for actually planning the next few days,
+  // month for seeing the shape of a whole month at a glance. Both share
+  // the same selectedDate/day-detail panel and the same drag-to-
+  // reschedule mechanism below.
+  const [calendarView, setCalendarView] = useState("month");
+  const [viewWeekStart, setViewWeekStart] = useState(() => getWeekStart(linkedDate || new Date()));
+
   const [showForm, setShowForm] = useState(false);
 
   const [formTitle, setFormTitle] = useState("");
@@ -472,6 +508,7 @@ function Schedule() {
 
 
   const monthDays = buildMonthGrid(viewMonth);
+  const weekDays = buildWeekGrid(viewWeekStart);
   const today = new Date();
 
   const teammatesById = Object.fromEntries(teammates.map((t) => [t.id, t]));
@@ -580,41 +617,100 @@ function Schedule() {
 
         <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 lg:col-span-8">
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
 
             <h2 className="font-display text-lg font-semibold">
-              {viewMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+              {calendarView === "month"
+                ? viewMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+                : (() => {
+                    const weekEnd = weekDays[6];
+                    const sameMonth = viewWeekStart.getMonth() === weekEnd.getMonth();
+                    const startLabel = viewWeekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                    const endLabel = weekEnd.toLocaleDateString(undefined, sameMonth ? { day: "numeric" } : { month: "short", day: "numeric" });
+                    return `${startLabel} - ${endLabel}, ${weekEnd.getFullYear()}`;
+                  })()}
             </h2>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
 
-              <button
-                onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
-                aria-label="Previous month"
-              >
-                <ChevronLeft size={18} />
-              </button>
+              <div className="flex rounded-lg border border-ink-700 p-0.5 text-xs font-medium">
 
-              <button
-                onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
-                aria-label="Next month"
-              >
-                <ChevronRight size={18} />
-              </button>
+                <button
+                  onClick={() => setCalendarView("month")}
+                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "month" ? "bg-ink-700 text-white" : "text-slate-400 hover:text-white"}`}
+                >
+                  Month
+                </button>
+
+                <button
+                  onClick={() => {
+                    setCalendarView("week");
+                    setViewWeekStart(getWeekStart(selectedDate));
+                  }}
+                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "week" ? "bg-ink-700 text-white" : "text-slate-400 hover:text-white"}`}
+                >
+                  Week
+                </button>
+
+              </div>
+
+              <div className="flex items-center gap-1">
+
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") {
+                      setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1));
+                    } else {
+                      setViewWeekStart((prev) => {
+                        const next = new Date(prev);
+                        next.setDate(prev.getDate() - 7);
+                        return next;
+                      });
+                    }
+                  }}
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+                  aria-label={calendarView === "month" ? "Previous month" : "Previous week"}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") {
+                      setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1));
+                    } else {
+                      setViewWeekStart((prev) => {
+                        const next = new Date(prev);
+                        next.setDate(prev.getDate() + 7);
+                        return next;
+                      });
+                    }
+                  }}
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+                  aria-label={calendarView === "month" ? "Next month" : "Next week"}
+                >
+                  <ChevronRight size={18} />
+                </button>
+
+              </div>
 
             </div>
 
           </div>
 
-          <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-slate-500">
-            {WEEKDAYS.map((day) => (
-              <div key={day} className="pb-1">
-                {day}
-              </div>
-            ))}
-          </div>
+          {calendarView === "month" && (
+
+            <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-slate-500">
+              {WEEKDAYS.map((day) => (
+                <div key={day} className="pb-1">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+          )}
+
+          {calendarView === "month" ? (
 
           <div className="grid grid-cols-7 gap-1.5">
 
@@ -714,6 +810,112 @@ function Schedule() {
             })}
 
           </div>
+
+          ) : (
+
+          <div className="grid grid-cols-7 gap-1.5">
+
+            {weekDays.map((day) => {
+
+              const key = toDateKey(day);
+              const dayAppointments = (appointmentsByDay[key] || []).sort(
+                (a, b) => new Date(a.start_time) - new Date(b.start_time)
+              );
+              const isToday = sameDay(day, today);
+              const isSelected = sameDay(day, selectedDate);
+              const dayHasConflict = dayAppointments.some((appt) => appt.has_conflict);
+              const isDragTarget = dragOverKey === key && draggedAppointmentId;
+
+              return (
+
+                <button
+                  key={key}
+                  onClick={() => setSelectedDate(day)}
+                  onDragOver={(e) => {
+                    if (draggedAppointmentId) {
+                      e.preventDefault();
+                      if (dragOverKey !== key) setDragOverKey(key);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverKey === key) setDragOverKey(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDropOnDay(day);
+                  }}
+                  className={`
+                    relative flex min-h-[320px] flex-col items-stretch gap-1 rounded-xl border p-2 text-left align-top transition
+                    ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
+                    ${isDragTarget ? "border-brand-400 bg-brand-600/20" : ""}
+                  `}
+                >
+
+                  {dayHasConflict && (
+                    <span
+                      className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-500"
+                      aria-label="This day has overlapping appointments"
+                    />
+                  )}
+
+                  <div className="flex flex-col items-center pb-1">
+                    <span className="text-[10px] font-medium text-slate-500">
+                      {WEEKDAYS[day.getDay()]}
+                    </span>
+                    <span
+                      className={`
+                        mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium
+                        ${isToday ? "bg-brand-600 text-white" : "text-slate-300"}
+                      `}
+                    >
+                      {day.getDate()}
+                    </span>
+                  </div>
+
+                  <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto">
+
+                    {dayAppointments.map((appt) => (
+                      <span
+                        key={appt.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggedAppointmentId(appt.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedAppointmentId(null);
+                          setDragOverKey(null);
+                        }}
+                        title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
+                        className={`
+                          flex flex-col items-start gap-0.5 truncate rounded bg-ink-800 px-1.5 py-1 text-[10px] text-slate-300 transition
+                          ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
+                        `}
+                      >
+                        <span className="flex w-full items-center gap-1">
+                          {teammates.length > 1 && (
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${teammateColor(appt.assigned_user_id)}`} />
+                          )}
+                          <span className="truncate font-medium">{appt.title}</span>
+                        </span>
+                        <span className="text-slate-500">
+                          {new Date(appt.start_time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                        </span>
+                      </span>
+                    ))}
+
+                  </div>
+
+                </button>
+
+              );
+
+            })}
+
+          </div>
+
+          )}
 
         </div>
 
