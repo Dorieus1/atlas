@@ -91,6 +91,8 @@ const gatherBusinessSnapshot = async (business_id) => {
     paidInvoiceCount: analytics.paidInvoiceCount,
     outstandingInvoiceCount: analytics.outstandingInvoiceCount,
     revenueLastSixMonths: analytics.revenueByMonth,
+    jobCostsOnPaidInvoices: analytics.expensesPaid,
+    profitMargin: analytics.totalMargin,
 
     appointmentsToday: appointmentsToday.count,
     appointmentsThisWeek: appointmentsThisWeek.count,

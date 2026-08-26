@@ -67,6 +67,12 @@ describe("Ask Atlas", () => {
     expect(promptSent).toContain("\"customers\":1");
     expect(promptSent).toContain("How many customers do I have?");
 
+    // Job costing's numbers should be part of the snapshot too, not just
+    // raw revenue - the whole point of this feature is to give real
+    // profitability answers, not just top-line revenue ones.
+    expect(promptSent).toContain("\"jobCostsOnPaidInvoices\":0");
+    expect(promptSent).toContain("\"profitMargin\":0");
+
   });
 
 
