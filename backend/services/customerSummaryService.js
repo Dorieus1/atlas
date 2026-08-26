@@ -9,6 +9,20 @@ const client = new OpenAI({
 
 
 
+// Only human-relevant fields go into the prompt - raw rows carry
+// internal ids, foreign keys, and ISO timestamps that the model will
+// otherwise happily quote straight back in its summary (e.g. "Customer
+// record: id 46baaa02-..., created_at 2026-08-24 18:09:27"), which
+// reads like a leaked database dump to the business owner, not a
+// written summary. A short, human-friendly date is kept where it's
+// actually useful context; the raw id/foreign-key columns are dropped
+// entirely.
+function formatDate(value) {
+
+  return value ? new Date(value).toLocaleDateString() : null;
+
+}
+
 const generateCustomerSummary = async (
 
   customer,
@@ -21,6 +35,28 @@ const generateCustomerSummary = async (
 
 ) => {
 
+  const customerForPrompt = {
+    name: customer?.name,
+    email: customer?.email,
+    phone: customer?.phone
+  };
+
+  const conversationsForPrompt = (conversations || []).map((c) => ({
+    date: formatDate(c.created_at),
+    message: c.message,
+    response: c.response
+  }));
+
+  const notesForPrompt = (notes || []).map((n) => ({
+    date: formatDate(n.created_at),
+    note: n.note
+  }));
+
+  const activitiesForPrompt = (activities || []).map((a) => ({
+    date: formatDate(a.created_at),
+    type: a.type,
+    content: a.content
+  }));
 
   const prompt = `
 
@@ -32,6 +68,10 @@ activity, deal values, or details that are not present in the data.
 If CONVERSATIONS, NOTES, or ACTIVITY are empty, say plainly that
 there is no history yet -- do not make any up.
 
+Write in plain, professional prose for a business owner - never
+mention database fields, ids, or technical terms, and never include
+any identifier-looking value even if one appears in the data below.
+
 Include:
 
 - Customer intent
@@ -41,22 +81,22 @@ Include:
 
 CUSTOMER:
 
-${JSON.stringify(customer)}
+${JSON.stringify(customerForPrompt)}
 
 
 CONVERSATIONS:
 
-${JSON.stringify(conversations)}
+${JSON.stringify(conversationsForPrompt)}
 
 
 NOTES:
 
-${JSON.stringify(notes)}
+${JSON.stringify(notesForPrompt)}
 
 
 ACTIVITY:
 
-${JSON.stringify(activities)}
+${JSON.stringify(activitiesForPrompt)}
 
 
 
