@@ -878,6 +878,8 @@ function Quotes() {
             icon={FileText}
             title="No quotes yet"
             description="Create your first quote to send a customer a price for the job."
+            actionLabel="New Quote"
+            onAction={openCreateForm}
           />
 
         ) : (

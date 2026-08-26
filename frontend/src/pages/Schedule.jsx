@@ -946,6 +946,8 @@ function Schedule() {
               icon={CalendarDays}
               title="Nothing scheduled"
               description="This day is wide open."
+              actionLabel="New Appointment"
+              onAction={() => openFormForDate(selectedDate)}
             />
 
           ) : (

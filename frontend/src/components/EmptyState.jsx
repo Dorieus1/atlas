@@ -1,4 +1,4 @@
-function EmptyState({ icon: Icon, title, description }) {
+function EmptyState({ icon: Icon, title, description, actionLabel, onAction }) {
 
   return (
 
@@ -18,6 +18,15 @@ function EmptyState({ icon: Icon, title, description }) {
         <p className="mt-1 max-w-xs text-sm text-slate-500">
           {description}
         </p>
+      )}
+
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+        >
+          {actionLabel}
+        </button>
       )}
 
     </div>
