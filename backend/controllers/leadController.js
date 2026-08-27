@@ -4,9 +4,18 @@ const {
 
   updateLead,
 
+  updateLeadSource,
+
   getCustomerLead: getCustomerLeadService
 
 } = require("../services/leadService");
+
+
+// "Website" covers the public chat widget itself - the one source every
+// AI-detected lead already has in common, so it's included as a real
+// option rather than treating "how they actually reached us" as an
+// afterthought. null/undefined clears it back to "not set".
+const VALID_LEAD_SOURCES = ["google", "referral", "social_media", "yard_sign_vehicle", "repeat_customer", "website", "other"];
 
 
 
@@ -116,6 +125,52 @@ const changeLeadStatus = async (req,res)=>{
 
 
 
+const changeLeadSource = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const { source } = req.body;
+
+    // Clearing it back to "not set" is a valid, deliberate action (the
+    // owner picked the wrong one and wants to undo it) - only a
+    // non-empty value gets checked against the allowlist.
+    if (source && !VALID_LEAD_SOURCES.includes(source)) {
+
+      return res.status(400).json({
+        error: "source must be one of: " + VALID_LEAD_SOURCES.join(", ")
+      });
+
+    }
+
+    const updated = await updateLeadSource(id, source || null, req.user.business_id);
+
+    if (!updated) {
+
+      return res.status(404).json({
+        error: "Lead not found"
+      });
+
+    }
+
+    res.json({
+      message: "Lead updated"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const getCustomerLead = async (req,res)=>{
 
   try {
@@ -165,6 +220,10 @@ module.exports = {
 
   changeLeadStatus,
 
-  getCustomerLead
+  changeLeadSource,
+
+  getCustomerLead,
+
+  VALID_LEAD_SOURCES
 
 };

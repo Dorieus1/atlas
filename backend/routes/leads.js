@@ -10,6 +10,8 @@ const {
 
   changeLeadStatus,
 
+  changeLeadSource,
+
   getCustomerLead
 
 } = require("../controllers/leadController");
@@ -47,6 +49,18 @@ router.patch(
   authMiddleware,
 
   changeLeadStatus
+
+);
+
+
+
+router.patch(
+
+  "/:id/source",
+
+  authMiddleware,
+
+  changeLeadSource
 
 );
 

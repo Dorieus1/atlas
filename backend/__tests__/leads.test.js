@@ -281,4 +281,64 @@ describe("Leads", () => {
 
   });
 
+  test("a lead's source can be set, cleared, and is validated against the allowlist", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "LeadSourceValidation");
+
+    const { lead } = await createCustomerWithLead(app, authHeader, "Source Customer");
+
+    const garbage = await request(app)
+      .patch(`/api/leads/${lead.id}/source`)
+      .set("Authorization", authHeader)
+      .send({ source: "carrier_pigeon" });
+
+    expect(garbage.status).toBe(400);
+
+    const valid = await request(app)
+      .patch(`/api/leads/${lead.id}/source`)
+      .set("Authorization", authHeader)
+      .send({ source: "referral" });
+
+    expect(valid.status).toBe(200);
+
+    const afterSet = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    expect(afterSet.body[0].source).toBe("referral");
+
+    // Clearing back to "not set" (the owner picked the wrong one) is a
+    // valid, deliberate action, not something the allowlist should
+    // reject as "not a real source".
+    const cleared = await request(app)
+      .patch(`/api/leads/${lead.id}/source`)
+      .set("Authorization", authHeader)
+      .send({ source: "" });
+
+    expect(cleared.status).toBe(200);
+
+    const afterClear = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    expect(afterClear.body[0].source).toBeFalsy();
+
+  });
+
+  test("one business cannot set another business's lead source", async () => {
+
+    const bizA = await createBusinessAndUser(app, "LeadSourceIsoA");
+    const bizB = await createBusinessAndUser(app, "LeadSourceIsoB");
+
+    const { lead } = await createCustomerWithLead(app, bizA.authHeader, "A's Source Customer");
+
+    const editAttempt = await request(app)
+      .patch(`/api/leads/${lead.id}/source`)
+      .set("Authorization", bizB.authHeader)
+      .send({ source: "google" });
+
+    expect(editAttempt.status).toBe(404);
+
+  });
+
 });

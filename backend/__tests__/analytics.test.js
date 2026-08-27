@@ -36,16 +36,16 @@ const runAsync = (sql, params = []) => {
 // leads has no dedicated POST route (leads are created internally by
 // chatService via the AI classifier) - inserted directly, same pattern
 // dailyDigest.test.js already uses for the same reason.
-const insertLead = (business_id, customer_id, status) => {
+const insertLead = (business_id, customer_id, status, source = null) => {
 
   return runAsync(
 
     `
-    INSERT INTO leads (id, customer_id, business_id, name, priority, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO leads (id, customer_id, business_id, name, priority, status, source, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
 
-    [uuidv4(), customer_id, business_id, "Test Lead", "warm", status, new Date().toISOString()]
+    [uuidv4(), customer_id, business_id, "Test Lead", "warm", status, source, new Date().toISOString()]
 
   );
 
@@ -116,6 +116,46 @@ describe("Analytics", () => {
       qualified: 1,
       closed: 1
     });
+
+  });
+
+
+  test("leadsBySource groups by real source, labels an unset source as 'Not set', and stays scoped to the right business", async () => {
+
+    const bizA = await createBusinessAndUser(app, "AnalyticsSourceA");
+    const bizB = await createBusinessAndUser(app, "AnalyticsSourceB");
+
+    const customerA = await request(app)
+      .post("/api/customers")
+      .set("Authorization", bizA.authHeader)
+      .send({ name: "Source Customer A" });
+
+    const customerB = await request(app)
+      .post("/api/customers")
+      .set("Authorization", bizB.authHeader)
+      .send({ name: "Source Customer B" });
+
+    await insertLead(bizA.business_id, customerA.body.id, "new", "google");
+    await insertLead(bizA.business_id, customerA.body.id, "new", "google");
+    await insertLead(bizA.business_id, customerA.body.id, "new", "referral");
+    await insertLead(bizA.business_id, customerA.body.id, "new", null);
+
+    // A different business's leads must never leak into bizA's breakdown.
+    await insertLead(bizB.business_id, customerB.body.id, "new", "google");
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", bizA.authHeader);
+
+    expect(res.status).toBe(200);
+
+    const bySource = Object.fromEntries(res.body.leadsBySource.map((row) => [row.source, row]));
+
+    expect(bySource.google.count).toBe(2);
+    expect(bySource.google.label).toBe("Google");
+    expect(bySource.referral.count).toBe(1);
+    expect(bySource.not_set.count).toBe(1);
+    expect(bySource.not_set.label).toBe("Not set");
 
   });
 

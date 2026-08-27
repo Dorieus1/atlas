@@ -295,6 +295,43 @@ const updateLead = (
 
 
 
+// Separate from updateLead on purpose - status changes carry real side
+// effects (stamping last_contacted/next_follow_up), and tangling an
+// unrelated field into that same function risks a source update
+// accidentally tripping one of those status-specific branches.
+const updateLeadSource = (id, source, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE leads
+      SET source = ?
+      WHERE id = ?
+      AND business_id = ?
+      `,
+
+      [source, id, business_id],
+
+      function (err) {
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes > 0);
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
 const getCustomerLead = (customer_id, business_id) => {
 
   return new Promise((resolve,reject)=>{
@@ -394,6 +431,8 @@ module.exports = {
   getLeadsByBusiness,
 
   updateLead,
+
+  updateLeadSource,
 
   getCustomerLead
 

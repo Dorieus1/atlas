@@ -512,6 +512,28 @@ export const updateLeadStatus = (
 
 
 
+export const updateLeadSource = (
+
+  id,
+
+  source
+
+) =>
+
+  request(`/leads/${id}/source`, {
+
+    method: "PATCH",
+
+    body: JSON.stringify({
+
+      source
+
+    })
+
+  });
+
+
+
 
 
 /* ---------- Tasks ---------- */

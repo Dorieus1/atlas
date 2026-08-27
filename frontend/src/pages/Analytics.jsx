@@ -65,6 +65,7 @@ function Analytics() {
     leads: 0,
     hotLeads: 0,
     leadsByStatus: { new: 0, contacted: 0, qualified: 0, closed: 0 },
+    leadsBySource: [],
     revenuePaid: 0,
     revenueOutstanding: 0,
     paidInvoiceCount: 0,
@@ -116,6 +117,17 @@ function Analytics() {
     { name: "Hot Leads", value: stats.hotLeads },
     { name: "Other Leads", value: Math.max(stats.leads - stats.hotLeads, 0) }
   ];
+
+  const sourceData = (stats.leadsBySource || []).map((row) => ({
+    name: row.label,
+    value: row.count
+  }));
+
+  const SOURCE_TICK_CAP = 10;
+  const sourceMax = Math.max(...sourceData.map((row) => row.value), 0);
+  const sourceTicks = sourceMax <= SOURCE_TICK_CAP
+    ? Array.from({ length: sourceMax + 1 }, (_, i) => i)
+    : undefined;
 
   return (
 
@@ -214,7 +226,7 @@ function Analytics() {
 
       </div>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-2">
+      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 
         <div className="rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
 
@@ -296,6 +308,39 @@ function Analytics() {
               </div>
 
             </div>
+
+          )}
+
+        </div>
+
+        <div className="rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
+
+          <h2 className="text-xl font-bold mb-4">
+            Lead Sources
+          </h2>
+
+          {stats.leads === 0 ? (
+
+            <p className="text-fg-muted">
+              No leads yet.
+            </p>
+
+          ) : (
+
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={sourceData} layout="vertical" margin={{ left: 16 }}>
+                <XAxis type="number" stroke={chartColors.axisStroke} allowDecimals={false} domain={[0, sourceMax]} ticks={sourceTicks} />
+                <YAxis type="category" dataKey="name" stroke={chartColors.axisStroke} width={110} />
+                <Tooltip
+                  contentStyle={{
+                    background: chartColors.tooltipBg,
+                    border: `1px solid ${chartColors.tooltipBorder}`,
+                    borderRadius: 8
+                  }}
+                />
+                <Bar dataKey="value" fill="#f97316" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
 
           )}
 

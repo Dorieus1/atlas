@@ -127,7 +127,8 @@ module.exports = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           priority TEXT DEFAULT 'warm',
           last_contacted DATETIME,
-          next_follow_up DATETIME
+          next_follow_up DATETIME,
+          source TEXT
         )
       `);
 

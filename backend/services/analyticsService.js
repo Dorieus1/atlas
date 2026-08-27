@@ -61,6 +61,7 @@ const getAnalytics = async (business_id) => {
     leads,
     hotLeads,
     leadsByStatusRows,
+    leadsBySourceRows,
     paidQuoteRows,
     outstandingQuoteRows,
     paidInvoices,
@@ -78,6 +79,13 @@ const getAnalytics = async (business_id) => {
     // actual funnel (new -> contacted -> qualified -> closed) instead of
     // re-plotting the same totals the top-level stat cards already show.
     allAsync(`SELECT status, COUNT(*) as count FROM leads WHERE business_id = ? GROUP BY status`, [business_id]),
+
+    // Marketing attribution - an owner deciding where to spend money
+    // needs to know which channel actually brings leads in, not just how
+    // many leads exist. Grouped in SQL rather than counted client-side
+    // since the frontend never needs the raw lead rows for this, only
+    // the per-source totals.
+    allAsync(`SELECT source, COUNT(*) as count FROM leads WHERE business_id = ? GROUP BY source`, [business_id]),
 
     // Per-quote subtotal (not a single aggregate SUM) so discount_type/
     // discount_value/tax_rate can be applied per quote in JS below via
@@ -270,12 +278,33 @@ const getAnalytics = async (business_id) => {
 
   });
 
+  // Human-readable labels live here, not in the raw DB value, so a
+  // renamed/relabeled source in the future doesn't require a data
+  // migration - "Not set" covers both an explicit null and any lead
+  // created before this field existed.
+  const SOURCE_LABELS = {
+    google: "Google",
+    referral: "Referral",
+    social_media: "Social Media",
+    yard_sign_vehicle: "Yard Sign / Vehicle",
+    repeat_customer: "Repeat Customer",
+    website: "Website",
+    other: "Other"
+  };
+
+  const leadsBySource = leadsBySourceRows.map((row) => ({
+    source: row.source || "not_set",
+    label: SOURCE_LABELS[row.source] || "Not set",
+    count: row.count
+  }));
+
   return {
 
     customers: customers.count,
     leads: leads.count,
     hotLeads: hotLeads.count,
     leadsByStatus,
+    leadsBySource,
 
     revenuePaid: revenuePaidTotal,
     revenueOutstanding: revenueOutstandingTotal,

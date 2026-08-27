@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Flame, Download, Sparkles, UserSquare2 } from "lucide-react";
-import { API_BASE, handleSessionExpired, generateFollowUpMessage } from "../api/atlasApi";
+import { API_BASE, handleSessionExpired, generateFollowUpMessage, updateLeadSource } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
 
@@ -27,6 +27,21 @@ const PRIORITY_STYLES = {
   warm: "bg-amber-500/20 text-amber-400",
   cold: "bg-slate-500/20 text-fg-muted"
 };
+
+// Matches backend/controllers/leadController.js's VALID_LEAD_SOURCES and
+// backend/services/analyticsService.js's SOURCE_LABELS exactly - an
+// owner deciding where to spend marketing money needs to know which
+// channel actually brings leads in, not just how many exist.
+const SOURCE_OPTIONS = [
+  { value: "", label: "Source: not set" },
+  { value: "google", label: "Google" },
+  { value: "referral", label: "Referral" },
+  { value: "social_media", label: "Social Media" },
+  { value: "yard_sign_vehicle", label: "Yard Sign / Vehicle" },
+  { value: "repeat_customer", label: "Repeat Customer" },
+  { value: "website", label: "Website" },
+  { value: "other", label: "Other" }
+];
 
 function LeadPipeline() {
 
@@ -70,6 +85,7 @@ function LeadPipeline() {
         { key: "interest", label: "Interest" },
         { key: "status", label: "Status" },
         { key: "priority", label: "Priority" },
+        { key: "source", label: "Source" },
         { key: "last_contacted", label: "Last Contacted" },
         { key: "next_follow_up", label: "Next Follow-Up" },
         { key: "created_at", label: "Created At" }
@@ -197,6 +213,23 @@ function LeadPipeline() {
       updatingRef.current = null;
 
       setUpdatingId(null);
+
+    }
+
+  };
+
+  const changeSource = async (id, source) => {
+
+    try {
+
+      await updateLeadSource(id, source || null);
+      setError("");
+      loadLeads();
+
+    } catch (err) {
+
+      console.error("LEAD SOURCE ERROR:", err);
+      setError(err.message || "Couldn't update lead source. Please try again.");
 
     }
 
@@ -345,6 +378,19 @@ function LeadPipeline() {
         })}
 
       </div>
+
+      <select
+        value={lead.source || ""}
+        onChange={(e) => changeSource(lead.id, e.target.value)}
+        aria-label="Lead source"
+        className="mt-3 w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-fg-muted focus:border-border-strong focus:outline-none"
+      >
+
+        {SOURCE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+
+      </select>
 
       <div className="mt-4 border-t border-border pt-4">
 
