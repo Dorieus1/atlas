@@ -29,8 +29,8 @@ const STATUS_STYLES = {
   requested: "bg-amber-500/20 text-amber-400",
   scheduled: "bg-brand-500/20 text-accent-text",
   completed: "bg-green-500/20 text-green-400",
-  cancelled: "bg-slate-500/20 text-slate-400",
-  draft: "bg-slate-500/20 text-slate-300",
+  cancelled: "bg-slate-500/20 text-fg-muted",
+  draft: "bg-slate-500/20 text-fg-muted",
   sent: "bg-brand-500/20 text-accent-text",
   accepted: "bg-green-500/20 text-green-400",
   declined: "bg-red-500/20 text-red-400",
@@ -610,7 +610,7 @@ function PortalDashboard() {
                         <p className="text-xs text-fg-faint">{formatDate(appt.start_time)}</p>
                       </div>
 
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-slate-300"}`}>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-fg-muted"}`}>
                         {STATUS_LABELS[appt.status] || appt.status}
                       </span>
 
@@ -773,7 +773,7 @@ function PortalDashboard() {
 
                         <div className="flex shrink-0 items-center gap-2">
 
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-fg-muted"}`}>
                             {quote.status}
                           </span>
 

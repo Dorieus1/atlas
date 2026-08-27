@@ -34,7 +34,7 @@ const STATUS_STYLES = {
   requested: "bg-amber-500/20 text-amber-400",
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
-  cancelled: "bg-slate-500/20 text-slate-400"
+  cancelled: "bg-slate-500/20 text-fg-muted"
 };
 
 const RECURRENCE_LABELS = {

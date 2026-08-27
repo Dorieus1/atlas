@@ -53,11 +53,11 @@ function toLocalDateKey(dateString) {
 const APPOINTMENT_STATUS_STYLES = {
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
-  cancelled: "bg-slate-500/20 text-slate-400"
+  cancelled: "bg-slate-500/20 text-fg-muted"
 };
 
 const QUOTE_STATUS_STYLES = {
-  draft: "bg-slate-500/20 text-slate-300",
+  draft: "bg-slate-500/20 text-fg-muted",
   sent: "bg-brand-500/20 text-brand-400",
   accepted: "bg-green-500/20 text-green-400",
   declined: "bg-red-500/20 text-red-400",
