@@ -112,6 +112,19 @@ function useTargetRect(selector) {
 
     update();
 
+    // A step whose target is below the fold (common on a phone, where
+    // "Your daily briefing" and the closing checklist step both sit
+    // well past the initial viewport) used to leave the user staring at
+    // a dark scrim with a callout describing something nowhere on
+    // screen - nothing here ever scrolled. "nearest" rather than
+    // "center" so a target that's already fully visible is never
+    // nudged, only one that's genuinely out of view.
+    const el = document.querySelector(selector);
+
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
     window.addEventListener("resize", update);
 
     // A short poll rather than a MutationObserver - the targets here

@@ -31,9 +31,9 @@ import Skeleton from "../components/Skeleton";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_STYLES = {
-  requested: "bg-amber-500/20 text-amber-400",
-  scheduled: "bg-brand-500/20 text-brand-400",
-  completed: "bg-green-500/20 text-green-400",
+  requested: "bg-warning/20 text-warning",
+  scheduled: "bg-accent-text/20 text-accent-text",
+  completed: "bg-success/20 text-success",
   cancelled: "bg-slate-500/20 text-fg-muted"
 };
 

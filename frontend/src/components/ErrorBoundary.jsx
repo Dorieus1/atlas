@@ -28,7 +28,7 @@ class ErrorBoundary extends Component {
 
       return (
 
-        <div className="min-h-screen bg-ink-950 text-white flex items-center justify-center p-8 text-center">
+        <div className="min-h-screen bg-bg text-fg flex items-center justify-center p-8 text-center">
 
           <div>
 
@@ -36,7 +36,7 @@ class ErrorBoundary extends Component {
               Something went wrong
             </h1>
 
-            <p className="text-slate-400 mt-2">
+            <p className="text-fg-muted mt-2">
               Atlas hit an unexpected error. Reloading the page usually fixes it.
             </p>
 

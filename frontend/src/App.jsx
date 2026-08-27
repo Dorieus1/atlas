@@ -54,7 +54,7 @@ function PageLoading() {
 
     <div className="flex min-h-[50vh] items-center justify-center">
 
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-faint">
         Loading...
       </p>
 

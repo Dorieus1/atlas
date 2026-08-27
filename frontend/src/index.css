@@ -51,6 +51,7 @@
   --color-accent-text: var(--accent-text);
   --color-danger: var(--danger);
   --color-success: var(--success);
+  --color-warning: var(--warning);
 
 }
 
@@ -76,6 +77,7 @@
   --accent-text: var(--color-brand-400);
   --danger: #f87171;
   --success: #4ade80;
+  --warning: #fbbf24;
 
 }
 
@@ -102,8 +104,27 @@
      muted > faint prominence order. */
   --fg-faint: #748296;
   --accent-text: var(--color-brand-700);
-  --danger: #dc2626;
-  --success: #16a34a;
+  /*
+    A second, independent finding from the same review round: a whole
+    family of status badges across LeadPipeline/CustomerTimeline/
+    Schedule/Quotes use raw bg-{color}-500/20 + text-{color}-400 -
+    tuned for a dark background, where a light text tint on a
+    dark-tinted chip reads fine. On white, the SAME light tint sits on
+    a near-white chip (a 20%-opacity tint composited onto white is
+    still very pale), so hot/scheduled/sent badges were measuring as
+    low as ~1.8:1 - --danger/--success below aren't just plain-text
+    colors anymore, they're reused as `bg-danger/20 text-danger` etc.
+    directly on those badges, so both values were darkened here beyond
+    what plain error/success text alone would need, specifically so
+    the badge combination itself clears a real contrast minimum too.
+    --warning (new) exists for exactly the same reason, covering the
+    amber/"needs attention" family (hot priority's amber sibling for
+    warm, and "requested" status) that had no semantic token at all
+    before this.
+  */
+  --danger: #b91c1c;
+  --success: #15803d;
+  --warning: #b45309;
 
 }
 

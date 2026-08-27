@@ -234,7 +234,7 @@ function TaskPanel() {
 
         <button
           onClick={openAddForm}
-          className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-3 py-1.5 text-sm hover:bg-ink-700"
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm hover:bg-border"
         >
           <Plus size={15} /> Add Task
         </button>
@@ -351,7 +351,7 @@ function TaskPanel() {
         >
 
           <div
-            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -364,7 +364,7 @@ function TaskPanel() {
               <button
                 onClick={closeAddForm}
                 disabled={creating}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-faint hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -373,7 +373,7 @@ function TaskPanel() {
             </div>
 
             {formError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {formError}
               </p>
             )}
@@ -383,7 +383,7 @@ function TaskPanel() {
               <select
                 value={formCustomerId}
                 onChange={(e) => setFormCustomerId(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
               >
                 <option value="">Choose a customer</option>
                 {customers.map((c) => (
@@ -395,18 +395,18 @@ function TaskPanel() {
                 placeholder="Title (e.g. Call back about the estimate)"
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <textarea
                 placeholder="Notes (optional)"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
-                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-20 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <div>
-                <label htmlFor="task-due-date" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor="task-due-date" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                   Due date (optional)
                 </label>
                 <input
@@ -414,7 +414,7 @@ function TaskPanel() {
                   type="date"
                   value={formDueDate}
                   onChange={(e) => setFormDueDate(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 />
               </div>
 

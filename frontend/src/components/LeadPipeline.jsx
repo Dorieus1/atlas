@@ -23,8 +23,8 @@ const STATUS_COLUMNS = [
 // Schedule.jsx's STATUS_STYLES) makes the board scannable at a glance
 // instead of every card shouting the same false alarm.
 const PRIORITY_STYLES = {
-  hot: "bg-red-500/20 text-red-400",
-  warm: "bg-amber-500/20 text-amber-400",
+  hot: "bg-danger/20 text-danger",
+  warm: "bg-warning/20 text-warning",
   cold: "bg-slate-500/20 text-fg-muted"
 };
 

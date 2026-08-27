@@ -26,15 +26,15 @@ import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
 const STATUS_STYLES = {
-  requested: "bg-amber-500/20 text-amber-400",
-  scheduled: "bg-brand-500/20 text-accent-text",
-  completed: "bg-green-500/20 text-green-400",
+  requested: "bg-warning/20 text-warning",
+  scheduled: "bg-accent-text/20 text-accent-text",
+  completed: "bg-success/20 text-success",
   cancelled: "bg-slate-500/20 text-fg-muted",
   draft: "bg-slate-500/20 text-fg-muted",
-  sent: "bg-brand-500/20 text-accent-text",
-  accepted: "bg-green-500/20 text-green-400",
-  declined: "bg-red-500/20 text-red-400",
-  paid: "bg-green-500/20 text-green-400"
+  sent: "bg-accent-text/20 text-accent-text",
+  accepted: "bg-success/20 text-success",
+  declined: "bg-danger/20 text-danger",
+  paid: "bg-success/20 text-success"
 };
 
 const STATUS_LABELS = {

@@ -10,7 +10,7 @@ function NotFound() {
 
       <div>
 
-        <p className="text-6xl font-bold text-slate-700">
+        <p className="text-6xl font-bold text-fg-faint">
           404
         </p>
 
@@ -18,7 +18,7 @@ function NotFound() {
           Page not found
         </h1>
 
-        <p className="text-slate-400 mt-2">
+        <p className="text-fg-muted mt-2">
           That page doesn't exist, or may have moved.
         </p>
 

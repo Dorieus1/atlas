@@ -51,17 +51,17 @@ function toLocalDateKey(dateString) {
 }
 
 const APPOINTMENT_STATUS_STYLES = {
-  scheduled: "bg-brand-500/20 text-brand-400",
-  completed: "bg-green-500/20 text-green-400",
+  scheduled: "bg-accent-text/20 text-accent-text",
+  completed: "bg-success/20 text-success",
   cancelled: "bg-slate-500/20 text-fg-muted"
 };
 
 const QUOTE_STATUS_STYLES = {
   draft: "bg-slate-500/20 text-fg-muted",
-  sent: "bg-brand-500/20 text-brand-400",
-  accepted: "bg-green-500/20 text-green-400",
-  declined: "bg-red-500/20 text-red-400",
-  paid: "bg-green-500/20 text-green-400"
+  sent: "bg-accent-text/20 text-accent-text",
+  accepted: "bg-success/20 text-success",
+  declined: "bg-danger/20 text-danger",
+  paid: "bg-success/20 text-success"
 };
 
 
