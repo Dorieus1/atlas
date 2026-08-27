@@ -182,7 +182,21 @@ function computeWeekHourRange(weekDays, appointmentsByDay) {
       const end = getAppointmentEnd(appt);
 
       startHour = Math.min(startHour, start.getHours());
-      endHour = Math.max(endHour, end.getMinutes() > 0 ? end.getHours() + 1 : end.getHours());
+
+      // A late-starting appointment's own start hour must always fall
+      // within range, regardless of where its end time lands - an
+      // appointment starting at 11:30pm with the default 60-minute
+      // duration (there's no duration field on the New Appointment form,
+      // so this is common) ends at 12:30am the NEXT calendar day.
+      // end.getHours() is then 0, which never pulls endHour up, and
+      // startHour only ever moves earlier - so without this, the
+      // appointment's start position would land far below the bottom of
+      // a grid that never grew to contain it.
+      endHour = Math.max(
+        endHour,
+        end.getMinutes() > 0 ? end.getHours() + 1 : end.getHours(),
+        start.getHours() + 1
+      );
 
     });
 
