@@ -174,21 +174,21 @@ function ChatWindow({ business, customer }) {
 
 
   return (
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <MessageSquare size={22} />
         Atlas Chat
 
         {business && (
-          <span className="font-normal text-slate-400">
+          <span className="font-normal text-fg-muted">
             {" "} - {business.name}
           </span>
         )}
       </h2>
 
       {customer && (
-        <p className="text-slate-400 mt-1">
+        <p className="text-fg-muted mt-1">
           Customer: {customer.name}
         </p>
       )}
@@ -196,12 +196,12 @@ function ChatWindow({ business, customer }) {
 
 
       {historyError && (
-        <p className="mt-3 text-red-400">
+        <p className="mt-3 text-danger">
           {historyError}
         </p>
       )}
 
-      <div className="mt-4 h-[400px] border border-ink-700 rounded-xl p-3 overflow-y-auto">
+      <div className="mt-4 h-[400px] border border-border rounded-xl p-3 overflow-y-auto">
 
         {messages.map((msg, index) => (
           <MessageBubble
@@ -213,7 +213,7 @@ function ChatWindow({ business, customer }) {
 
 
         {isTyping && (
-          <p className="text-slate-400 text-sm">
+          <p className="text-fg-muted text-sm">
             Atlas is typing...
           </p>
         )}
@@ -241,7 +241,7 @@ function ChatWindow({ business, customer }) {
               handleSend();
             }
           }}
-          className="flex-1 bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3"
+          className="flex-1 bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3"
         />
 
         <button

@@ -84,7 +84,7 @@ function ReviewRequestPanel({ customerId }) {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <div className="flex items-center justify-between gap-3">
 
@@ -105,19 +105,19 @@ function ReviewRequestPanel({ customerId }) {
       </div>
 
       {loadError && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {loadError}
         </p>
       )}
 
       {sendError && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {sendError}
         </p>
       )}
 
       {sendSuccess && (
-        <p className="mt-3 text-sm text-green-400">
+        <p className="mt-3 text-sm text-success">
           {sendSuccess}
         </p>
       )}
@@ -126,14 +126,14 @@ function ReviewRequestPanel({ customerId }) {
 
         lastSent ? (
 
-          <p className="mt-3 flex items-center gap-1.5 text-sm text-slate-400">
-            <Star size={14} className="text-brand-400" />
+          <p className="mt-3 flex items-center gap-1.5 text-sm text-fg-muted">
+            <Star size={14} className="text-accent-text" />
             Last requested {new Date(lastSent.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
           </p>
 
         ) : (
 
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-fg-faint">
             No review request sent yet.
           </p>
 

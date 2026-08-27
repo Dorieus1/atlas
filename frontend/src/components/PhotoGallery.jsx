@@ -169,7 +169,7 @@ function PhotoGallery({ customerId }) {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <div className="flex items-center justify-between gap-3">
 
@@ -201,17 +201,17 @@ function PhotoGallery({ customerId }) {
         placeholder="Caption for your next upload (optional)"
         value={pendingCaption}
         onChange={(e) => setPendingCaption(e.target.value)}
-        className="mt-3 w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+        className="mt-3 w-full rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
       />
 
       {loadError && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {loadError}
         </p>
       )}
 
       {uploadError && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {uploadError}
         </p>
       )}
@@ -241,7 +241,7 @@ function PhotoGallery({ customerId }) {
             <button
               key={photo.id}
               onClick={() => { setActivePhoto(photo); setConfirmingDelete(false); }}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-ink-700"
+              className="group relative aspect-square overflow-hidden rounded-lg border border-border"
             >
               <img
                 src={`${API_BASE}${photo.url}`}
@@ -264,13 +264,13 @@ function PhotoGallery({ customerId }) {
         >
 
           <div
-            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl border border-ink-700 bg-ink-900"
+            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface"
             onClick={(e) => e.stopPropagation()}
           >
 
             <div className="flex items-center justify-between p-3">
 
-              <p className="truncate text-sm text-slate-300">
+              <p className="truncate text-sm text-fg-muted">
                 {confirmingDelete ? "Delete this photo?" : (activePhoto.caption || "Untitled")}
               </p>
 
@@ -291,7 +291,7 @@ function PhotoGallery({ customerId }) {
                     <button
                       onClick={() => setConfirmingDelete(false)}
                       disabled={deleting}
-                      className="rounded-lg bg-ink-700 px-3 py-1.5 text-xs font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                      className="rounded-lg bg-border px-3 py-1.5 text-xs font-medium transition hover:bg-border-strong disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -302,7 +302,7 @@ function PhotoGallery({ customerId }) {
 
                   <button
                     onClick={() => setConfirmingDelete(true)}
-                    className="rounded-lg p-2 text-red-400 transition hover:bg-red-500/10"
+                    className="rounded-lg p-2 text-danger transition hover:bg-danger/10"
                     aria-label="Delete photo"
                   >
                     <Trash2 size={16} />
@@ -312,7 +312,7 @@ function PhotoGallery({ customerId }) {
 
                 <button
                   onClick={() => setActivePhoto(null)}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+                  className="rounded-lg p-2 text-fg-muted transition hover:bg-surface-muted hover:text-fg"
                   aria-label="Close"
                 >
                   <X size={16} />
@@ -328,10 +328,10 @@ function PhotoGallery({ customerId }) {
               className="max-h-[70vh] w-full object-contain"
             />
 
-            <div className="border-t border-ink-800 p-3">
+            <div className="border-t border-border p-3">
 
               {draftError && (
-                <p className="mb-2 text-xs text-red-400">
+                <p className="mb-2 text-xs text-danger">
                   {draftError}
                 </p>
               )}
@@ -339,7 +339,7 @@ function PhotoGallery({ customerId }) {
               <button
                 onClick={() => handleDraftEstimate(activePhoto)}
                 disabled={drafting}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600/15 px-3 py-2 text-sm font-semibold text-brand-400 transition hover:bg-brand-600/25 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600/15 px-3 py-2 text-sm font-semibold text-accent-text transition hover:bg-brand-600/25 disabled:opacity-50"
               >
                 <Sparkles size={15} />
                 {drafting ? "Looking at the photo..." : "Draft Estimate with AI"}

@@ -245,7 +245,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
       case "customer_created":
 
         return (
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-fg-muted">
             Customer added{event.createdByName ? ` by ${event.createdByName}` : ""}
           </p>
         );
@@ -260,7 +260,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
               <textarea
                 value={editNoteText}
                 onChange={(e) => setEditNoteText(e.target.value)}
-                className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 text-sm"
+                className="w-full bg-surface text-fg border border-border rounded-lg p-2 text-sm"
               />
 
               <div className="flex gap-2 mt-2">
@@ -274,7 +274,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
                 <button
                   onClick={cancelEditNote}
-                  className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-xs"
+                  className="bg-border hover:bg-border-strong px-3 py-1 rounded-lg text-xs"
                 >
                   Cancel
                 </button>
@@ -289,7 +289,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
         return (
           <div className="flex items-start justify-between gap-3">
 
-            <p className="text-sm text-slate-300">{event.note}</p>
+            <p className="text-sm text-fg-muted">{event.note}</p>
 
             {confirmingDeleteNoteId === event.id ? (
 
@@ -297,14 +297,14 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
                 <button
                   onClick={() => handleDeleteNote(event.id)}
-                  className="text-red-400 hover:text-red-300 text-xs font-medium"
+                  className="text-danger hover:opacity-80 text-xs font-medium"
                 >
                   Confirm
                 </button>
 
                 <button
                   onClick={() => setConfirmingDeleteNoteId(null)}
-                  className="text-slate-400 hover:text-white text-xs"
+                  className="text-fg-muted hover:text-fg text-xs"
                 >
                   Cancel
                 </button>
@@ -317,7 +317,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
                 <button
                   onClick={() => startEditNote(event)}
-                  className="text-slate-400 hover:text-white"
+                  className="text-fg-muted hover:text-fg"
                   aria-label="Edit note"
                 >
                   <Pencil size={13} />
@@ -325,7 +325,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
                 <button
                   onClick={() => setConfirmingDeleteNoteId(event.id)}
-                  className="text-slate-400 hover:text-red-400"
+                  className="text-fg-muted hover:text-danger"
                   aria-label="Delete note"
                 >
                   <Trash2 size={13} />
@@ -346,7 +346,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
             className="text-left group/link"
           >
 
-            <p className="text-sm text-slate-300 group-hover/link:text-white">
+            <p className="text-sm text-fg-muted group-hover/link:text-fg">
               {event.title}
             </p>
 
@@ -365,7 +365,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
             className="text-left group/link"
           >
 
-            <p className="text-sm text-slate-300 group-hover/link:text-white">
+            <p className="text-sm text-fg-muted group-hover/link:text-fg">
               {event.quoteType === "invoice" ? "Invoice" : "Quote"}
               {event.quoteNumberFormatted ? ` ${event.quoteNumberFormatted}` : ""}
               {" — "}
@@ -387,10 +387,10 @@ function CustomerTimeline({ customerId, onNoteChange }) {
             <img
               src={`${API_BASE}${event.photoUrl}`}
               alt={event.caption || "Customer photo"}
-              className="h-12 w-12 rounded-lg object-cover border border-ink-700"
+              className="h-12 w-12 rounded-lg object-cover border border-border"
             />
 
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-fg-muted">
               {event.caption || "Photo added"}
             </p>
 
@@ -400,7 +400,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
       case "review_request":
 
         return (
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-fg-muted">
             Review request sent{event.sentTo ? ` to ${event.sentTo}` : ""}
           </p>
         );
@@ -416,7 +416,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-xl font-bold flex items-center gap-2">
         <History size={20} />
@@ -424,7 +424,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
       </h2>
 
       {noteError && (
-        <p className="mt-3 text-sm text-red-400">{noteError}</p>
+        <p className="mt-3 text-sm text-danger">{noteError}</p>
       )}
 
       <div className="mt-4 flex gap-3">
@@ -440,7 +440,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
           }}
           placeholder="Add a note..."
-          className="flex-1 bg-ink-900/60 border border-ink-700 rounded-lg p-3 text-white placeholder:text-slate-500"
+          className="flex-1 bg-surface/60 border border-border rounded-lg p-3 text-fg placeholder:text-fg-faint"
         />
 
         <button
@@ -455,15 +455,15 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
       {loading ? (
 
-        <p className="mt-6 text-sm text-slate-500">Loading activity...</p>
+        <p className="mt-6 text-sm text-fg-faint">Loading activity...</p>
 
       ) : loadError ? (
 
-        <p className="mt-6 text-sm text-red-400">{loadError}</p>
+        <p className="mt-6 text-sm text-danger">{loadError}</p>
 
       ) : events.length === 0 ? (
 
-        <p className="mt-6 text-sm text-slate-400">No activity yet.</p>
+        <p className="mt-6 text-sm text-fg-muted">No activity yet.</p>
 
       ) : (
 
@@ -479,19 +479,19 @@ function CustomerTimeline({ customerId, onNoteChange }) {
 
                 <div className="flex flex-col items-center">
 
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ink-700 bg-ink-800 text-slate-400">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface-muted text-fg-muted">
                     <Icon size={14} />
                   </div>
 
                   {index < events.length - 1 && (
-                    <div className="mt-1 w-1 flex-1 rounded-full bg-ink-600" />
+                    <div className="mt-1 w-1 flex-1 rounded-full bg-border-strong" />
                   )}
 
                 </div>
 
                 <div className="flex-1 pb-1">
 
-                  <p className="text-xs text-slate-500">{formatDate(event.date)}</p>
+                  <p className="text-xs text-fg-faint">{formatDate(event.date)}</p>
 
                   <div className="mt-1">
                     {renderEventContent(event)}

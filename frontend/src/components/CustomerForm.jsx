@@ -102,9 +102,9 @@ function CustomerForm({ onCustomerCreated }) {
   return (
 
     <div className="
-      bg-ink-900/60
+      bg-surface/60
       border
-      border-ink-700
+      border-border
       rounded-2xl
       p-6
       mt-6
@@ -120,7 +120,7 @@ function CustomerForm({ onCustomerCreated }) {
 
       {error && (
 
-        <p className="text-red-400 mb-3">
+        <p className="text-danger mb-3">
 
           {error}
 
@@ -129,7 +129,7 @@ function CustomerForm({ onCustomerCreated }) {
       )}
 
 
-     <label htmlFor="customer-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+     <label htmlFor="customer-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
   Customer Name
 </label>
 
@@ -138,10 +138,10 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer name"
   value={name}
   onChange={(e) => setName(e.target.value)}
-  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
+  className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3 focus:outline-none focus:border-border-strong"
 />
 
-<label htmlFor="customer-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+<label htmlFor="customer-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
   Customer Email
 </label>
 
@@ -150,10 +150,10 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer email"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
-  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
+  className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3 focus:outline-none focus:border-border-strong"
 />
 
-<label htmlFor="customer-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+<label htmlFor="customer-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
   Customer Phone
 </label>
 
@@ -162,10 +162,10 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Customer phone"
   value={phone}
   onChange={(e) => setPhone(e.target.value)}
-  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3 focus:outline-none focus:border-ink-600"
+  className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3 focus:outline-none focus:border-border-strong"
 />
 
-<label htmlFor="customer-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+<label htmlFor="customer-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
   Service Address
 </label>
 
@@ -174,7 +174,7 @@ function CustomerForm({ onCustomerCreated }) {
   placeholder="Service address (optional)"
   value={address}
   onChange={(e) => setAddress(e.target.value)}
-  className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 focus:outline-none focus:border-ink-600"
+  className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 focus:outline-none focus:border-border-strong"
 />
 
       <button
