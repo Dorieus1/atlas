@@ -124,43 +124,6 @@ const createLead = (
 
 
 
-const getLeads = () => {
-
-  return new Promise((resolve,reject)=>{
-
-    db.all(
-
-      `
-      SELECT *
-      FROM leads
-      ORDER BY created_at DESC
-      `,
-
-      [],
-
-      (err,rows)=>{
-
-        if(err){
-
-          reject(err);
-
-        } else {
-
-          resolve(rows);
-
-        }
-
-      }
-
-    );
-
-  });
-
-};
-
-
-
-
 
 const getLeadsByBusiness = (business_id) => {
 
@@ -425,8 +388,6 @@ module.exports = {
   createLead,
 
   hasOpenLead,
-
-  getLeads,
 
   getLeadsByBusiness,
 
