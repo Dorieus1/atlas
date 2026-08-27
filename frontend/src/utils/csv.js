@@ -1,6 +1,20 @@
+// A field starting with =, +, -, or @ gets a leading single-quote before
+// the usual quote-escaping - some of this data (customer name, in
+// particular) is attacker-controllable end to end via the public,
+// unauthenticated chat widget, and Excel/Sheets will otherwise treat a
+// leading = (or +/-/@, which Excel also treats as formula-triggering) as
+// a formula to evaluate on open (CSV/formula injection, CWE-1236).
+// Mirrors backend/services/csvService.js's escapeCsvField, which got
+// this same fix - this is a separate, parallel implementation used by
+// client-side CSV exports (Customers, Leads, Knowledge), not shared code
+// with the backend's own CSV exports.
 const escapeCsvValue = (value) => {
 
-  const str = value === null || value === undefined ? "" : String(value);
+  let str = value === null || value === undefined ? "" : String(value);
+
+  if (/^[=+\-@]/.test(str)) {
+    str = `'${str}`;
+  }
 
   if (/[",\n]/.test(str)) {
 
