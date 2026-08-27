@@ -159,25 +159,36 @@ function Layout({children}) {
         </header>
 
         {/*
-          z-40 matters here: `isolate` gives <main> its own stacking
-          context (so the decorative glow div's -z-10 below stays behind
-          this page's content, not the whole app) - but a stacking
-          context with no explicit z-index of its own paints in the
-          "z-index:auto" group, BEHIND any sibling that has one.
-          Sidebar has an explicit z-40, so without a z-index here,
-          <main>'s entire contents - including any fixed inset-0 modal
-          rendered inside it, no matter how high that modal's own
-          z-index is - paint behind the sidebar; the modal's z-index
-          never even gets compared to Sidebar's. Matching Sidebar's z-40
-          (DOM order breaks the tie in main's favor, since it renders
-          after Sidebar) is what actually fixes that.
+          `isolate` gives <main> its own stacking context (so the
+          decorative glow div's -z-10 below stays behind this page's
+          content, not the whole app) - but a stacking context with no
+          explicit z-index of its own paints in the "z-index:auto" group,
+          BEHIND any sibling that has one. Sidebar has an explicit z-40,
+          so without a z-index here, <main>'s entire contents - including
+          any fixed inset-0 modal rendered inside it, no matter how high
+          that modal's own z-index is - paint behind the sidebar; the
+          modal's z-index never even gets compared to Sidebar's.
+
+          md:z-40 (not a plain z-40) is deliberate: matching Sidebar's
+          z-40 makes DOM order break the tie, and main renders AFTER
+          Sidebar - so main wins ties both on desktop (correctly lifting
+          a modal above the sidebar) AND on mobile, where Sidebar becomes
+          a `fixed` full-screen drawer when opened. A plain z-40 here
+          made the OPEN mobile drawer lose that same tie to main's normal
+          page content, painting the two on top of each other as a
+          garbled mess - a regression a design review caught. Restricting
+          the z-40 to md+ (where Sidebar is `md:sticky`, not an overlay,
+          so there's nothing for main to visually collide with) leaves
+          <main> in the unstyled "auto" group on mobile, where it
+          unconditionally loses to Sidebar's explicit z-40 - exactly what
+          an open drawer needs, regardless of DOM order.
         */}
         <main className="
           flex-1
           overflow-auto
           relative
           isolate
-          z-40
+          md:z-40
         ">
 
           <div

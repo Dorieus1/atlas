@@ -35,7 +35,11 @@ describe("AI-drafted follow-up message (Leads pipeline)", () => {
     const callArgs = global.__mockOpenAICreate.mock.calls[0][0];
 
     expect(callArgs.instructions).toContain("$89 flat fee for any diagnostic visit");
-    expect(callArgs.input).toContain("or invent a price");
+
+    // The anti-invention rule itself now lives once, in aiService.js's
+    // shared instructions (every generateAIResponse caller gets it),
+    // not repeated per-caller in this route's own prompt.
+    expect(callArgs.instructions).toContain("Never estimate, round, average, extrapolate, or invent");
 
   });
 

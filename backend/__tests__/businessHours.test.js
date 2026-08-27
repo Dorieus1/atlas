@@ -286,6 +286,15 @@ describe("Business hours", () => {
       expect(callArgs.instructions).toContain("Saturday: Closed");
       expect(callArgs.instructions).toContain("Sunday: Closed");
 
+      // Regression check for a real bug a second review round found:
+      // reciting "Saturday: Closed" correctly didn't stop the model from
+      // then inventing a "9am-2pm by appointment" exception for it
+      // anyway - grounding data reaching the prompt isn't the same as
+      // an instruction not to embellish past it. This exact phrase
+      // (added in aiService.js's shared instructions, not repeated per
+      // caller) is what's supposed to stop that.
+      expect(callArgs.instructions).toContain("if a day is listed as Closed, say it's closed");
+
     });
 
 

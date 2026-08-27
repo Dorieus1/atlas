@@ -47,7 +47,13 @@ router.post("/", authMiddleware, rateLimiter(30, 60 * 1000), async(req,res)=>{
     // interest that often mentions pricing, would sometimes invent a
     // plausible-looking price instead of the real one on file. A real
     // bug found during live testing: a $89 knowledge-base price came
-    // back as an invented "$75-$125" range here.
+    // back as an invented "$75-$125" range here. The anti-invention rule
+    // itself now lives once, generally, in aiService.js's shared
+    // instructions (every generateAIResponse caller gets it) rather than
+    // being repeated per-caller here - a second review round found the
+    // live chat inventing an exception for a day marked Closed, which
+    // this route's own local copy of the rule (specific to prices, and
+    // only ever reaching this one route) could never have caught.
     const business_id = req.user.business_id;
 
     const [knowledge, business] = await Promise.all([
@@ -68,10 +74,7 @@ Interest:
 ${interest}
 
 Make it friendly and focused on booking
-the next step. If pricing is relevant, use ONLY a price
-that appears in the business information below - never
-estimate, round, or invent a price or price range. If no
-specific price is available, don't mention one at all.
+the next step.
       `,
 
       [],
