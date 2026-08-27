@@ -54,37 +54,43 @@ function Sidebar({ open, onClose, onOpenSearch }) {
     {
       name: "Customers",
       path: "/customers",
-      icon: Users
+      icon: Users,
+      tourId: "nav-customers"
     },
 
     {
       name: "Leads",
       path: "/leads",
-      icon: Flame
+      icon: Flame,
+      tourId: "nav-leads"
     },
 
     {
       name: "Schedule",
       path: "/schedule",
-      icon: CalendarDays
+      icon: CalendarDays,
+      tourId: "nav-schedule"
     },
 
     {
       name: "Quotes",
       path: "/quotes",
-      icon: FileText
+      icon: FileText,
+      tourId: "nav-quotes"
     },
 
     {
       name: "Knowledge",
       path: "/knowledge",
-      icon: BookOpen
+      icon: BookOpen,
+      tourId: "nav-knowledge"
     },
 
     {
       name: "Analytics",
       path: "/analytics",
-      icon: BarChart3
+      icon: BarChart3,
+      tourId: "nav-analytics"
     },
 
     {
@@ -171,6 +177,8 @@ function Sidebar({ open, onClose, onOpenSearch }) {
               key={link.path}
 
               to={link.path}
+
+              data-tour={link.tourId}
 
               onClick={handleLinkClick}
 

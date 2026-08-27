@@ -1331,6 +1331,23 @@ export const dismissOnboarding = () =>
   });
 
 
+/* ---------- Product tour ---------- */
+
+
+export const getTourStatus = () =>
+
+  request("/tour/status");
+
+
+export const completeTour = () =>
+
+  request("/tour/complete", {
+
+    method: "PATCH"
+
+  });
+
+
 
 /* ---------- Customer portal ---------- */
 

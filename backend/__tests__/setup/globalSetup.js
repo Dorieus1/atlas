@@ -36,6 +36,7 @@ module.exports = async () => {
           review_link TEXT,
           slug TEXT,
           onboarding_dismissed INTEGER DEFAULT 0,
+          tour_completed INTEGER DEFAULT 0,
           stripe_account_id TEXT,
           stripe_onboarded INTEGER DEFAULT 0,
           business_hours TEXT,

@@ -146,7 +146,9 @@ function Dashboard(){
 
       ) : (
 
-      <div className="
+      <div
+        data-tour="stats"
+        className="
         grid
         gap-5
         sm:grid-cols-2

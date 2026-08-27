@@ -136,6 +136,7 @@ function Layout({children}) {
             onClick={() => setSidebarOpen(true)}
             className="p-1"
             aria-label="Open menu"
+            data-tour="mobile-menu"
           >
             <Menu size={24} />
           </button>
