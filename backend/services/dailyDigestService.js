@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail } = require("./emailService");
+const { sendEmail, escapeHtml } = require("./emailService");
 const { getUsersByBusiness } = require("./authService");
 const { getAppointments } = require("./appointmentService");
 
@@ -187,7 +187,7 @@ function buildDigestEmail(business, data) {
 
   const topLeadNames = newLeads
     .slice(0, 2)
-    .map((lead) => lead.name || lead.email || lead.phone || "a new lead");
+    .map((lead) => escapeHtml(lead.name || lead.email || lead.phone || "a new lead"));
 
   const subject = `Your daily update from ${business.name}`;
 
@@ -205,7 +205,7 @@ function buildDigestEmail(business, data) {
     sections.push(`
       <p><strong>${hotLeads.length}</strong> hot lead${hotLeads.length === 1 ? "" : "s"} still need${hotLeads.length === 1 ? "s" : ""} follow-up:</p>
       <ul>
-        ${hotLeads.slice(0, 5).map((lead) => `<li>${lead.name || lead.email || lead.phone || "Unnamed lead"}</li>`).join("")}
+        ${hotLeads.slice(0, 5).map((lead) => `<li>${escapeHtml(lead.name || lead.email || lead.phone || "Unnamed lead")}</li>`).join("")}
       </ul>
     `);
 
@@ -216,7 +216,7 @@ function buildDigestEmail(business, data) {
     sections.push(`
       <p><strong>${todaysAppointments.length}</strong> appointment${todaysAppointments.length === 1 ? "" : "s"} today:</p>
       <ul>
-        ${todaysAppointments.map((appt) => `<li>${formatAppointmentTime(appt.start_time, business.timezone)} - ${appt.title}${appt.customer_name ? ` (${appt.customer_name})` : ""}</li>`).join("")}
+        ${todaysAppointments.map((appt) => `<li>${formatAppointmentTime(appt.start_time, business.timezone)} - ${escapeHtml(appt.title)}${appt.customer_name ? ` (${escapeHtml(appt.customer_name)})` : ""}</li>`).join("")}
       </ul>
     `);
 
@@ -236,7 +236,7 @@ function buildDigestEmail(business, data) {
 
   const html = `
     <p>Good morning,</p>
-    <p>Here's what's happening at ${business.name} today:</p>
+    <p>Here's what's happening at ${escapeHtml(business.name)} today:</p>
     ${sections.join("")}
     <p>Log in to Atlas for the full picture.</p>
   `;

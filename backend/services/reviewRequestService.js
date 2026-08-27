@@ -1,6 +1,6 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
-const { sendEmail } = require("./emailService");
+const { sendEmail, escapeHtml } = require("./emailService");
 
 
 // Shared by the direct "Request Review" button and the auto-send-on-paid
@@ -26,8 +26,8 @@ const sendReviewRequestForCustomer = async (business, customer) => {
     subject: `How did we do, ${customer.name || "there"}?`,
 
     html: `
-      <p>Hi ${customer.name || "there"},</p>
-      <p>Thanks for choosing ${business.name}! If you have a minute, we'd really appreciate a quick review.</p>
+      <p>Hi ${escapeHtml(customer.name) || "there"},</p>
+      <p>Thanks for choosing ${escapeHtml(business.name)}! If you have a minute, we'd really appreciate a quick review.</p>
       <p><a href="${business.review_link}">Leave us a review</a></p>
       <p>Thank you for your support!</p>
     `

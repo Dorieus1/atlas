@@ -1,7 +1,7 @@
 const { getBusinessBySlug, getBusinessById } = require("../services/businessService");
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
-const { sendEmail } = require("../services/emailService");
+const { sendEmail, escapeHtml } = require("../services/emailService");
 const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit } = require("../services/quoteService");
 const {
   getAppointmentsByCustomer,
@@ -122,8 +122,8 @@ const requestLogin = async (req, res) => {
           subject: `Your ${business.name} login link`,
 
           html: `
-            <p>Hi ${customer.name || "there"},</p>
-            <p>Click below to view your appointments, quotes, and photos with ${business.name}.</p>
+            <p>Hi ${escapeHtml(customer.name) || "there"},</p>
+            <p>Click below to view your appointments, quotes, and photos with ${escapeHtml(business.name)}.</p>
             <p><a href="${loginUrl}">Log in to your portal</a></p>
             <p>This link expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
           `

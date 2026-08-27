@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail } = require("./emailService");
+const { sendEmail, escapeHtml } = require("./emailService");
 const { createLoginToken } = require("./portalAuthService");
 const { applyDiscount, calculateDeposit } = require("./quoteService");
 
@@ -136,8 +136,8 @@ const sendQuoteReminders = async () => {
         subject: `Following up on your ${formatMoney(total)} estimate from ${quote.business_name}`,
 
         html: `
-          <p>Hi ${quote.customer_name || "there"},</p>
-          <p>Just checking in - you still have an open estimate from ${quote.business_name} for ${formatMoney(total)} that hasn't been accepted yet${quote.deposit_type ? ` (accepting it starts with a ${formatMoney(depositAmount)} deposit)` : ""}.</p>
+          <p>Hi ${escapeHtml(quote.customer_name) || "there"},</p>
+          <p>Just checking in - you still have an open estimate from ${escapeHtml(quote.business_name)} for ${formatMoney(total)} that hasn't been accepted yet${quote.deposit_type ? ` (accepting it starts with a ${formatMoney(depositAmount)} deposit)` : ""}.</p>
           <p><a href="${portalUrl}">View and respond to it here</a></p>
           <p>If you've decided not to proceed, no action is needed. This link works for the next 7 days.</p>
         `

@@ -1,3 +1,29 @@
+// Every email template in this app builds HTML by interpolating
+// customer/lead/business data straight into template strings, with no
+// templating engine doing this automatically. Customer name, in
+// particular, is attacker-controllable end to end via the public,
+// unauthenticated chat/portal signup with no character restrictions -
+// without escaping, a customer's own name embedded in an email sent to
+// the BUSINESS OWNER (e.g. dailyDigestService.js's lead-name list) lets
+// that customer inject arbitrary HTML into an email a different person
+// reads (stored HTML injection/XSS). Every caller building
+// customer/lead-derived HTML should route it through this first.
+const escapeHtml = (value) => {
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+};
+
+
 const sendEmail = async ({ to, subject, html }) => {
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -53,5 +79,6 @@ const sendPasswordResetEmail = async (to, resetUrl) => {
 
 module.exports = {
   sendEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  escapeHtml
 };

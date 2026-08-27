@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail } = require("./emailService");
+const { sendEmail, escapeHtml } = require("./emailService");
 const { createLoginToken } = require("./portalAuthService");
 const { applyDiscount, calculateDeposit, formatQuoteNumber } = require("./quoteService");
 const { createNotification } = require("./notificationService");
@@ -128,8 +128,8 @@ const sendInvoiceReminders = async () => {
         subject: `Payment reminder: ${formatMoney(total)} outstanding with ${invoice.business_name}`,
 
         html: `
-          <p>Hi ${invoice.customer_name || "there"},</p>
-          <p>This is a friendly reminder that you have an outstanding invoice with ${invoice.business_name} for ${formatMoney(total)}${depositOwed ? `, including a ${formatMoney(depositAmount)} deposit to get started` : ""}.</p>
+          <p>Hi ${escapeHtml(invoice.customer_name) || "there"},</p>
+          <p>This is a friendly reminder that you have an outstanding invoice with ${escapeHtml(invoice.business_name)} for ${formatMoney(total)}${depositOwed ? `, including a ${formatMoney(depositAmount)} deposit to get started` : ""}.</p>
           <p><a href="${portalUrl}">View and pay it here</a></p>
           <p>If you've already paid, please disregard this message. This link works for the next 7 days.</p>
         `

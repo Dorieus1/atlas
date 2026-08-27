@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail } = require("./emailService");
+const { sendEmail, escapeHtml } = require("./emailService");
 
 
 const allAsync = (sql, params = []) => {
@@ -96,9 +96,9 @@ const sendAppointmentReminders = async () => {
         subject: `Reminder: your appointment with ${appt.business_name}`,
 
         html: `
-          <p>Hi ${appt.customer_name || "there"},</p>
-          <p>This is a friendly reminder about your upcoming appointment with ${appt.business_name}:</p>
-          <p><strong>${appt.title}</strong><br>${when}</p>
+          <p>Hi ${escapeHtml(appt.customer_name) || "there"},</p>
+          <p>This is a friendly reminder about your upcoming appointment with ${escapeHtml(appt.business_name)}:</p>
+          <p><strong>${escapeHtml(appt.title)}</strong><br>${when}</p>
           <p>If you need to reschedule, just reply to this email or give us a call.</p>
         `
 
