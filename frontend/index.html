@@ -14,6 +14,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>Atlas — AI Receptionist &amp; CRM</title>
+    <script>
+      // Runs synchronously before first paint, so a returning user who
+      // picked light mode doesn't see a flash of the dark theme first -
+      // ThemeContext's own effect (frontend/src/context/ThemeContext.jsx)
+      // can't set data-theme until after React mounts, which is already
+      // one or more paints too late. Mirrors that same file's read logic
+      // exactly (only "light" is ever trusted; anything else, including
+      // localStorage being unavailable, falls through to dark).
+      try {
+        if (localStorage.getItem("atlas_theme") === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
