@@ -209,7 +209,7 @@ function PublicChat() {
     // same reason the not-found state below it already gets the logo
     // treatment instead of plain text.
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-950">
+      <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="animate-pulse">
           <Logo size={40} />
         </div>
@@ -221,10 +221,10 @@ function PublicChat() {
   if (notFound) {
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-ink-950 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-6 text-center">
         <Logo size={40} />
         <h1 className="mt-4 text-xl font-bold">We couldn't find that business</h1>
-        <p className="mt-2 text-slate-400">Double check the link and try again.</p>
+        <p className="mt-2 text-fg-muted">Double check the link and try again.</p>
       </div>
     );
 
@@ -232,7 +232,7 @@ function PublicChat() {
 
   return (
 
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 p-4 sm:p-6">
+    <div className="flex min-h-screen items-center justify-center bg-bg p-4 sm:p-6">
 
       <div className="w-full max-w-lg">
 
@@ -244,30 +244,30 @@ function PublicChat() {
             {business?.name}
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-fg-faint">
             Chat with us — we usually reply right away.
           </p>
 
         </div>
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 sm:p-6">
+        <div className="rounded-2xl border border-border bg-surface/60 p-5 sm:p-6">
 
           {!customerId ? (
 
             <div>
 
-              <div className="mb-4 flex items-center gap-2 text-slate-300">
-                <MessageSquare size={18} className="text-brand-400" />
+              <div className="mb-4 flex items-center gap-2 text-fg-muted">
+                <MessageSquare size={18} className="text-accent-text" />
                 <span className="text-sm font-medium">Let's start with your name</span>
               </div>
 
               {startError && (
-                <p className="mb-3 text-sm text-red-400">
+                <p className="mb-3 text-sm text-danger">
                   {startError}
                 </p>
               )}
 
-              <label htmlFor="public-chat-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label htmlFor="public-chat-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 Your Name
               </label>
 
@@ -276,10 +276,10 @@ function PublicChat() {
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mb-3 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="mb-3 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
-              <label htmlFor="public-chat-contact" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label htmlFor="public-chat-contact" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 Phone or Email (optional)
               </label>
 
@@ -288,7 +288,7 @@ function PublicChat() {
                 placeholder="Phone or email (optional)"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                className="mb-4 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="mb-4 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <button
@@ -305,10 +305,10 @@ function PublicChat() {
 
             <div>
 
-              <div className="h-[400px] overflow-y-auto rounded-xl border border-ink-700 p-3">
+              <div className="h-[400px] overflow-y-auto rounded-xl border border-border p-3">
 
                 {messages.length === 0 && (
-                  <p className="mt-4 text-center text-sm text-slate-500">
+                  <p className="mt-4 text-center text-sm text-fg-faint">
                     Say hello — we're here to help.
                   </p>
                 )}
@@ -318,7 +318,7 @@ function PublicChat() {
                 ))}
 
                 {isTyping && (
-                  <p className="text-sm text-slate-400">Typing...</p>
+                  <p className="text-sm text-fg-muted">Typing...</p>
                 )}
 
                 <div ref={messagesEndRef} />
@@ -326,7 +326,7 @@ function PublicChat() {
               </div>
 
               {chatError && (
-                <p className="mt-3 text-sm text-red-400">
+                <p className="mt-3 text-sm text-danger">
                   {chatError}
                 </p>
               )}
@@ -343,7 +343,7 @@ function PublicChat() {
                       handleSend();
                     }
                   }}
-                  className="flex-1 rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                  className="flex-1 rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                 />
 
                 <button
@@ -363,7 +363,7 @@ function PublicChat() {
 
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-600">
+        <p className="mt-6 text-center text-xs text-fg-faint">
           Powered by Atlas
         </p>
 

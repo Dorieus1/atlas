@@ -12,7 +12,7 @@ function AuthHeader() {
         Atlas
       </h1>
 
-      <p className="text-slate-400 mt-1">
+      <p className="text-fg-muted mt-1">
         The AI receptionist and CRM built for small businesses.
       </p>
 
