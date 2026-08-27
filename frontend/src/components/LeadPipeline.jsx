@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { Flame, Download, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Flame, Download, Sparkles, UserSquare2 } from "lucide-react";
 import { API_BASE, handleSessionExpired, generateFollowUpMessage } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
@@ -271,7 +272,25 @@ function LeadPipeline() {
 
                   </h3>
 
-                  <p className="text-slate-400">
+                  {lead.customer_id && (
+
+                    // A lead and its customer are two separate records
+                    // for the same person - without this, an owner has
+                    // no way to get from a lead card to that person's
+                    // full history (past jobs, notes, quotes) without
+                    // separately searching Customers by name and hoping
+                    // it matches.
+                    <Link
+                      to={`/customers/${lead.customer_id}`}
+                      className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
+                    >
+                      <UserSquare2 size={12} />
+                      View customer profile
+                    </Link>
+
+                  )}
+
+                  <p className="mt-1 text-slate-400">
 
                     {lead.email}
 
