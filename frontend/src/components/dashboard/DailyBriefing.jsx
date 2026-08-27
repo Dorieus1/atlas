@@ -179,7 +179,7 @@ function DailyBriefing() {
             whitespace-pre-wrap
           ">
 
-            {briefing || "No briefing available."}
+            {briefing?.trim() ? briefing : "No briefing available. Try refreshing the page."}
 
           </p>
 
