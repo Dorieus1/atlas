@@ -14,6 +14,20 @@ const STATUS_COLUMNS = [
   { key: "closed", label: "Closed" }
 ];
 
+// aiService.js's classifyLead() only ever returns one of these three
+// values, but every card was rendering its priority badge in the same
+// red regardless of which one it got - a warm or even cold lead looked
+// exactly as urgent as a genuinely hot one. Giving each level its own
+// color (matching the red/amber/slate vocabulary already used for
+// "urgent vs. neutral vs. low-priority" elsewhere in the app, e.g.
+// Schedule.jsx's STATUS_STYLES) makes the board scannable at a glance
+// instead of every card shouting the same false alarm.
+const PRIORITY_STYLES = {
+  hot: "bg-red-500/20 text-red-400",
+  warm: "bg-amber-500/20 text-amber-400",
+  cold: "bg-slate-500/20 text-slate-400"
+};
+
 function LeadPipeline() {
 
   const [leads, setLeads] = useState([]);
@@ -270,7 +284,7 @@ function LeadPipeline() {
 
         </div>
 
-        <span className="shrink-0 rounded-full bg-red-500/20 px-3 py-1 text-red-400">
+        <span className={`shrink-0 rounded-full px-3 py-1 capitalize ${PRIORITY_STYLES[lead.priority] || "bg-slate-500/20 text-slate-400"}`}>
 
           {lead.priority}
 
