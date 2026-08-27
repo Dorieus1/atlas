@@ -210,9 +210,9 @@ function TaskPanel() {
 
     <div className="
       h-full
-      bg-ink-900/60
+      bg-surface/60
       border
-      border-ink-700
+      border-border
       rounded-2xl
       p-6
     ">
@@ -242,7 +242,7 @@ function TaskPanel() {
       </div>
 
       {error && (
-        <p className="text-red-400 mb-4">
+        <p className="text-danger mb-4">
           {error}
         </p>
       )}
@@ -267,7 +267,7 @@ function TaskPanel() {
             key={task.id}
 
             className={`
-              bg-ink-800
+              bg-surface-muted
               rounded-xl
               p-5
               mb-4
@@ -290,7 +290,7 @@ function TaskPanel() {
 
             <p className="
               mt-2
-              text-slate-400
+              text-fg-muted
             ">
 
               Status: {task.status}
@@ -299,7 +299,7 @@ function TaskPanel() {
 
             {task.due_date && (
 
-              <p className={`mt-1 ${isOverdue(task) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+              <p className={`mt-1 ${isOverdue(task) ? "text-danger font-semibold" : "text-fg-muted"}`}>
 
                 {isOverdue(task) ? "Overdue since " : "Due "}
                 {formatDueDate(task.due_date)}

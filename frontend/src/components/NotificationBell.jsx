@@ -170,7 +170,7 @@ function NotificationBell({ align = "right" }) {
 
       <button
         onClick={handleOpen}
-        className="relative rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+        className="relative rounded-lg p-2 text-fg-muted transition hover:bg-surface-muted hover:text-fg"
         aria-label="Notifications"
       >
         <Bell size={19} />
@@ -186,18 +186,18 @@ function NotificationBell({ align = "right" }) {
       {open && (
 
         <div className={`
-          absolute top-full z-50 mt-2 w-80 max-w-[90vw] rounded-2xl border border-ink-700 bg-ink-900 shadow-xl shadow-black/40
+          absolute top-full z-50 mt-2 w-80 max-w-[90vw] rounded-2xl border border-border bg-surface shadow-xl shadow-black/40
           ${align === "left" ? "left-0" : "right-0"}
         `}>
 
-          <div className="flex items-center justify-between border-b border-ink-700 p-3">
+          <div className="flex items-center justify-between border-b border-border p-3">
 
             <span className="text-sm font-semibold">Notifications</span>
 
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-xs font-medium text-brand-400 hover:text-brand-300"
+                className="flex items-center gap-1 text-xs font-medium text-accent-text hover:opacity-80"
               >
                 <Check size={12} />
                 Mark all read
@@ -210,15 +210,15 @@ function NotificationBell({ align = "right" }) {
 
             {loading ? (
 
-              <p className="p-4 text-center text-sm text-slate-500">Loading...</p>
+              <p className="p-4 text-center text-sm text-fg-faint">Loading...</p>
 
             ) : error ? (
 
-              <p className="p-4 text-center text-sm text-red-400">{error}</p>
+              <p className="p-4 text-center text-sm text-danger">{error}</p>
 
             ) : notifications.length === 0 ? (
 
-              <p className="p-4 text-center text-sm text-slate-500">Nothing yet.</p>
+              <p className="p-4 text-center text-sm text-fg-faint">Nothing yet.</p>
 
             ) : (
 
@@ -228,9 +228,9 @@ function NotificationBell({ align = "right" }) {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`
-                    flex w-full flex-col items-start gap-0.5 border-b border-ink-800 p-3 text-left transition last:border-0
+                    flex w-full flex-col items-start gap-0.5 border-b border-border p-3 text-left transition last:border-0
                     ${notification.read ? "opacity-60" : "bg-brand-600/5"}
-                    hover:bg-ink-800
+                    hover:bg-surface-muted
                   `}
                 >
 
@@ -244,12 +244,12 @@ function NotificationBell({ align = "right" }) {
                   </div>
 
                   {notification.body && (
-                    <p className="w-full truncate pl-3.5 text-xs text-slate-400">
+                    <p className="w-full truncate pl-3.5 text-xs text-fg-muted">
                       {notification.body}
                     </p>
                   )}
 
-                  <span className="pl-3.5 text-[11px] text-slate-500">
+                  <span className="pl-3.5 text-[11px] text-fg-faint">
                     {timeAgo(notification.created_at)}
                   </span>
 

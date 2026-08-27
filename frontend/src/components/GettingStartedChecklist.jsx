@@ -48,21 +48,21 @@ function GettingStartedChecklist() {
 
     return (
 
-      <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-gradient-to-br from-ink-900 to-ink-850 p-6 animate-pulse">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-muted p-6 animate-pulse">
 
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-ink-800" />
+          <div className="h-9 w-9 rounded-xl bg-surface-muted" />
           <div>
-            <div className="h-4 w-24 rounded bg-ink-800" />
-            <div className="mt-2 h-3 w-20 rounded bg-ink-800" />
+            <div className="h-4 w-24 rounded bg-surface-muted" />
+            <div className="mt-2 h-3 w-20 rounded bg-surface-muted" />
           </div>
         </div>
 
-        <div className="mt-4 h-1.5 w-full rounded-full bg-ink-800" />
+        <div className="mt-4 h-1.5 w-full rounded-full bg-surface-muted" />
 
         <div className="mt-4 flex flex-col gap-2">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-5 w-2/3 rounded bg-ink-800" />
+            <div key={i} className="h-5 w-2/3 rounded bg-surface-muted" />
           ))}
         </div>
 
@@ -116,7 +116,7 @@ function GettingStartedChecklist() {
 
   return (
 
-    <div className="relative overflow-hidden rounded-2xl border border-ink-700 bg-gradient-to-br from-ink-900 to-ink-850 p-6">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-muted p-6">
 
       <div
         className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-600/10 blur-[80px]"
@@ -127,13 +127,13 @@ function GettingStartedChecklist() {
 
         <div className="flex items-center gap-2.5">
 
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600/15 text-brand-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600/15 text-accent-text">
             <Sparkles size={17} />
           </div>
 
           <div>
             <h2 className="font-display text-lg font-bold">Get set up</h2>
-            <p className="text-xs text-slate-500">{completedCount} of {items.length} complete</p>
+            <p className="text-xs text-fg-faint">{completedCount} of {items.length} complete</p>
           </div>
 
         </div>
@@ -141,7 +141,7 @@ function GettingStartedChecklist() {
         <button
           onClick={handleDismiss}
           disabled={dismissing}
-          className="rounded-lg p-1.5 text-slate-500 transition hover:bg-ink-800 hover:text-white"
+          className="rounded-lg p-1.5 text-fg-faint transition hover:bg-surface-muted hover:text-fg"
           aria-label="Dismiss checklist"
         >
           <X size={16} />
@@ -149,7 +149,7 @@ function GettingStartedChecklist() {
 
       </div>
 
-      <div className="relative mt-4 h-1.5 w-full overflow-hidden rounded-full bg-ink-800">
+      <div className="relative mt-4 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
         <div
           className="h-full rounded-full bg-brand-500 transition-all"
           style={{ width: `${(completedCount / items.length) * 100}%` }}
@@ -164,12 +164,12 @@ function GettingStartedChecklist() {
 
             <>
               {item.done ? (
-                <Check size={16} className="shrink-0 text-brand-400" />
+                <Check size={16} className="shrink-0 text-accent-text" />
               ) : (
-                <Circle size={16} className="shrink-0 text-slate-600" />
+                <Circle size={16} className="shrink-0 text-fg-faint" />
               )}
 
-              <span className={item.done ? "text-slate-500 line-through" : "text-slate-200"}>
+              <span className={item.done ? "text-fg-faint line-through" : "text-fg"}>
                 {item.label}
               </span>
             </>
@@ -187,7 +187,7 @@ function GettingStartedChecklist() {
             <Link
               key={item.key}
               to={item.to}
-              className="flex items-center gap-2.5 rounded-lg p-2 text-sm transition hover:bg-ink-800"
+              className="flex items-center gap-2.5 rounded-lg p-2 text-sm transition hover:bg-surface-muted"
             >
               {content}
             </Link>

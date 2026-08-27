@@ -236,7 +236,7 @@ function LeadPipeline() {
 
     <div
       key={lead.id}
-      className={`bg-ink-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
+      className={`bg-surface-muted rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
     >
 
       <div className="flex justify-between">
@@ -258,7 +258,7 @@ function LeadPipeline() {
             // Customers by name and hoping it matches.
             <Link
               to={`/customers/${lead.customer_id}`}
-              className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
+              className="mt-0.5 inline-flex items-center gap-1 text-xs text-accent-text hover:opacity-80"
             >
               <UserSquare2 size={12} />
               View customer profile
@@ -266,7 +266,7 @@ function LeadPipeline() {
 
           )}
 
-          <p className="mt-1 truncate text-slate-400">
+          <p className="mt-1 truncate text-fg-muted">
 
             {lead.email}
 
@@ -274,7 +274,7 @@ function LeadPipeline() {
 
           {lead.phone && (
 
-            <p className="text-slate-400">
+            <p className="text-fg-muted">
 
               {lead.phone}
 
@@ -300,7 +300,7 @@ function LeadPipeline() {
 
       {lead.last_contacted && (
 
-        <p className="mt-1 text-slate-400 text-sm">
+        <p className="mt-1 text-fg-muted text-sm">
 
           Last contacted: {formatDate(lead.last_contacted)}
 
@@ -310,7 +310,7 @@ function LeadPipeline() {
 
       {lead.next_follow_up && (
 
-        <p className={`mt-1 text-sm ${isFollowUpOverdue(lead) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+        <p className={`mt-1 text-sm ${isFollowUpOverdue(lead) ? "text-danger font-semibold" : "text-fg-muted"}`}>
 
           {isFollowUpOverdue(lead) ? "Follow-up overdue since " : "Next follow-up: "}
           {formatDate(lead.next_follow_up)}
@@ -333,8 +333,8 @@ function LeadPipeline() {
               disabled={updatingId === lead.id || isActive}
               className={
                 isActive
-                  ? "bg-brand-600/20 text-brand-400 border border-brand-500 px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-100"
-                  : "bg-ink-900 hover:bg-ink-700 border border-ink-700 px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-50"
+                  ? "bg-brand-600/20 text-accent-text border border-brand-500 px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-100"
+                  : "bg-surface hover:bg-border border border-border px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-50"
               }
             >
               {statusOption}
@@ -346,12 +346,12 @@ function LeadPipeline() {
 
       </div>
 
-      <div className="mt-4 border-t border-ink-700 pt-4">
+      <div className="mt-4 border-t border-border pt-4">
 
         <button
           onClick={() => generateFollowUp(lead)}
           disabled={followUpLoadingId === lead.id}
-          className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50 inline-flex items-center gap-1.5"
+          className="text-sm text-accent-text hover:opacity-80 disabled:opacity-50 inline-flex items-center gap-1.5"
         >
           {followUpLoadingId === lead.id
             ? "Generating..."
@@ -360,7 +360,7 @@ function LeadPipeline() {
 
         {followUpErrors[lead.id] && (
 
-          <p className="mt-2 text-sm text-red-400">
+          <p className="mt-2 text-sm text-danger">
             {followUpErrors[lead.id]}
           </p>
 
@@ -368,7 +368,7 @@ function LeadPipeline() {
 
         {followUpMessages[lead.id] && (
 
-          <div className="mt-3 whitespace-pre-wrap rounded-lg bg-ink-900 p-4 text-sm">
+          <div className="mt-3 whitespace-pre-wrap rounded-lg bg-surface p-4 text-sm">
             {followUpMessages[lead.id]}
           </div>
 
@@ -383,7 +383,7 @@ function LeadPipeline() {
 
   return (
 
-    <div className="h-full rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="h-full rounded-2xl border border-border bg-surface/60 p-6">
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
@@ -398,7 +398,7 @@ function LeadPipeline() {
 
             onClick={exportCSV}
 
-            className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
+            className="bg-surface-muted hover:bg-border border border-border px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
 
           >
 
@@ -411,7 +411,7 @@ function LeadPipeline() {
       </div>
 
       {error && (
-        <p className="text-red-400 mt-3">
+        <p className="text-danger mt-3">
           {error}
         </p>
       )}
@@ -447,11 +447,11 @@ function LeadPipeline() {
 
                 <div className="flex items-center gap-2 px-1 pb-3">
 
-                  <h3 className="text-sm font-semibold text-slate-300">
+                  <h3 className="text-sm font-semibold text-fg-muted">
                     {column.label}
                   </h3>
 
-                  <span className="rounded-full bg-ink-800 px-2 py-0.5 text-xs text-slate-500">
+                  <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-fg-faint">
                     {columnLeads.length}
                   </span>
 
@@ -461,7 +461,7 @@ function LeadPipeline() {
 
                   {columnLeads.length === 0 ? (
 
-                    <p className="rounded-xl border border-dashed border-ink-700 p-4 text-center text-xs text-slate-500">
+                    <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-fg-faint">
                       Nothing here
                     </p>
 

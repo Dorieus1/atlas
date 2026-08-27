@@ -212,9 +212,9 @@ function KnowledgePanel() {
 
     <div className="
       h-full
-      bg-ink-900/60
+      bg-surface/60
       border
-      border-ink-700
+      border-border
       rounded-2xl
       p-6
     ">
@@ -228,7 +228,7 @@ function KnowledgePanel() {
 
       {error && (
 
-        <p className="mt-3 text-red-400">
+        <p className="mt-3 text-danger">
 
           {error}
 
@@ -240,13 +240,13 @@ function KnowledgePanel() {
 
         <div className="relative mt-4">
 
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-faint" />
 
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search your knowledge base..."
-            className="w-full rounded-lg border border-ink-700 bg-ink-900/60 p-2.5 pl-9 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+            className="w-full rounded-lg border border-border bg-surface/60 p-2.5 pl-9 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
           />
 
         </div>
@@ -266,7 +266,7 @@ function KnowledgePanel() {
 
       ) : knowledge.length > 0 && filteredKnowledge.length === 0 ? (
 
-        <p className="mt-4 text-sm text-slate-400">
+        <p className="mt-4 text-sm text-fg-muted">
           No knowledge entries match "{search.trim()}".
         </p>
 
@@ -276,7 +276,7 @@ function KnowledgePanel() {
 
           <div key={groupName} className="mt-5">
 
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
               {groupName} ({groups[groupName].length})
             </h3>
 
@@ -288,7 +288,7 @@ function KnowledgePanel() {
 
             className="
               mt-4
-              bg-ink-800
+              bg-surface-muted
               rounded-xl
               p-4
             "
@@ -299,7 +299,7 @@ function KnowledgePanel() {
 
               <>
 
-                <label htmlFor={`knowledge-title-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor={`knowledge-title-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                   Title
                 </label>
 
@@ -311,11 +311,11 @@ function KnowledgePanel() {
 
                   onChange={(e) => setEditTitle(e.target.value)}
 
-                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 mb-2"
+                  className="w-full bg-surface text-fg border border-border rounded-lg p-2 mb-2"
 
                 />
 
-                <label htmlFor={`knowledge-content-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor={`knowledge-content-${item.id}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                   Content
                 </label>
 
@@ -327,11 +327,11 @@ function KnowledgePanel() {
 
                   onChange={(e) => setEditContent(e.target.value)}
 
-                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 h-24"
+                  className="w-full bg-surface text-fg border border-border rounded-lg p-2 h-24"
 
                 />
 
-                <label htmlFor={`knowledge-category-${item.id}`} className="mb-1 mt-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor={`knowledge-category-${item.id}`} className="mb-1 mt-2 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                   Category
                 </label>
 
@@ -345,7 +345,7 @@ function KnowledgePanel() {
 
                   placeholder="e.g. Pricing, Hours & Location"
 
-                  className="w-full bg-ink-900 text-white border border-ink-700 rounded-lg p-2 placeholder:text-slate-500"
+                  className="w-full bg-surface text-fg border border-border rounded-lg p-2 placeholder:text-fg-faint"
 
                 />
 
@@ -369,7 +369,7 @@ function KnowledgePanel() {
 
                     onClick={cancelEdit}
 
-                    className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
+                    className="bg-border hover:bg-border-strong px-3 py-1 rounded-lg text-sm"
 
                   >
 
@@ -409,7 +409,7 @@ function KnowledgePanel() {
 
                     <div className="flex flex-col gap-2 shrink-0">
 
-                      <span className="text-slate-300 text-xs">
+                      <span className="text-fg-muted text-xs">
 
                         Delete this?
 
@@ -433,7 +433,7 @@ function KnowledgePanel() {
 
                         onClick={() => setConfirmingDeleteId(null)}
 
-                        className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
+                        className="bg-border hover:bg-border-strong px-3 py-1 rounded-lg text-sm"
 
                       >
 
@@ -451,7 +451,7 @@ function KnowledgePanel() {
 
                         onClick={() => startEdit(item)}
 
-                        className="text-slate-400 hover:text-white text-sm"
+                        className="text-fg-muted hover:text-fg text-sm"
 
                       >
 
@@ -463,7 +463,7 @@ function KnowledgePanel() {
 
                         onClick={() => setConfirmingDeleteId(item.id)}
 
-                        className="text-red-400 hover:text-red-300 text-sm"
+                        className="text-danger hover:opacity-80 text-sm"
 
                       >
 

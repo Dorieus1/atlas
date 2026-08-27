@@ -106,9 +106,9 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       z-40
       w-64
       h-screen
-      bg-ink-900
+      bg-surface
       border-r
-      border-ink-700
+      border-border
       p-6
       flex
       flex-col
@@ -132,7 +132,7 @@ function Sidebar({ open, onClose, onOpenSearch }) {
 
           <button
             onClick={onOpenSearch}
-            className="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-ink-800 hover:text-white md:block"
+            className="hidden rounded-lg p-1.5 text-fg-muted transition hover:bg-surface-muted hover:text-fg md:block"
             aria-label="Search"
           >
             <Search size={19} />
@@ -187,8 +187,8 @@ function Sidebar({ open, onClose, onOpenSearch }) {
                 transition
                 ${
                   isActive
-                  ? "border-brand-500 bg-brand-600/10 text-brand-400 font-semibold"
-                  : "border-transparent text-slate-400 hover:bg-ink-800 hover:text-slate-100"
+                  ? "border-brand-500 bg-brand-600/10 text-accent-text font-semibold"
+                  : "border-transparent text-fg-muted hover:bg-surface-muted hover:text-fg"
                 }
                 `
 
@@ -220,9 +220,9 @@ function Sidebar({ open, onClose, onOpenSearch }) {
           gap-3
           p-3
           rounded-xl
-          text-slate-400
-          hover:bg-ink-800
-          hover:text-white
+          text-fg-muted
+          hover:bg-surface-muted
+          hover:text-fg
         "
 
       >

@@ -13,6 +13,7 @@ import SavedServicesPanel from "../components/SavedServicesPanel";
 import TagManagerPanel from "../components/TagManagerPanel";
 import Skeleton from "../components/Skeleton";
 import SettingsCardSkeleton from "../components/SettingsCardSkeleton";
+import ThemeTogglePanel from "../components/ThemeTogglePanel";
 
 // Settings grew, one feature at a time, into nine stacked cards on a
 // single flat page - functional, but not the kind of first impression
@@ -82,7 +83,7 @@ function Settings() {
         Settings
       </h1>
 
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-fg-faint">
         Your business, your team, your account.
       </p>
 
@@ -97,7 +98,7 @@ function Settings() {
         // at the top level.
         <div className="mt-6">
 
-          <div className="flex flex-wrap gap-1.5 border-b border-ink-800 pb-2.5">
+          <div className="flex flex-wrap gap-1.5 border-b border-border pb-2.5">
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-8 w-28" />
             <Skeleton className="h-8 w-32" />
@@ -114,13 +115,13 @@ function Settings() {
       )}
 
       {!loading && error && (
-        <p className="mt-6 text-red-400">
+        <p className="mt-6 text-danger">
           {error}
         </p>
       )}
 
       {!loading && !error && !business && (
-        <p className="mt-6 text-slate-400">
+        <p className="mt-6 text-fg-muted">
           No business profile found yet.
         </p>
       )}
@@ -129,7 +130,7 @@ function Settings() {
 
         <>
 
-          <div className="mt-6 flex flex-wrap gap-1.5 border-b border-ink-800">
+          <div className="mt-6 flex flex-wrap gap-1.5 border-b border-border">
 
             {TABS.map((tab) => (
 
@@ -149,8 +150,8 @@ function Settings() {
                   transition
                   ${
                     activeTab === tab.key
-                      ? "border-brand-500 bg-brand-600/10 font-semibold text-brand-400"
-                      : "border-transparent text-slate-400 hover:text-white"
+                      ? "border-brand-500 bg-brand-600/10 font-semibold text-accent-text"
+                      : "border-transparent text-fg-muted hover:text-fg"
                   }
                 `}
 
@@ -191,6 +192,7 @@ function Settings() {
             {activeTab === "customization" && (
 
               <>
+                <ThemeTogglePanel />
                 <SavedServicesPanel />
                 <TagManagerPanel />
               </>
