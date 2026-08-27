@@ -291,6 +291,15 @@ function Schedule() {
   const [formAssignedUserId, setFormAssignedUserId] = useState("");
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("09:00");
+  // Every appointment used to be created with end_time left null, even
+  // though the backend has always accepted one (createAppointment's 5th
+  // param) - that silently gave every job the same 60-minute default for
+  // conflict detection (DEFAULT_DURATION_MS in appointmentService.js) and
+  // the Week view's block height, regardless of whether it was really a
+  // 30-minute inspection or a 4-hour install. Defaulting this to 60
+  // keeps today's behavior unchanged unless the owner picks something
+  // else.
+  const [formDurationMinutes, setFormDurationMinutes] = useState(60);
   const [formNotes, setFormNotes] = useState("");
   const [formRecurrence, setFormRecurrence] = useState("none");
   const [formOccurrences, setFormOccurrences] = useState(4);
@@ -384,6 +393,7 @@ function Schedule() {
     setFormNotes("");
     setFormDate(toDateKey(date));
     setFormTime("09:00");
+    setFormDurationMinutes(60);
     setFormRecurrence("none");
     setFormOccurrences(4);
     setShowForm(true);
@@ -427,13 +437,14 @@ function Schedule() {
     try {
 
       const startTime = new Date(`${formDate}T${formTime || "09:00"}:00`).toISOString();
+      const endTime = new Date(new Date(startTime).getTime() + Number(formDurationMinutes) * 60 * 1000).toISOString();
 
       await createAppointment(
         formCustomerId || null,
         formTitle.trim(),
         formNotes.trim() || null,
         startTime,
-        null,
+        endTime,
         isRecurring ? formRecurrence : undefined,
         isRecurring ? occurrenceCount : undefined,
         formAssignedUserId || null
@@ -1472,6 +1483,28 @@ function Schedule() {
                   className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
                 />
 
+              </div>
+
+              <div>
+                <label htmlFor="appointment-duration" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Duration
+                </label>
+                <select
+                  id="appointment-duration"
+                  value={formDurationMinutes}
+                  onChange={(e) => setFormDurationMinutes(Number(e.target.value))}
+                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                >
+                  <option value={15}>15 minutes</option>
+                  <option value={30}>30 minutes</option>
+                  <option value={45}>45 minutes</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                  <option value={120}>2 hours</option>
+                  <option value={180}>3 hours</option>
+                  <option value={240}>4 hours</option>
+                  <option value={480}>All day (8 hours)</option>
+                </select>
               </div>
 
               <div className="flex gap-3">
