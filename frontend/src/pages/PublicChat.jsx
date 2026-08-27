@@ -349,6 +349,7 @@ function PublicChat() {
                 <button
                   onClick={handleSend}
                   disabled={isTyping}
+                  aria-label="Send message"
                   className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
                 >
                   <Send size={16} />
