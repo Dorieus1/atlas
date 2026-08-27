@@ -341,4 +341,131 @@ describe("Service agreements", () => {
 
   });
 
+
+  // Regression tests for a real bug a peer review caught: renewal's
+  // startIndex is derived from a plain COUNT(*) of the plan's
+  // appointments (see countAppointmentsForServiceAgreement), which is
+  // only accurate as long as a plan's rows are never actually removed -
+  // hard-deleting one middle visit through the plain appointment-delete
+  // endpoint would desync that count, and the next renewal would
+  // generate a duplicate appointment on an already-used date. The fix is
+  // to refuse the hard delete entirely for any plan-linked appointment,
+  // which these tests exercise directly.
+  describe("Plan-linked appointments resist hard deletion", () => {
+
+    test("deleting a single plan-linked appointment is refused, and the row survives", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PlanDeleteBlocked");
+      const customerId = await createCustomer(authHeader);
+      const created = await createPlan(authHeader, customerId);
+
+      const before = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const target = before.body.find((a) => a.service_agreement_id === created.body.id);
+
+      const deleteRes = await request(app)
+        .delete(`/api/appointments/${target.id}`)
+        .set("Authorization", authHeader);
+
+      expect(deleteRes.status).toBe(400);
+      expect(deleteRes.body.error.toLowerCase()).toContain("service agreement");
+
+      const after = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      expect(after.body.some((a) => a.id === target.id)).toBe(true);
+      expect(after.body.filter((a) => a.service_agreement_id === created.body.id)).toHaveLength(INITIAL_OCCURRENCES);
+
+    });
+
+
+    test("deleting a plan-linked appointment with scope=future is also refused", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PlanDeleteFutureBlocked");
+      const customerId = await createCustomer(authHeader);
+      const created = await createPlan(authHeader, customerId);
+
+      const before = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const target = before.body.find((a) => a.service_agreement_id === created.body.id);
+
+      const deleteRes = await request(app)
+        .delete(`/api/appointments/${target.id}`)
+        .set("Authorization", authHeader)
+        .send({ scope: "future" });
+
+      expect(deleteRes.status).toBe(400);
+
+      const after = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      expect(after.body.filter((a) => a.service_agreement_id === created.body.id)).toHaveLength(INITIAL_OCCURRENCES);
+
+    });
+
+
+    test("a plain (non-plan) appointment can still be deleted normally", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PlainDeleteStillWorks");
+
+      const created = await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Ordinary appointment", start_time: "2026-09-01T10:00:00.000Z" });
+
+      const deleteRes = await request(app)
+        .delete(`/api/appointments/${created.body.id}`)
+        .set("Authorization", authHeader);
+
+      expect(deleteRes.status).toBe(200);
+
+    });
+
+
+    test("renewal stays gap-free and duplicate-free even after a blocked delete attempt", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PlanRenewAfterBlockedDelete");
+      const customerId = await createCustomer(authHeader);
+      const created = await createPlan(authHeader, customerId);
+
+      const before = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const generated = before.body.filter((a) => a.service_agreement_id === created.body.id);
+
+      // Attempt (and fail) to delete a middle occurrence, same as the
+      // original bug report's scenario.
+      await request(app)
+        .delete(`/api/appointments/${generated[4].id}`)
+        .set("Authorization", authHeader);
+
+      const renewed = await request(app)
+        .post(`/api/service-agreements/${created.body.id}/renew`)
+        .set("Authorization", authHeader);
+
+      expect(renewed.status).toBe(200);
+      expect(renewed.body.addedCount).toBe(RENEWAL_OCCURRENCES);
+
+      const after = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const allGenerated = after.body.filter((a) => a.service_agreement_id === created.body.id);
+
+      expect(allGenerated).toHaveLength(INITIAL_OCCURRENCES + RENEWAL_OCCURRENCES);
+
+      const startTimes = allGenerated.map((a) => a.start_time);
+      expect(new Set(startTimes).size).toBe(startTimes.length);
+
+    });
+
+  });
+
 });

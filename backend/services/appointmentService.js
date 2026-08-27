@@ -1138,12 +1138,38 @@ const rescheduleAppointment = async (id, business_id, new_start_time) => {
 
 
 
+// Returns { error: "not_found" }, { error: "linked_to_plan" }, or
+// { deleted: true } - never a bare boolean. A service-agreement-linked
+// appointment can never be hard-deleted here: renewServiceAgreement's
+// startIndex math (see serviceAgreementService.js) is derived from a
+// plain COUNT(*) of that plan's appointment rows, on the reasoning that
+// a plan's rows only ever get status-flipped (paused/cancelled), never
+// actually removed. A real bug report caught the gap this guard closes
+// - hard-deleting one middle visit through this plain endpoint (e.g.
+// "customer skipped that week, I'll just delete it," a completely
+// normal thing to do from the Schedule page, with no reason to know it
+// belongs to a plan) would silently desync that count from the true
+// last occurrence index, and the next renewal would generate a
+// duplicate appointment on an already-used date - worse, a duplicate
+// invoice too, if both got completed. Skipping a single plan visit
+// without breaking that invariant is a status change (already
+// supported - the existing "Cancel" action marks it cancelled, it
+// never deletes the row), so refusing the hard delete here doesn't
+// remove any real capability, just steers it through the safe path.
 const deleteAppointment = async (id, business_id) => {
 
   // Fetched before the DELETE below so google_event_id is still available
   // to push a delete to Google afterward - once the row is gone there's
   // nowhere left to read it from.
   const appt = await getAppointmentById(id, business_id);
+
+  if (!appt) {
+    return { error: "not_found" };
+  }
+
+  if (appt.service_agreement_id) {
+    return { error: "linked_to_plan" };
+  }
 
   const deleted = await new Promise((resolve, reject) => {
 
@@ -1176,7 +1202,7 @@ const deleteAppointment = async (id, business_id) => {
 
   });
 
-  if (deleted && appt) {
+  if (deleted) {
 
     // Detached, not awaited - same reasoning as createAppointment.
     pushAppointmentDeleteToGoogle(appt)
@@ -1187,7 +1213,7 @@ const deleteAppointment = async (id, business_id) => {
 
   }
 
-  return deleted;
+  return deleted ? { deleted: true } : { error: "not_found" };
 
 };
 
@@ -1279,17 +1305,28 @@ const updateAppointmentStatusForSeries = async (id, business_id, status) => {
 
 
 // "This and all future occurrences" delete - same opt-in shape as above.
+// Returns the same { error } / { deleted: true } shape as deleteAppointment
+// above, for the same reason - a plan-generated series must never lose
+// rows to a hard delete, or renewServiceAgreement's COUNT(*)-based
+// startIndex desyncs from the true last occurrence. Every row in a
+// plan's series carries the same service_agreement_id (see
+// createRecurringAppointments), so checking the target row alone is
+// enough to catch this - there's no case where "this and future" from a
+// plan-linked row would sweep in rows that aren't also plan-linked.
 const deleteAppointmentForSeries = async (id, business_id) => {
 
   const appt = await getAppointmentById(id, business_id);
 
   if (!appt) {
-    return 0;
+    return { error: "not_found" };
+  }
+
+  if (appt.service_agreement_id) {
+    return { error: "linked_to_plan" };
   }
 
   if (!appt.recurrence_id) {
-    const deleted = await deleteAppointment(id, business_id);
-    return deleted ? 1 : 0;
+    return deleteAppointment(id, business_id);
   }
 
   // Fetched before the DELETE below for the same reason as
@@ -1354,7 +1391,7 @@ const deleteAppointmentForSeries = async (id, business_id) => {
 
   }
 
-  return changes;
+  return changes > 0 ? { deleted: true } : { error: "not_found" };
 
 };
 

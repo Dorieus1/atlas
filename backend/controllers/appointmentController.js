@@ -567,11 +567,19 @@ const deleteAppointment = async (req, res) => {
 
     // Same explicit opt-in shape as the status update above - a plain
     // DELETE with no body (or scope !== "future") stays single-row.
-    const deleted = req.body && req.body.scope === "future"
+    const result = req.body && req.body.scope === "future"
       ? await deleteAppointmentForSeriesService(id, business_id)
       : await deleteAppointmentService(id, business_id);
 
-    if (!deleted) {
+    if (result.error === "linked_to_plan") {
+
+      return res.status(400).json({
+        error: "This visit belongs to a service agreement and can't be deleted directly - cancel it (or the whole plan) from the customer's Service Agreements section instead."
+      });
+
+    }
+
+    if (result.error) {
 
       return res.status(404).json({
         error: "Appointment not found"
