@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { BookOpen, Upload, X } from "lucide-react";
-import { importKnowledgeCsv } from "../api/atlasApi";
+import { BookOpen, Upload, Download, X } from "lucide-react";
+import { importKnowledgeCsv, getKnowledge } from "../api/atlasApi";
+import { downloadCSV } from "../utils/csv";
 import KnowledgePanel from "../components/dashboard/KnowledgePanel";
 import KnowledgeEditor from "../components/dashboard/KnowledgeEditor";
 import KnowledgeGapsPanel from "../components/dashboard/KnowledgeGapsPanel";
@@ -20,6 +21,46 @@ function Knowledge() {
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Customers, Leads, and Quotes all offer an Export CSV button - the
+  // Knowledge Base had an Import but no matching way out, which was the
+  // one list in the app you couldn't get your own data back out of
+  // without asking support for a database dump.
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  const runExport = async () => {
+
+    setExportingCsv(true);
+    setExportError("");
+
+    try {
+
+      const business_id = localStorage.getItem("business_id");
+      const data = await getKnowledge(business_id);
+
+      downloadCSV(
+        "knowledge-base.csv",
+        [
+          { key: "title", label: "Title" },
+          { key: "content", label: "Content" },
+          { key: "category", label: "Category" }
+        ],
+        data
+      );
+
+    } catch (error) {
+
+      console.error("KNOWLEDGE EXPORT ERROR:", error);
+      setExportError("Couldn't export your knowledge base. Please try again.");
+
+    } finally {
+
+      setExportingCsv(false);
+
+    }
+
+  };
 
   const openImport = () => {
 
@@ -97,14 +138,32 @@ function Knowledge() {
 
         </div>
 
-        <button
-          onClick={openImport}
-          className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm hover:bg-ink-700"
-        >
-          <Upload size={16} /> Import CSV
-        </button>
+        <div className="flex items-center gap-2">
+
+          <button
+            onClick={runExport}
+            disabled={exportingCsv}
+            className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm hover:bg-ink-700 disabled:opacity-50"
+          >
+            <Download size={16} /> {exportingCsv ? "Exporting..." : "Export CSV"}
+          </button>
+
+          <button
+            onClick={openImport}
+            className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm hover:bg-ink-700"
+          >
+            <Upload size={16} /> Import CSV
+          </button>
+
+        </div>
 
       </div>
+
+      {exportError && (
+        <p className="mt-4 text-sm text-red-400">
+          {exportError}
+        </p>
+      )}
 
       <div className="mt-6">
         <KnowledgeGapsPanel onApproved={() => setKnowledgeListKey((k) => k + 1)} />

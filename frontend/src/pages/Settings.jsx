@@ -11,6 +11,8 @@ import TeamPanel from "../components/TeamPanel";
 import ChangePasswordPanel from "../components/ChangePasswordPanel";
 import SavedServicesPanel from "../components/SavedServicesPanel";
 import TagManagerPanel from "../components/TagManagerPanel";
+import Skeleton from "../components/Skeleton";
+import SettingsCardSkeleton from "../components/SettingsCardSkeleton";
 import ThemeTogglePanel from "../components/ThemeTogglePanel";
 
 // Settings grew, one feature at a time, into nine stacked cards on a
@@ -86,9 +88,30 @@ function Settings() {
       </p>
 
       {loading && (
-        <p className="mt-6 text-fg-muted">
-          Loading...
-        </p>
+
+        // Matches the structure of the loaded page below (a tab bar, then
+        // a couple of cards) instead of a bare "Loading..." sentence - the
+        // individual Integrations cards already use this same
+        // SettingsCardSkeleton while they fetch their own connection
+        // status, so this keeps the whole page consistent about how it
+        // shows "still fetching" rather than mixing a plain text state in
+        // at the top level.
+        <div className="mt-6">
+
+          <div className="flex flex-wrap gap-1.5 border-b border-border pb-2.5">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-8 w-28" />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-6">
+            <SettingsCardSkeleton />
+            <SettingsCardSkeleton />
+          </div>
+
+        </div>
+
       )}
 
       {!loading && error && (
