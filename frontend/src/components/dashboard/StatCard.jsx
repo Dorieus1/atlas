@@ -20,13 +20,13 @@ function StatCard({
     <div className="
       relative
       overflow-hidden
-      bg-ink-900/60
+      bg-surface/60
       border
-      border-ink-700
+      border-border
       rounded-2xl
       p-5
       transition
-      hover:border-ink-600
+      hover:border-border-strong
       hover:-translate-y-0.5
       hover:shadow-xl
       hover:shadow-black/20
@@ -47,7 +47,7 @@ function StatCard({
         <div>
 
 
-          <p className="text-sm font-medium text-slate-400">
+          <p className="text-sm font-medium text-fg-muted">
 
             {title}
 
@@ -95,7 +95,7 @@ function StatCard({
 
       <p className="
         text-sm
-        text-slate-500
+        text-fg-faint
         mt-4
       ">
 

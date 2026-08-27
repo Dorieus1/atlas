@@ -30,6 +30,28 @@
   --color-brand-600: #ea580c;
   --color-brand-700: #c2410c;
 
+  /*
+    Semantic tokens, named for the ROLE they play rather than the raw
+    color behind them (--color-surface, not --color-dark-gray) - each
+    one just points at a plain custom property (--bg, --surface, ...)
+    redefined below per theme, so `bg-surface` etc. stay dark-mode's
+    exact ink-* values until a theme actually overrides them. New UI
+    should reach for these instead of bg-ink-900/text-slate-400/etc.
+    directly, since those raw utilities don't respond to the light
+    theme at all.
+  */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
 }
 
 
@@ -38,6 +60,41 @@
   font-family: var(--font-sans);
 
   color-scheme: dark;
+
+  /* Dark is the only theme today, so these match the ink and slate
+     values already used everywhere else in the app exactly - flipping
+     a raw utility (bg-ink-900) and its token equivalent (bg-surface)
+     to light mode should never be visually distinguishable. */
+  --bg: var(--color-ink-950);
+  --surface: var(--color-ink-900);
+  --surface-muted: var(--color-ink-800);
+  --border: var(--color-ink-700);
+  --border-strong: var(--color-ink-600);
+  --fg: #f1f5f9;
+  --fg-muted: #94a3b8;
+  --fg-faint: #64748b;
+  --accent-text: var(--color-brand-400);
+  --danger: #f87171;
+  --success: #4ade80;
+
+}
+
+
+:root[data-theme="light"] {
+
+  color-scheme: light;
+
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --fg: #0f172a;
+  --fg-muted: #64748b;
+  --fg-faint: #94a3b8;
+  --accent-text: var(--color-brand-700);
+  --danger: #dc2626;
+  --success: #16a34a;
 
 }
 
@@ -50,9 +107,9 @@ body {
 
   min-height: 100vh;
 
-  background: var(--color-ink-950);
+  background: var(--color-bg);
 
-  color: #f1f5f9;
+  color: var(--color-fg);
 
 }
 

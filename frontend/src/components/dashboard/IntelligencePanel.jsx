@@ -196,8 +196,8 @@ function IntelligencePanel() {
       h-full
       rounded-2xl
       border
-      border-ink-700
-      bg-ink-900/60
+      border-border
+      bg-surface/60
       p-6
     ">
 
@@ -221,7 +221,7 @@ function IntelligencePanel() {
 
         <p className={
           "mb-4 " +
-          (taskMessage.type === "error" ? "text-red-400" : "text-green-400")
+          (taskMessage.type === "error" ? "text-danger" : "text-success")
         }>
 
           {taskMessage.text}
@@ -240,9 +240,9 @@ function IntelligencePanel() {
             <div
               key={index}
               className="
-                bg-ink-800
+                bg-surface-muted
                 border
-                border-ink-700
+                border-border
                 rounded-xl
                 p-5
                 mb-5
@@ -268,13 +268,13 @@ function IntelligencePanel() {
 
       ) : loadError ? (
 
-        <p className="text-red-400">
+        <p className="text-danger">
           {loadError}
         </p>
 
       ) : recommendations.length === 0 ? (
 
-        <p className="text-slate-400">
+        <p className="text-fg-muted">
           Nothing needs your attention right now.
         </p>
 
@@ -290,9 +290,9 @@ function IntelligencePanel() {
           key={index}
 
           className="
-            bg-ink-800
+            bg-surface-muted
             border
-            border-ink-700
+            border-border
             rounded-xl
             p-5
             mb-5
@@ -327,7 +327,7 @@ function IntelligencePanel() {
 
 
 
-          <p className="mt-3 text-slate-300">
+          <p className="mt-3 text-fg-muted">
 
             <b>
               Situation:
@@ -341,7 +341,7 @@ function IntelligencePanel() {
 
 
 
-          <p className="mt-2 text-green-400">
+          <p className="mt-2 text-success">
 
             <b>
               Recommended Action:
@@ -453,9 +453,9 @@ function IntelligencePanel() {
       {messageType && (
 
         <div className="
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-xl
           p-5
         ">
@@ -476,7 +476,7 @@ function IntelligencePanel() {
 
           ) : messageError ? (
 
-            <p className="mt-3 text-red-400">
+            <p className="mt-3 text-danger">
               {messageError}
             </p>
 
@@ -498,9 +498,9 @@ function IntelligencePanel() {
                 w-full
                 mt-3
                 h-40
-                bg-ink-900
+                bg-surface
                 border
-                border-ink-700
+                border-border
                 rounded-lg
                 p-3
               "

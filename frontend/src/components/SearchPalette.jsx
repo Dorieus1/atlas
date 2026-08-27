@@ -155,13 +155,13 @@ function SearchPalette({ open, onClose }) {
     >
 
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-ink-700 bg-ink-900 shadow-2xl shadow-black/50"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-black/50"
         onClick={(e) => e.stopPropagation()}
       >
 
-        <div className="flex items-center gap-3 border-b border-ink-700 p-4">
+        <div className="flex items-center gap-3 border-b border-border p-4">
 
-          <Search size={18} className="shrink-0 text-slate-500" />
+          <Search size={18} className="shrink-0 text-fg-faint" />
 
           <input
             ref={inputRef}
@@ -175,12 +175,12 @@ function SearchPalette({ open, onClose }) {
 
             }}
             placeholder="Search customers, leads, appointments, invoices, knowledge..."
-            className="w-full bg-transparent text-white placeholder:text-slate-500 focus:outline-none"
+            className="w-full bg-transparent text-fg placeholder:text-fg-faint focus:outline-none"
           />
 
           <button
             onClick={onClose}
-            className="shrink-0 rounded-lg p-1 text-slate-500 transition hover:bg-ink-800 hover:text-white"
+            className="shrink-0 rounded-lg p-1 text-fg-faint transition hover:bg-surface-muted hover:text-fg"
             aria-label="Close search"
           >
             <X size={16} />
@@ -192,19 +192,19 @@ function SearchPalette({ open, onClose }) {
 
           {query.trim().length < 2 ? (
 
-            <p className="p-4 text-center text-sm text-slate-500">
+            <p className="p-4 text-center text-sm text-fg-faint">
               Keep typing to search.
             </p>
 
           ) : loading ? (
 
-            <p className="p-4 text-center text-sm text-slate-500">
+            <p className="p-4 text-center text-sm text-fg-faint">
               Searching...
             </p>
 
           ) : showEmpty ? (
 
-            <p className="p-4 text-center text-sm text-slate-500">
+            <p className="p-4 text-center text-sm text-fg-faint">
               No matches for "{query.trim()}".
             </p>
 
@@ -224,7 +224,7 @@ function SearchPalette({ open, onClose }) {
 
                 <div key={section.key} className="mb-2">
 
-                  <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                     {section.label}
                   </p>
 
@@ -233,15 +233,15 @@ function SearchPalette({ open, onClose }) {
                     <button
                       key={item.id}
                       onClick={() => goTo(pathFor(item))}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-ink-800"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-surface-muted"
                     >
 
-                      <Icon size={16} className="shrink-0 text-brand-400" />
+                      <Icon size={16} className="shrink-0 text-accent-text" />
 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{item.title}</p>
                         {item.subtitle && (
-                          <p className="truncate text-xs text-slate-500">{item.subtitle}</p>
+                          <p className="truncate text-xs text-fg-faint">{item.subtitle}</p>
                         )}
                       </div>
 
