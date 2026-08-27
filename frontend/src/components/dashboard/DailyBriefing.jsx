@@ -127,8 +127,8 @@ function DailyBriefing() {
       h-full
       rounded-2xl
       border
-      border-ink-700
-      bg-ink-900/60
+      border-border
+      bg-surface/60
       p-6
     ">
 
@@ -152,14 +152,14 @@ function DailyBriefing() {
 
       {loading ? (
 
-        <div className="bg-ink-800 rounded-xl p-5">
+        <div className="bg-surface-muted rounded-xl p-5">
           <SkeletonText lines={3} />
         </div>
 
 
       ) : error ? (
 
-        <p className="text-red-400">
+        <p className="text-danger">
 
           {error}
 
@@ -169,7 +169,7 @@ function DailyBriefing() {
       ) : (
 
         <div className="
-          bg-ink-800
+          bg-surface-muted
           rounded-xl
           p-5
         ">
@@ -192,7 +192,7 @@ function DailyBriefing() {
 
       <div className="mt-4">
 
-        <label htmlFor="ask-atlas-input" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">
+        <label htmlFor="ask-atlas-input" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-fg-faint">
           Ask Atlas anything about your business
         </label>
 
@@ -204,7 +204,7 @@ function DailyBriefing() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleAskKeyDown}
-            className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
           />
 
           <button
@@ -219,11 +219,11 @@ function DailyBriefing() {
         </div>
 
         {askError && (
-          <p className="mt-2 text-sm text-red-400">{askError}</p>
+          <p className="mt-2 text-sm text-danger">{askError}</p>
         )}
 
         {answer && (
-          <div className="mt-3 whitespace-pre-wrap rounded-xl bg-ink-800 p-4 text-sm">
+          <div className="mt-3 whitespace-pre-wrap rounded-xl bg-surface-muted p-4 text-sm">
             {answer}
           </div>
         )}

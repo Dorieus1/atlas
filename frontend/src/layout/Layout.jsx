@@ -74,8 +74,8 @@ function Layout({children}) {
 
       <div className="
         min-h-screen
-        bg-ink-950
-        text-white
+        bg-bg
+        text-fg
       ">
 
         {children}
@@ -91,8 +91,8 @@ function Layout({children}) {
     <div className="
       flex
       min-h-screen
-      bg-ink-950
-      text-white
+      bg-bg
+      text-fg
     ">
 
       <Sidebar
@@ -128,8 +128,8 @@ function Layout({children}) {
           gap-4
           p-4
           border-b
-          border-ink-700
-          bg-ink-900
+          border-border
+          bg-surface
         ">
 
           <button
@@ -146,7 +146,7 @@ function Layout({children}) {
 
             <button
               onClick={() => setSearchOpen(true)}
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+              className="rounded-lg p-2 text-fg-muted transition hover:bg-surface-muted hover:text-fg"
               aria-label="Search"
             >
               <Search size={19} />

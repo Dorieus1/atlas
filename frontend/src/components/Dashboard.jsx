@@ -117,7 +117,7 @@ function Dashboard(){
     <div>
 
 
-      <p className="text-sm font-medium text-brand-400">
+      <p className="text-sm font-medium text-accent-text">
         {today}
       </p>
 
@@ -140,7 +140,7 @@ function Dashboard(){
 
       {loadError ? (
 
-        <p className="text-red-400">
+        <p className="text-danger">
           {loadError}
         </p>
 
