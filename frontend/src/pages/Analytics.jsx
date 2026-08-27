@@ -15,6 +15,7 @@ import {
 
 import { getAnalytics } from "../api/atlasApi";
 import StatCard from "../components/dashboard/StatCard";
+import { useTheme } from "../context/ThemeContext";
 
 const COLORS = ["#f97316", "#2a3040"];
 
@@ -38,7 +39,26 @@ function formatMonth(monthKey) {
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(undefined, { month: "short" });
 }
 
+// Recharts' axis stroke and tooltip contentStyle are inline SVG/style
+// props, not Tailwind classes - the theme-token migration that covered
+// the rest of the app couldn't reach these, since there's no CSS
+// selector for "this JS object property." Left alone, the tooltip's
+// hardcoded near-black background+border (matching dark mode's own
+// surface/border tokens) would still show a solid dark popup box on an
+// otherwise light-themed page - broken-looking, and doubly so since the
+// tooltip's TEXT color isn't set here at all and just inherits from the
+// page body, which does correctly flip per theme. So only the container
+// colors need a manual theme check; matches the exact hex values
+// index.css uses for the same tokens in each theme.
+const CHART_COLORS = {
+  dark: { axisStroke: "#94a3b8", tooltipBg: "#0c0e15", tooltipBorder: "#1f2433" },
+  light: { axisStroke: "#64748b", tooltipBg: "#ffffff", tooltipBorder: "#e2e8f0" }
+};
+
 function Analytics() {
+
+  const { theme } = useTheme();
+  const chartColors = CHART_COLORS[theme] || CHART_COLORS.dark;
 
   const [stats, setStats] = useState({
     customers: 0,
@@ -176,13 +196,13 @@ function Analytics() {
 
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={stats.revenueByMonth.map((m) => ({ name: formatMonth(m.month), value: m.total }))}>
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" tickFormatter={(v) => formatMoney(v)} width={70} />
+              <XAxis dataKey="name" stroke={chartColors.axisStroke} />
+              <YAxis stroke={chartColors.axisStroke} tickFormatter={(v) => formatMoney(v)} width={70} />
               <Tooltip
                 formatter={(value) => formatMoney(value)}
                 contentStyle={{
-                  background: "#0c0e15",
-                  border: "1px solid #1f2433",
+                  background: chartColors.tooltipBg,
+                  border: `1px solid ${chartColors.tooltipBorder}`,
                   borderRadius: 8
                 }}
               />
@@ -212,12 +232,12 @@ function Analytics() {
 
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={funnelData} layout="vertical" margin={{ left: 16 }}>
-                <XAxis type="number" stroke="#94a3b8" allowDecimals={false} domain={[0, funnelMax]} ticks={funnelTicks} />
-                <YAxis type="category" dataKey="name" stroke="#94a3b8" width={90} />
+                <XAxis type="number" stroke={chartColors.axisStroke} allowDecimals={false} domain={[0, funnelMax]} ticks={funnelTicks} />
+                <YAxis type="category" dataKey="name" stroke={chartColors.axisStroke} width={90} />
                 <Tooltip
                   contentStyle={{
-                    background: "#0c0e15",
-                    border: "1px solid #1f2433",
+                    background: chartColors.tooltipBg,
+                    border: `1px solid ${chartColors.tooltipBorder}`,
                     borderRadius: 8
                   }}
                 />
@@ -261,8 +281,8 @@ function Analytics() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: "#0c0e15",
-                      border: "1px solid #1f2433",
+                      background: chartColors.tooltipBg,
+                      border: `1px solid ${chartColors.tooltipBorder}`,
                       borderRadius: 8
                     }}
                   />
