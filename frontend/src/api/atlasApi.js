@@ -974,6 +974,26 @@ export const updateAppointmentStatus = (id, status, scope, assigned_user_id) =>
 
 
 
+export const clockInAppointment = (id) =>
+
+  request(`/appointments/${id}/clock-in`, {
+
+    method: "POST"
+
+  });
+
+
+
+export const clockOutAppointment = (id) =>
+
+  request(`/appointments/${id}/clock-out`, {
+
+    method: "POST"
+
+  });
+
+
+
 export const rescheduleAppointment = (id, start_time) =>
 
   request(`/appointments/${id}/reschedule`, {

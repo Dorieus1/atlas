@@ -102,7 +102,8 @@ module.exports = async () => {
           apple_calendar_app_password TEXT,
           apple_calendar_url TEXT,
           calendar_feed_token TEXT,
-          default_tax_rate REAL
+          default_tax_rate REAL,
+          default_hourly_labor_cost REAL
         )
       `);
 
@@ -232,7 +233,9 @@ module.exports = async () => {
           created_by_user_id TEXT,
           created_by_name TEXT,
           google_event_id TEXT,
-          assigned_user_id TEXT
+          assigned_user_id TEXT,
+          clock_in_at DATETIME,
+          clock_out_at DATETIME
         )
       `);
 

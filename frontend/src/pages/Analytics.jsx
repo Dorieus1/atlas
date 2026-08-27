@@ -39,6 +39,31 @@ function formatMonth(monthKey) {
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(undefined, { month: "short" });
 }
 
+// Job costs (manually-entered quote expenses) and labor cost (from
+// clock-in/out) are two genuinely separate sources, so this spells out
+// whichever combination is actually present rather than collapsing them
+// into one vague "job costs" figure - an owner who's only ever used one
+// of the two shouldn't have to wonder which one a single number means.
+function marginDescription(stats) {
+
+  const parts = [];
+
+  if (stats.expensesPaid > 0) {
+    parts.push(`${formatMoney(stats.expensesPaid)} in job costs`);
+  }
+
+  if (stats.laborCost > 0) {
+    parts.push(`${formatMoney(stats.laborCost)} in labor (${stats.laborHours}h)`);
+  }
+
+  if (parts.length === 0) {
+    return "Collected revenue minus job costs and labor";
+  }
+
+  return `After ${parts.join(" and ")}`;
+
+}
+
 // Recharts' axis stroke and tooltip contentStyle are inline SVG/style
 // props, not Tailwind classes - the theme-token migration that covered
 // the rest of the app couldn't reach these, since there's no CSS
@@ -72,6 +97,9 @@ function Analytics() {
     outstandingInvoiceCount: 0,
     revenueByMonth: [],
     expensesPaid: 0,
+    laborCost: 0,
+    laborHours: 0,
+    hourlyLaborCost: null,
     totalMargin: 0,
     repeatCustomerRate: 0,
     avgCustomerValue: 0
@@ -171,7 +199,7 @@ function Analytics() {
           value={stats.totalMargin}
           format={formatMoney}
           icon={<PiggyBank size={20} />}
-          description={stats.expensesPaid > 0 ? `After ${formatMoney(stats.expensesPaid)} in job costs` : "Collected revenue minus job costs"}
+          description={marginDescription(stats)}
         />
 
         <StatCard

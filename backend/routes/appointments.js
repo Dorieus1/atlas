@@ -9,6 +9,8 @@ const {
   getAppointments,
   getCustomerAppointments,
   updateAppointmentStatus,
+  clockInAppointment,
+  clockOutAppointment,
   rescheduleAppointment,
   deleteAppointment
 } = require("../controllers/appointmentController");
@@ -42,6 +44,18 @@ router.patch(
   "/:id/reschedule",
   authMiddleware,
   rescheduleAppointment
+);
+
+router.post(
+  "/:id/clock-in",
+  authMiddleware,
+  clockInAppointment
+);
+
+router.post(
+  "/:id/clock-out",
+  authMiddleware,
+  clockOutAppointment
 );
 
 router.delete(

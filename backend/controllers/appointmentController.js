@@ -6,6 +6,8 @@ const {
   getAppointmentsByCustomer: getAppointmentsByCustomerService,
   updateAppointmentStatus: updateAppointmentStatusService,
   updateAppointmentStatusForSeries: updateAppointmentStatusForSeriesService,
+  clockIn: clockInService,
+  clockOut: clockOutService,
   rescheduleAppointment: rescheduleAppointmentService,
   deleteAppointment: deleteAppointmentService,
   deleteAppointmentForSeries: deleteAppointmentForSeriesService,
@@ -404,6 +406,93 @@ const updateAppointmentStatus = async (req, res) => {
 
 
 
+const CLOCK_ERROR_MESSAGES = {
+  not_found: "Appointment not found",
+  already_clocked_in: "Already clocked in for this appointment",
+  not_clocked_in: "Not clocked in yet",
+  already_clocked_out: "Already clocked out for this appointment",
+  clock_out_before_clock_in: "Clock-out time can't be before clock-in time"
+};
+
+
+
+const clockInAppointment = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.user.business_id;
+
+    const result = await clockInService(id, business_id);
+
+    if (result.error) {
+
+      const status = result.error === "not_found" ? 404 : 400;
+
+      return res.status(status).json({
+        error: CLOCK_ERROR_MESSAGES[result.error]
+      });
+
+    }
+
+    res.json({
+      message: "Clocked in",
+      clock_in_at: result.clock_in_at
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const clockOutAppointment = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.user.business_id;
+
+    const result = await clockOutService(id, business_id);
+
+    if (result.error) {
+
+      const status = result.error === "not_found" ? 404 : 400;
+
+      return res.status(status).json({
+        error: CLOCK_ERROR_MESSAGES[result.error]
+      });
+
+    }
+
+    res.json({
+      message: "Clocked out",
+      clock_in_at: result.clock_in_at,
+      clock_out_at: result.clock_out_at
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 // Drag-to-reschedule from Schedule.jsx's month view - its own endpoint
 // rather than folded into updateAppointmentStatus above, which already
 // has enough going on (status transitions, series scope, reassignment,
@@ -502,6 +591,10 @@ module.exports = {
   getCustomerAppointments,
 
   updateAppointmentStatus,
+
+  clockInAppointment,
+
+  clockOutAppointment,
 
   rescheduleAppointment,
 

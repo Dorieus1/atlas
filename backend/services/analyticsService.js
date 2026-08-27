@@ -66,7 +66,9 @@ const getAnalytics = async (business_id) => {
     outstandingQuoteRows,
     paidInvoices,
     outstandingInvoices,
-    expensesPaid
+    expensesPaid,
+    laborHours,
+    business
   ] = await Promise.all([
 
     getAsync(`SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND deleted_at IS NULL`, [business_id]),
@@ -171,7 +173,31 @@ const getAnalytics = async (business_id) => {
 
       [business_id]
 
-    )
+    ),
+
+    // Real labor cost, kept as its own transparent figure rather than
+    // folded into expensesPaid above - it's counted the moment the work
+    // is actually done (clock-out recorded), same as how a real payroll
+    // cost is incurred, rather than waiting on the customer's invoice to
+    // be paid the way expensesPaid deliberately does. That's a genuine
+    // cash-vs-accrual mismatch between the two figures, which is exactly
+    // why they're surfaced separately instead of silently merged into
+    // one number a business owner can't unpick.
+    getAsync(
+
+      `
+      SELECT COALESCE(SUM((julianday(clock_out_at) - julianday(clock_in_at)) * 24), 0) as hours
+      FROM appointments
+      WHERE business_id = ?
+      AND clock_in_at IS NOT NULL
+      AND clock_out_at IS NOT NULL
+      `,
+
+      [business_id]
+
+    ),
+
+    getAsync(`SELECT default_hourly_labor_cost FROM businesses WHERE id = ?`, [business_id])
 
   ]);
 
@@ -298,6 +324,17 @@ const getAnalytics = async (business_id) => {
     count: row.count
   }));
 
+  // null (not 0) when no rate has ever been set - a business that
+  // hasn't told us what labor costs shouldn't have its margin quietly
+  // treated as "labor is free" just because clock-in/out is being used.
+  const hourlyLaborCost = business && business.default_hourly_labor_cost != null
+    ? business.default_hourly_labor_cost
+    : null;
+
+  const laborCostTotal = hourlyLaborCost != null
+    ? round2(laborHours.hours * hourlyLaborCost)
+    : 0;
+
   return {
 
     customers: customers.count,
@@ -313,7 +350,10 @@ const getAnalytics = async (business_id) => {
     revenueByMonth,
 
     expensesPaid: expensesPaid.total,
-    totalMargin: round2(revenuePaidTotal - expensesPaid.total),
+    laborCost: laborCostTotal,
+    laborHours: round2(laborHours.hours),
+    hourlyLaborCost,
+    totalMargin: round2(revenuePaidTotal - expensesPaid.total - laborCostTotal),
 
     repeatCustomerRate,
     avgCustomerValue

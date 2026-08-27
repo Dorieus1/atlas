@@ -67,6 +67,7 @@ function BusinessProfile({ business }) {
     review_link: "",
     timezone: "",
     default_tax_rate: "",
+    default_hourly_labor_cost: "",
   });
 
   // null means "hours not configured" (nothing enforced). Once the owner
@@ -101,6 +102,9 @@ function BusinessProfile({ business }) {
         default_tax_rate: business.default_tax_rate === null || business.default_tax_rate === undefined
           ? ""
           : String(business.default_tax_rate),
+        default_hourly_labor_cost: business.default_hourly_labor_cost === null || business.default_hourly_labor_cost === undefined
+          ? ""
+          : String(business.default_hourly_labor_cost),
 
       });
 
@@ -503,6 +507,37 @@ function BusinessProfile({ business }) {
 
       <p className="text-xs text-fg-faint -mt-2 mb-3">
         Applied automatically to new quotes and invoices - leave blank if you don't collect sales tax. You can still override it on any individual quote.
+      </p>
+
+      <label htmlFor="business-labor-cost" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
+        Average Hourly Labor Cost
+      </label>
+
+      <input
+
+        id="business-labor-cost"
+
+        type="number"
+        min="0"
+        step="0.01"
+
+        value={form.default_hourly_labor_cost}
+
+        placeholder="e.g. 25 for $25/hour"
+
+        className={inputClass}
+
+        onChange={(e) =>
+          setForm({
+            ...form,
+            default_hourly_labor_cost: e.target.value
+          })
+        }
+
+      />
+
+      <p className="text-xs text-fg-faint -mt-2 mb-3">
+        Used with clock-in/out on appointments to work out real labor cost for the Profit Margin report - leave blank to leave labor out of that number.
       </p>
 
 

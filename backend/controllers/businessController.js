@@ -147,7 +147,8 @@ const updateBusiness = (req, res) => {
     review_link,
     business_hours,
     timezone,
-    default_tax_rate
+    default_tax_rate,
+    default_hourly_labor_cost
 
   } = req.body;
 
@@ -202,6 +203,22 @@ const updateBusiness = (req, res) => {
   }
 
 
+  // Same "unset means unset" treatment as default_tax_rate above - a
+  // business that hasn't told us what labor costs shouldn't have one
+  // invented for it, and the Analytics side simply skips the labor-cost
+  // line entirely when this is null rather than assuming a $0 rate.
+  const hasLaborCost = default_hourly_labor_cost !== undefined && default_hourly_labor_cost !== null && default_hourly_labor_cost !== "";
+  const normalizedLaborCost = hasLaborCost ? Number(default_hourly_labor_cost) : null;
+
+  if (hasLaborCost && (!Number.isFinite(normalizedLaborCost) || normalizedLaborCost < 0)) {
+
+    return res.status(400).json({
+      error: "default_hourly_labor_cost must be a non-negative number"
+    });
+
+  }
+
+
   db.run(
 
     `
@@ -217,7 +234,8 @@ const updateBusiness = (req, res) => {
       review_link = ?,
       business_hours = ?,
       timezone = ?,
-      default_tax_rate = ?
+      default_tax_rate = ?,
+      default_hourly_labor_cost = ?
 
     WHERE id = ?
 
@@ -235,6 +253,7 @@ const updateBusiness = (req, res) => {
       hoursCheck.normalized ? JSON.stringify(hoursCheck.normalized) : null,
       normalizedTimezone,
       normalizedTaxRate,
+      normalizedLaborCost,
       id
 
     ],

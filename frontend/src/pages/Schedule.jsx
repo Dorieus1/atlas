@@ -18,6 +18,8 @@ import {
   getAppointments,
   createAppointment,
   updateAppointmentStatus,
+  clockInAppointment,
+  clockOutAppointment,
   rescheduleAppointment,
   deleteAppointment,
   getCustomers,
@@ -41,6 +43,23 @@ const RECURRENCE_LABELS = {
   weekly: "1 week",
   biweekly: "2 weeks",
   monthly: "1 month"
+};
+
+// A plain "2h 15m" readout for a completed clock-in/out session - minutes
+// only (no seconds), since a job's actual labor cost is billed/estimated
+// in fractions of an hour, not down to the second.
+const formatDuration = (startIso, endIso) => {
+
+  const minutes = Math.max(0, Math.round((new Date(endIso) - new Date(startIso)) / 60000));
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours === 0) {
+    return `${remainingMinutes}m`;
+  }
+
+  return `${hours}h ${remainingMinutes}m`;
+
 };
 
 // Kept in sync with MAX_RECURRING_OCCURRENCES in
@@ -247,6 +266,7 @@ function Schedule() {
   const [teammates, setTeammates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [clockingId, setClockingId] = useState(null);
 
   // Who to show appointments for: "all", "unassigned", or a specific
   // teammate's user id. Defaults to "all" and is switched to "just me"
@@ -513,6 +533,37 @@ function Schedule() {
 
       console.error("REASSIGN APPOINTMENT ERROR:", error);
       setActionError("Couldn't reassign that appointment. Please try again.");
+
+    }
+
+  };
+
+
+  const handleClockToggle = async (appt) => {
+
+    const clockedIn = appt.clock_in_at && !appt.clock_out_at;
+
+    try {
+
+      setActionError("");
+      setClockingId(appt.id);
+
+      if (clockedIn) {
+        await clockOutAppointment(appt.id);
+      } else {
+        await clockInAppointment(appt.id);
+      }
+
+      await loadAppointments();
+
+    } catch (error) {
+
+      console.error("CLOCK IN/OUT ERROR:", error);
+      setActionError("Couldn't update the clock for that appointment. Please try again.");
+
+    } finally {
+
+      setClockingId(null);
 
     }
 
@@ -1243,6 +1294,13 @@ function Schedule() {
                     </p>
                   )}
 
+                  {appt.clock_in_at && appt.clock_out_at && (
+                    <p className="mt-2 flex items-center gap-1.5 text-[11px] text-fg-faint">
+                      <Clock size={11} />
+                      Logged {formatDuration(appt.clock_in_at, appt.clock_out_at)}
+                    </p>
+                  )}
+
                   <div className="mt-3 flex items-center gap-2">
 
                     {appt.status === "requested" && (
@@ -1266,6 +1324,20 @@ function Schedule() {
 
                     {appt.status === "scheduled" && cancelPromptId !== appt.id && (
                       <>
+                        <button
+                          onClick={() => handleClockToggle(appt)}
+                          disabled={clockingId === appt.id}
+                          title={appt.clock_in_at && !appt.clock_out_at ? "Clock out of this job" : "Clock in to this job"}
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${appt.clock_in_at && !appt.clock_out_at ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
+                        >
+                          <Clock size={13} />
+                          {clockingId === appt.id
+                            ? "..."
+                            : appt.clock_in_at && !appt.clock_out_at
+                              ? "Clock Out"
+                              : "Clock In"}
+                        </button>
+
                         <button
                           onClick={() => handleStatusChange(appt.id, "completed")}
                           className="flex items-center gap-1 rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
