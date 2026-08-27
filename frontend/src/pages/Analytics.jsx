@@ -106,12 +106,12 @@ function Analytics() {
         Analytics
       </h1>
 
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-fg-faint">
         How your business is really doing.
       </p>
 
       {loadError && (
-        <p className="mt-4 text-red-400">
+        <p className="mt-4 text-danger">
           {loadError}
         </p>
       )}
@@ -160,7 +160,7 @@ function Analytics() {
 
       </div>
 
-      <div className="mt-8 rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
+      <div className="mt-8 rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
 
         <h2 className="text-xl font-bold mb-4">
           Revenue, Last 6 Months
@@ -168,7 +168,7 @@ function Analytics() {
 
         {stats.revenuePaid === 0 ? (
 
-          <p className="text-slate-400">
+          <p className="text-fg-muted">
             No paid invoices yet — revenue will show up here as customers pay.
           </p>
 
@@ -196,7 +196,7 @@ function Analytics() {
 
       <div className="mt-8 grid gap-5 md:grid-cols-2">
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
+        <div className="rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
 
           <h2 className="text-xl font-bold mb-4">
             Lead Pipeline
@@ -204,7 +204,7 @@ function Analytics() {
 
           {stats.leads === 0 ? (
 
-            <p className="text-slate-400">
+            <p className="text-fg-muted">
               No leads yet.
             </p>
 
@@ -229,7 +229,7 @@ function Analytics() {
 
         </div>
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 transition hover:border-ink-600">
+        <div className="rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
 
           <h2 className="text-xl font-bold mb-4">
             Lead Priority Mix
@@ -237,7 +237,7 @@ function Analytics() {
 
           {stats.leads === 0 ? (
 
-            <p className="text-slate-400">
+            <p className="text-fg-muted">
               No leads yet.
             </p>
 
@@ -272,7 +272,7 @@ function Analytics() {
 
               <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[224px] flex-col items-center justify-center">
                 <span className="text-3xl font-bold">{stats.leads}</span>
-                <span className="text-xs text-slate-400">total lead{stats.leads === 1 ? "" : "s"}</span>
+                <span className="text-xs text-fg-muted">total lead{stats.leads === 1 ? "" : "s"}</span>
               </div>
 
             </div>

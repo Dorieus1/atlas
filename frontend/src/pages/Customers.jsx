@@ -378,7 +378,7 @@ function Customers() {
 
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-fg-faint">
             {showTrash
               ? "Customers deleted in the last 30 days. Restore one to bring it back."
               : "Every customer in one place."}
@@ -396,10 +396,10 @@ function Customers() {
               flex
               items-center
               gap-1.5
-              bg-ink-800
-              hover:bg-ink-700
+              bg-surface-muted
+              hover:bg-border
               border
-              border-ink-700
+              border-border
               px-4
               py-2
               rounded-lg
@@ -424,10 +424,10 @@ function Customers() {
                 flex
                 items-center
                 gap-1.5
-                bg-ink-800
-                hover:bg-ink-700
+                bg-surface-muted
+                hover:bg-border
                 border
-                border-ink-700
+                border-border
                 px-4
                 py-2
                 rounded-lg
@@ -448,7 +448,7 @@ function Customers() {
 
               onClick={exportCSV}
 
-              className="bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
+              className="bg-surface-muted hover:bg-border border border-border px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"
 
             >
 
@@ -468,15 +468,15 @@ function Customers() {
         <div className={`mt-6 rounded-2xl border p-5 ${
           duplicateGroups.some((g) => g.confidence === "high")
             ? "border-amber-500/30 bg-amber-500/5"
-            : "border-ink-700 bg-ink-900/60"
+            : "border-border bg-surface/60"
         }`}>
 
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
             <Copy size={16} />
             Possible Duplicate Customers
           </h2>
 
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-fg-muted">
             Nothing has been changed - review each one and merge or trash the extra yourself if they're the same person.
           </p>
 
@@ -488,11 +488,11 @@ function Customers() {
 
               return (
 
-                <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-ink-900/60 p-3">
+                <div key={group.customers.map((c) => c.id).join(",")} className="rounded-lg bg-surface/60 p-3">
 
                   <div className="flex items-center justify-between gap-3">
 
-                    <p className={`text-xs uppercase tracking-wide ${isHighConfidence ? "text-amber-400/80" : "text-slate-500"}`}>
+                    <p className={`text-xs uppercase tracking-wide ${isHighConfidence ? "text-amber-400/80" : "text-fg-faint"}`}>
                       {group.reasons.join(" & ")}
                       {!isHighConfidence && " · could just be two different people with the same name"}
                     </p>
@@ -501,7 +501,7 @@ function Customers() {
 
                       <button
                         onClick={() => openMergeModal(group)}
-                        className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-300 transition hover:bg-ink-800 hover:text-white"
+                        className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-fg-muted transition hover:bg-surface-muted hover:text-fg"
                       >
                         <Merge size={12} />
                         Merge
@@ -518,7 +518,7 @@ function Customers() {
                       <button
                         key={customer.id}
                         onClick={() => navigate(`/customers/${customer.id}`)}
-                        className="text-sm text-slate-200 underline decoration-slate-600 underline-offset-2 hover:text-white"
+                        className="text-sm text-fg underline decoration-border-strong underline-offset-2 hover:text-fg"
                       >
                         {customer.name || "Unnamed customer"}
                       </button>
@@ -543,7 +543,7 @@ function Customers() {
 
         <div className="mt-8">
 
-          <p className="text-sm text-slate-500 mb-4">
+          <p className="text-sm text-fg-faint mb-4">
 
             Trashed customers are permanently deleted 30 days after being moved here. Restore one to bring it back to your active customer list.
 
@@ -551,7 +551,7 @@ function Customers() {
 
           {trashError && (
 
-            <p className="text-red-400">
+            <p className="text-danger">
 
               {trashError}
 
@@ -584,8 +584,8 @@ function Customers() {
                     justify-between
                     gap-3
                     border
-                    border-ink-700
-                    bg-ink-900/60
+                    border-border
+                    bg-surface/60
                     rounded-xl
                     p-5
                   "
@@ -600,13 +600,13 @@ function Customers() {
 
                     </h2>
 
-                    <p className="text-slate-300">
+                    <p className="text-fg-muted">
 
                       {customer.email}
 
                     </p>
 
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-fg-faint">
 
                       Deleted {new Date(customer.deleted_at).toLocaleDateString()}
 
@@ -664,11 +664,11 @@ function Customers() {
             className="
               flex-1
               min-w-[220px]
-              bg-ink-900/60
-              text-white
-              placeholder:text-slate-500
+              bg-surface/60
+              text-fg
+              placeholder:text-fg-faint
               border
-              border-ink-700
+              border-border
               rounded-lg
               p-3
             "
@@ -684,10 +684,10 @@ function Customers() {
               onChange={(e) => setTagFilter(e.target.value)}
 
               className="
-                bg-ink-900/60
-                text-white
+                bg-surface/60
+                text-fg
                 border
-                border-ink-700
+                border-border
                 rounded-lg
                 p-3
               "
@@ -722,7 +722,7 @@ function Customers() {
 
       {loadError ? (
 
-        <p className="text-red-400">
+        <p className="text-danger">
 
           {loadError}
 
@@ -740,7 +740,7 @@ function Customers() {
 
       ) : filteredCustomers.length === 0 ? (
 
-        <p className="text-slate-400">
+        <p className="text-fg-muted">
 
           No customers match "{search.trim()}".
 
@@ -762,10 +762,10 @@ function Customers() {
             className="
               text-left
               border
-              border-ink-700
-              bg-ink-900/60
-              hover:border-ink-600
-              hover:bg-ink-900
+              border-border
+              bg-surface/60
+              hover:border-border-strong
+              hover:bg-surface
               rounded-xl
               p-5
               transition
@@ -784,7 +784,7 @@ function Customers() {
 
 
 
-            <p className="text-slate-300">
+            <p className="text-fg-muted">
 
               {customer.email}
 
@@ -792,7 +792,7 @@ function Customers() {
 
             {customer.phone && (
 
-              <p className="text-slate-400">
+              <p className="text-fg-muted">
 
                 {customer.phone}
 
@@ -808,7 +808,7 @@ function Customers() {
 
                   <span
                     key={tag.id}
-                    className="rounded-full border border-ink-700 bg-ink-800 px-2.5 py-1 text-xs text-slate-300"
+                    className="rounded-full border border-border bg-surface-muted px-2.5 py-1 text-xs text-fg-muted"
                   >
                     {tag.name}
                   </span>
@@ -844,7 +844,7 @@ function Customers() {
         >
 
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -856,7 +856,7 @@ function Customers() {
 
               <button
                 onClick={closeImport}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
                 disabled={importing}
               >
@@ -865,7 +865,7 @@ function Customers() {
 
             </div>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-fg-muted">
               Upload a CSV with a header row. We'll match columns named
               "Name" (or "Full Name" / "Customer Name"), "Email" (or "Email
               Address"), and "Phone" (or "Phone Number" / "Mobile"). Rows
@@ -886,7 +886,7 @@ function Customers() {
                 className="
                   w-full
                   text-sm
-                  text-slate-300
+                  text-fg-muted
                   file:mr-3
                   file:rounded-lg
                   file:border-0
@@ -905,7 +905,7 @@ function Customers() {
 
             {importError && (
 
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {importError}
               </p>
 
@@ -913,9 +913,9 @@ function Customers() {
 
             {importResult && (
 
-              <div className="mt-4 space-y-2 rounded-lg border border-ink-700 bg-ink-800/60 p-4 text-sm">
+              <div className="mt-4 space-y-2 rounded-lg border border-border bg-surface-muted/60 p-4 text-sm">
 
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-fg">
                   Processed {importResult.total_rows} row{importResult.total_rows === 1 ? "" : "s"}
                 </p>
 
@@ -929,7 +929,7 @@ function Customers() {
 
                 {importResult.skipped_duplicates.length > 0 && (
 
-                  <ul className="ml-4 list-disc text-slate-400">
+                  <ul className="ml-4 list-disc text-fg-muted">
                     {importResult.skipped_duplicates.map((dup, i) => (
                       <li key={i}>{dup.name} ({dup.email}) — row {dup.row}</li>
                     ))}
@@ -943,7 +943,7 @@ function Customers() {
 
                 {importResult.skipped_missing_name.length > 0 && (
 
-                  <ul className="ml-4 list-disc text-slate-400">
+                  <ul className="ml-4 list-disc text-fg-muted">
                     {importResult.skipped_missing_name.map((missing, i) => (
                       <li key={i}>Row {missing.row}</li>
                     ))}
@@ -960,7 +960,7 @@ function Customers() {
               <button
                 onClick={closeImport}
                 disabled={importing}
-                className="rounded-lg border border-ink-700 px-4 py-2 text-sm hover:bg-ink-800"
+                className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-surface-muted"
               >
                 {importResult ? "Close" : "Cancel"}
               </button>
@@ -1003,7 +1003,7 @@ function Customers() {
         >
 
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -1015,7 +1015,7 @@ function Customers() {
 
               <button
                 onClick={closeMergeModal}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
                 disabled={merging}
               >
@@ -1032,7 +1032,7 @@ function Customers() {
 
             )}
 
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-fg-muted">
               Pick which one to keep. Every quote, appointment, note, and tag from the other one moves onto it, and the other is then moved to the trash.
             </p>
 
@@ -1046,19 +1046,19 @@ function Customers() {
                   className={`rounded-lg border p-3 text-left transition ${
                     mergeChoice === customer.id
                       ? "border-brand-500 bg-brand-600/10"
-                      : "border-ink-700 bg-ink-800 hover:border-ink-600"
+                      : "border-border bg-surface-muted hover:border-border-strong"
                   }`}
                 >
 
-                  <p className="font-medium text-slate-100">
+                  <p className="font-medium text-fg">
                     {customer.name || "Unnamed customer"}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-fg-faint">
                     {[customer.email, customer.phone].filter(Boolean).join(" · ") || "No contact info on file"}
                   </p>
 
-                  <p className={`mt-1 text-xs font-medium ${mergeChoice === customer.id ? "text-brand-400" : "text-slate-500"}`}>
+                  <p className={`mt-1 text-xs font-medium ${mergeChoice === customer.id ? "text-accent-text" : "text-fg-faint"}`}>
                     {mergeChoice === customer.id ? "Keep this one" : "Click to keep this one"}
                   </p>
 
@@ -1069,7 +1069,7 @@ function Customers() {
             </div>
 
             {mergeError && (
-              <p className="mt-3 text-sm text-red-400">{mergeError}</p>
+              <p className="mt-3 text-sm text-danger">{mergeError}</p>
             )}
 
             <div className="mt-4 flex items-center justify-end gap-2">
@@ -1077,7 +1077,7 @@ function Customers() {
               <button
                 onClick={closeMergeModal}
                 disabled={merging}
-                className="rounded-lg bg-ink-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-ink-700 disabled:opacity-50"
+                className="rounded-lg bg-surface-muted px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-border disabled:opacity-50"
               >
                 Cancel
               </button>

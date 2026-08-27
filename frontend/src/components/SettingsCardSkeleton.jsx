@@ -11,17 +11,17 @@ function SettingsCardSkeleton() {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6 animate-pulse">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6 animate-pulse">
 
       <div className="flex items-center gap-2">
-        <div className="h-5 w-5 rounded bg-ink-700" />
-        <div className="h-5 w-48 rounded bg-ink-700" />
+        <div className="h-5 w-5 rounded bg-border" />
+        <div className="h-5 w-48 rounded bg-border" />
       </div>
 
-      <div className="mt-3 h-3.5 w-full max-w-md rounded bg-ink-800" />
-      <div className="mt-2 h-3.5 w-3/4 max-w-sm rounded bg-ink-800" />
+      <div className="mt-3 h-3.5 w-full max-w-md rounded bg-surface-muted" />
+      <div className="mt-2 h-3.5 w-3/4 max-w-sm rounded bg-surface-muted" />
 
-      <div className="mt-4 h-9 w-44 rounded-lg bg-ink-800" />
+      <div className="mt-4 h-9 w-44 rounded-lg bg-surface-muted" />
 
     </div>
 

@@ -167,18 +167,18 @@ function TeamPanel() {
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
       <h2 className="text-xl font-bold mb-4">
         Team Logins
       </h2>
 
-      <p className="text-slate-400 text-sm mb-4">
+      <p className="text-fg-muted text-sm mb-4">
         Anyone added here gets their own email and password to log in to this business.
       </p>
 
       {loadError && (
-        <p className="text-red-400 text-sm mb-4">
+        <p className="text-danger text-sm mb-4">
           {loadError}
         </p>
       )}
@@ -191,7 +191,7 @@ function TeamPanel() {
 
             <div
               key={teammate.id}
-              className="flex flex-wrap items-center justify-between gap-3 bg-ink-800 rounded-lg p-3"
+              className="flex flex-wrap items-center justify-between gap-3 bg-surface-muted rounded-lg p-3"
             >
 
               <div>
@@ -199,14 +199,14 @@ function TeamPanel() {
                 <p className="font-semibold">
                   {teammate.name || teammate.email}
                   {teammate.id === currentUserId && (
-                    <span className="text-slate-400 font-normal"> (you)</span>
+                    <span className="text-fg-muted font-normal"> (you)</span>
                   )}
-                  <span className="ml-2 text-xs uppercase tracking-wide text-slate-400 bg-ink-700 rounded px-2 py-0.5 align-middle">
+                  <span className="ml-2 text-xs uppercase tracking-wide text-fg-muted bg-surface-muted rounded px-2 py-0.5 align-middle">
                     {teammate.role === "owner" ? "Owner" : "Staff"}
                   </span>
                 </p>
 
-                <p className="text-slate-400 text-sm">
+                <p className="text-fg-muted text-sm">
                   {teammate.email}
                 </p>
 
@@ -228,7 +228,7 @@ function TeamPanel() {
 
                     <button
                       onClick={() => setConfirmingDeleteId(null)}
-                      className="bg-ink-700 hover:bg-ink-600 px-3 py-1 rounded-lg text-sm"
+                      className="bg-border hover:bg-border-strong px-3 py-1 rounded-lg text-sm"
                     >
                       Cancel
                     </button>
@@ -239,7 +239,7 @@ function TeamPanel() {
 
                   <button
                     onClick={() => setConfirmingDeleteId(teammate.id)}
-                    className="text-red-400 hover:text-red-300 text-sm"
+                    className="text-danger hover:opacity-80 text-sm"
                   >
                     Remove
                   </button>
@@ -257,7 +257,7 @@ function TeamPanel() {
       )}
 
       {deleteError && (
-        <p className="text-red-400 text-sm mb-4">
+        <p className="text-danger text-sm mb-4">
           {deleteError}
         </p>
       )}
@@ -271,12 +271,12 @@ function TeamPanel() {
           </h3>
 
           {error && (
-            <p className="text-red-400 text-sm mb-3">
+            <p className="text-danger text-sm mb-3">
               {error}
             </p>
           )}
 
-          <label htmlFor="teammate-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor="teammate-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             Name
           </label>
 
@@ -288,13 +288,13 @@ function TeamPanel() {
 
             placeholder="Name"
 
-            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+            className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
             onChange={(e) => setName(e.target.value)}
 
           />
 
-          <label htmlFor="teammate-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor="teammate-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             Email
           </label>
 
@@ -306,13 +306,13 @@ function TeamPanel() {
 
             placeholder="Email"
 
-            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+            className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
             onChange={(e) => setEmail(e.target.value)}
 
           />
 
-          <label htmlFor="teammate-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor="teammate-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             Password
           </label>
 
@@ -326,13 +326,13 @@ function TeamPanel() {
 
             placeholder="Password"
 
-            className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+            className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
             onChange={(e) => setPassword(e.target.value)}
 
           />
 
-          <label htmlFor="teammate-role" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor="teammate-role" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             Role
           </label>
 
@@ -342,7 +342,7 @@ function TeamPanel() {
 
             value={role}
 
-            className="w-full bg-ink-800 text-white border border-ink-700 rounded-lg p-3 mb-3"
+            className="w-full bg-surface-muted text-fg border border-border rounded-lg p-3 mb-3"
 
             onChange={(e) => setRole(e.target.value)}
 
@@ -353,7 +353,7 @@ function TeamPanel() {
 
           </select>
 
-          <p className="text-slate-400 text-xs mb-3">
+          <p className="text-fg-muted text-xs mb-3">
             Staff can use the CRM day-to-day. Owners can also manage the team and payment settings.
           </p>
 
@@ -375,7 +375,7 @@ function TeamPanel() {
 
       ) : (
 
-        <p className="text-slate-400 text-sm">
+        <p className="text-fg-muted text-sm">
           Only the business owner can add or remove teammates.
         </p>
 

@@ -242,8 +242,8 @@ function Onboarding() {
       mb-12
       rounded-2xl
       border
-      border-ink-700
-      bg-ink-900/60
+      border-border
+      bg-surface/60
       p-8
     ">
 
@@ -266,7 +266,7 @@ function Onboarding() {
 
       {error && (
 
-        <p className="text-red-400 mb-4">
+        <p className="text-danger mb-4">
 
           {error}
 
@@ -295,7 +295,7 @@ function Onboarding() {
 
         <div key={name} className="mb-4">
 
-          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             {label}
           </label>
 
@@ -313,15 +313,15 @@ function Onboarding() {
 
             className="
               w-full
-              bg-ink-800
+              bg-surface-muted
               border
-              border-ink-700
+              border-border
               rounded-lg
               p-3
-              text-white
-              placeholder:text-slate-500
+              text-fg
+              placeholder:text-fg-faint
               focus:outline-none
-              focus:border-ink-600
+              focus:border-border-strong
             "
 
           />
@@ -346,7 +346,7 @@ function Onboarding() {
 
         <div key={name} className="mb-4">
 
-          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor={`onboarding-${name}`} className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             {label}
           </label>
 
@@ -364,15 +364,15 @@ function Onboarding() {
 
             className="
               w-full
-              bg-ink-800
+              bg-surface-muted
               border
-              border-ink-700
+              border-border
               rounded-lg
               p-3
-              text-white
-              placeholder:text-slate-500
+              text-fg
+              placeholder:text-fg-faint
               focus:outline-none
-              focus:border-ink-600
+              focus:border-border-strong
             "
 
           />
@@ -381,7 +381,7 @@ function Onboarding() {
 
       ))}
 
-      <label htmlFor="onboarding-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="onboarding-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Password
       </label>
 
@@ -402,15 +402,15 @@ function Onboarding() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -442,11 +442,11 @@ function Onboarding() {
       </button>
 
 
-      <p className="mt-6 text-slate-400">
+      <p className="mt-6 text-fg-muted">
 
         Already have an account?{" "}
 
-        <Link to="/login" className="text-brand-400 hover:underline">
+        <Link to="/login" className="text-accent-text hover:underline">
 
           Log in
 

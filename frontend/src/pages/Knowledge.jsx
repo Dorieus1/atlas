@@ -132,7 +132,7 @@ function Knowledge() {
             Knowledge Base
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-fg-faint">
             What Atlas knows about your business.
           </p>
 
@@ -143,14 +143,14 @@ function Knowledge() {
           <button
             onClick={runExport}
             disabled={exportingCsv}
-            className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm hover:bg-ink-700 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-muted px-4 py-2 text-sm hover:bg-border disabled:opacity-50"
           >
             <Download size={16} /> {exportingCsv ? "Exporting..." : "Export CSV"}
           </button>
 
           <button
             onClick={openImport}
-            className="flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm hover:bg-ink-700"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-muted px-4 py-2 text-sm hover:bg-border"
           >
             <Upload size={16} /> Import CSV
           </button>
@@ -160,7 +160,7 @@ function Knowledge() {
       </div>
 
       {exportError && (
-        <p className="mt-4 text-sm text-red-400">
+        <p className="mt-4 text-sm text-danger">
           {exportError}
         </p>
       )}
@@ -181,7 +181,7 @@ function Knowledge() {
         >
 
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -193,7 +193,7 @@ function Knowledge() {
 
               <button
                 onClick={closeImport}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
                 disabled={importing}
               >
@@ -202,7 +202,7 @@ function Knowledge() {
 
             </div>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-fg-muted">
               Upload a CSV with a header row. We'll match columns named
               "Title" (or "Question"/"Name"), "Content" (or "Answer"/
               "Body"), and optionally "Category" (or "Group"/"Section").
@@ -219,7 +219,7 @@ function Knowledge() {
                 className="
                   w-full
                   text-sm
-                  text-slate-300
+                  text-fg-muted
                   file:mr-3
                   file:rounded-lg
                   file:border-0
@@ -236,16 +236,16 @@ function Knowledge() {
             </div>
 
             {importError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {importError}
               </p>
             )}
 
             {importResult && (
 
-              <div className="mt-4 space-y-2 rounded-lg border border-ink-700 bg-ink-800/60 p-4 text-sm">
+              <div className="mt-4 space-y-2 rounded-lg border border-border bg-surface-muted/60 p-4 text-sm">
 
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-fg">
                   Processed {importResult.total_rows} row{importResult.total_rows === 1 ? "" : "s"}
                 </p>
 
@@ -270,7 +270,7 @@ function Knowledge() {
               <button
                 onClick={closeImport}
                 disabled={importing}
-                className="rounded-lg border border-ink-700 px-4 py-2 text-sm hover:bg-ink-800"
+                className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-surface-muted"
               >
                 {importResult ? "Close" : "Cancel"}
               </button>

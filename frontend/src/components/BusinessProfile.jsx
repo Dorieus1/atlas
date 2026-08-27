@@ -280,29 +280,29 @@ function BusinessProfile({ business }) {
 
 
   const inputClass =
-    "w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3";
+    "w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3";
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
       <h2 className="text-xl font-bold mb-4">
         Business Profile
       </h2>
 
       {error && (
-        <p className="text-red-400 mb-3">
+        <p className="text-danger mb-3">
           {error}
         </p>
       )}
 
       {success && (
-        <p className="text-green-400 mb-3">
+        <p className="text-success mb-3">
           {success}
         </p>
       )}
 
-      <label htmlFor="business-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-name" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Business Name
       </label>
 
@@ -326,7 +326,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Phone
       </label>
 
@@ -350,7 +350,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Email
       </label>
 
@@ -374,7 +374,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-address" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Address
       </label>
 
@@ -398,7 +398,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-industry" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-industry" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Industry
       </label>
 
@@ -422,7 +422,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Services
       </label>
 
@@ -446,7 +446,7 @@ function BusinessProfile({ business }) {
       />
 
 
-      <label htmlFor="business-review-link" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-review-link" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Review Link
       </label>
 
@@ -469,11 +469,11 @@ function BusinessProfile({ business }) {
 
       />
 
-      <p className="text-xs text-slate-500 -mt-2 mb-3">
+      <p className="text-xs text-fg-faint -mt-2 mb-3">
         Customers who get a review request will be sent this link.
       </p>
 
-      <label htmlFor="business-tax-rate" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="business-tax-rate" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Default Tax Rate
       </label>
 
@@ -501,12 +501,12 @@ function BusinessProfile({ business }) {
 
       />
 
-      <p className="text-xs text-slate-500 -mt-2 mb-3">
+      <p className="text-xs text-fg-faint -mt-2 mb-3">
         Applied automatically to new quotes and invoices - leave blank if you don't collect sales tax. You can still override it on any individual quote.
       </p>
 
 
-      <div className="border-t border-ink-700 pt-4 mt-2 mb-3">
+      <div className="border-t border-border pt-4 mt-2 mb-3">
 
         <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
 
@@ -523,7 +523,7 @@ function BusinessProfile({ business }) {
 
         </label>
 
-        <p className="text-xs text-slate-500 mb-3">
+        <p className="text-xs text-fg-faint mb-3">
           {hoursEnabled
             ? "Customers requesting an appointment through your portal will only be able to pick a time within these hours."
             : "Not set - customers can request an appointment at any time."}
@@ -531,7 +531,7 @@ function BusinessProfile({ business }) {
 
         <div className="mb-3">
 
-          <label className="block text-sm text-slate-400 mb-1">
+          <label className="block text-sm text-fg-muted mb-1">
             Timezone
           </label>
 
@@ -543,7 +543,7 @@ function BusinessProfile({ business }) {
                 timezone: e.target.value
               })
             }
-            className="w-full bg-ink-800 text-white border border-ink-700 rounded-lg p-3"
+            className="w-full bg-surface-muted text-fg border border-border rounded-lg p-3"
           >
 
             {TIMEZONE_OPTIONS.map(({ value, label }) => (
@@ -554,7 +554,7 @@ function BusinessProfile({ business }) {
 
           </select>
 
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-fg-faint mt-1">
             Business hours above are enforced in this timezone.
           </p>
 
@@ -573,7 +573,7 @@ function BusinessProfile({ business }) {
 
                 <div
                   key={key}
-                  className="flex flex-wrap items-center gap-3 bg-ink-800 border border-ink-700 rounded-lg p-3"
+                  className="flex flex-wrap items-center gap-3 bg-surface-muted border border-border rounded-lg p-3"
                 >
 
                   <label className="flex items-center gap-2 w-32 shrink-0 cursor-pointer select-none">
@@ -598,24 +598,24 @@ function BusinessProfile({ business }) {
                         aria-label={`${label} opening time`}
                         value={day.open}
                         onChange={(e) => setDayTime(key, "open", e.target.value)}
-                        className="bg-ink-900 border border-ink-700 rounded-md px-2 py-1"
+                        className="bg-surface border border-border rounded-md px-2 py-1"
                       />
 
-                      <span className="text-slate-500">to</span>
+                      <span className="text-fg-faint">to</span>
 
                       <input
                         type="time"
                         aria-label={`${label} closing time`}
                         value={day.close}
                         onChange={(e) => setDayTime(key, "close", e.target.value)}
-                        className="bg-ink-900 border border-ink-700 rounded-md px-2 py-1"
+                        className="bg-surface border border-border rounded-md px-2 py-1"
                       />
 
                     </div>
 
                   ) : (
 
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-fg-faint">
                       Closed
                     </span>
 

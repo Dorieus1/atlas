@@ -85,20 +85,20 @@ function CalendarFeedCard() {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-xl font-bold flex items-center gap-2">
         <CalendarRange size={20} />
         Subscribe to Your Schedule
       </h2>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-fg-muted">
         A private link you can paste into any calendar app - Apple Calendar, Google Calendar, Outlook, anything that supports "subscribe by URL" - to see your Atlas appointments there too. One-way and read-only; most apps refresh it every so often rather than instantly.
       </p>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
 
-        <div className="min-w-0 flex-1 truncate rounded-lg border border-ink-700 bg-ink-800 p-3 text-sm text-slate-300">
+        <div className="min-w-0 flex-1 truncate rounded-lg border border-border bg-surface-muted p-3 text-sm text-fg-muted">
           {feedUrl}
         </div>
 
@@ -113,7 +113,7 @@ function CalendarFeedCard() {
       </div>
 
       {error && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -124,7 +124,7 @@ function CalendarFeedCard() {
 
           <div className="flex items-center gap-3">
 
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-fg-muted">
               This breaks the old link everywhere it's already subscribed - reset it anyway?
             </span>
 
@@ -138,7 +138,7 @@ function CalendarFeedCard() {
 
             <button
               onClick={() => setConfirmingRegenerate(false)}
-              className="rounded-lg border border-ink-700 px-3 py-1.5 text-sm font-semibold transition hover:bg-ink-800"
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-surface-muted"
             >
               Cancel
             </button>
@@ -149,7 +149,7 @@ function CalendarFeedCard() {
 
           <button
             onClick={() => setConfirmingRegenerate(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 transition hover:text-white"
+            className="flex items-center gap-1.5 text-sm font-semibold text-fg-muted transition hover:text-fg"
           >
             <RefreshCw size={14} />
             Reset link

@@ -209,7 +209,7 @@ function MemoryPanel({ customer }) {
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
 
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -217,12 +217,12 @@ function MemoryPanel({ customer }) {
         What Atlas Remembers
       </h2>
 
-      <p className="text-slate-400 text-sm mb-4">
+      <p className="text-fg-muted text-sm mb-4">
         Details Atlas has picked up about {customer.name} from past conversations.
       </p>
 
       {error && (
-        <p className="text-red-400 text-sm mb-3">
+        <p className="text-danger text-sm mb-3">
           {error}
         </p>
       )}
@@ -233,7 +233,7 @@ function MemoryPanel({ customer }) {
 
           {memories.map((item) => (
 
-            <p key={item.id} className="bg-ink-800 rounded-lg p-3">
+            <p key={item.id} className="bg-surface-muted rounded-lg p-3">
               {item.memory}
             </p>
 
@@ -245,7 +245,7 @@ function MemoryPanel({ customer }) {
 
       {memories.length === 0 && !error && (
 
-        <p className="text-slate-400 text-sm mb-4">
+        <p className="text-fg-muted text-sm mb-4">
           Nothing remembered yet.
         </p>
 
@@ -263,7 +263,7 @@ function MemoryPanel({ customer }) {
 
           onChange={(e) => setMemory(e.target.value)}
 
-          className="flex-1 bg-ink-900/60 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3"
+          className="flex-1 bg-surface/60 text-fg placeholder:text-fg-faint border border-border rounded-lg p-3"
 
         />
 

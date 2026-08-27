@@ -34,19 +34,19 @@ function PublicLinkCard({
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-xl font-bold flex items-center gap-2">
         {title}
       </h2>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-fg-muted">
         {description}
       </p>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
 
-        <div className="min-w-0 flex-1 truncate rounded-lg border border-ink-700 bg-ink-800 p-3 text-sm text-slate-300">
+        <div className="min-w-0 flex-1 truncate rounded-lg border border-border bg-surface-muted p-3 text-sm text-fg-muted">
           {link}
         </div>
 
@@ -64,7 +64,7 @@ function PublicLinkCard({
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-4 py-2 text-sm font-semibold transition hover:bg-ink-800"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-surface-muted"
           >
             <ExternalLink size={15} />
             Preview

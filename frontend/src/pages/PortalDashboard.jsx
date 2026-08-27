@@ -27,11 +27,11 @@ import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 const STATUS_STYLES = {
   requested: "bg-amber-500/20 text-amber-400",
-  scheduled: "bg-brand-500/20 text-brand-400",
+  scheduled: "bg-brand-500/20 text-accent-text",
   completed: "bg-green-500/20 text-green-400",
-  cancelled: "bg-slate-500/20 text-slate-400",
-  draft: "bg-slate-500/20 text-slate-300",
-  sent: "bg-brand-500/20 text-brand-400",
+  cancelled: "bg-slate-500/20 text-fg-muted",
+  draft: "bg-slate-500/20 text-fg-muted",
+  sent: "bg-brand-500/20 text-accent-text",
   accepted: "bg-green-500/20 text-green-400",
   declined: "bg-red-500/20 text-red-400",
   paid: "bg-green-500/20 text-green-400"
@@ -488,8 +488,8 @@ function PortalDashboard() {
   if (loading) {
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-950">
-        <p className="text-slate-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <p className="text-fg-faint">Loading...</p>
       </div>
     );
 
@@ -498,9 +498,9 @@ function PortalDashboard() {
   if (error) {
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-ink-950 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-6 text-center">
         <Logo size={40} />
-        <p className="mt-4 text-slate-400">{error}</p>
+        <p className="mt-4 text-fg-muted">{error}</p>
       </div>
     );
 
@@ -508,7 +508,7 @@ function PortalDashboard() {
 
   return (
 
-    <div className="min-h-screen bg-ink-950 p-4 sm:p-6">
+    <div className="min-h-screen bg-bg p-4 sm:p-6">
 
       <div className="mx-auto max-w-3xl">
 
@@ -522,7 +522,7 @@ function PortalDashboard() {
               <h1 className="font-display text-xl font-bold">
                 {business?.name}
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-fg-faint">
                 Hi {customer?.name || "there"}
               </p>
             </div>
@@ -531,7 +531,7 @@ function PortalDashboard() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-ink-800 hover:text-white"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg-muted transition hover:bg-surface-muted hover:text-fg"
           >
             <LogOut size={15} />
             Log out
@@ -540,25 +540,25 @@ function PortalDashboard() {
         </div>
 
         {paidParam === "1" && (
-          <p className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">
+          <p className="mb-6 rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-success">
             Payment successful — thank you!
           </p>
         )}
 
         {paidParam === "0" && (
-          <p className="mb-6 rounded-xl border border-ink-700 bg-ink-800 p-3 text-sm text-slate-300">
+          <p className="mb-6 rounded-xl border border-border bg-surface-muted p-3 text-sm text-fg-muted">
             Payment cancelled — you weren't charged.
           </p>
         )}
 
         <div className="flex flex-col gap-6">
 
-          <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+          <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
             <div className="flex items-center justify-between gap-3">
 
               <h2 className="flex items-center gap-2 text-lg font-bold">
-                <CalendarDays size={18} className="text-brand-400" />
+                <CalendarDays size={18} className="text-accent-text" />
                 Appointments
               </h2>
 
@@ -573,13 +573,13 @@ function PortalDashboard() {
             </div>
 
             {requestSuccess && (
-              <p className="mt-3 text-sm text-green-400">
+              <p className="mt-3 text-sm text-success">
                 {requestSuccess}
               </p>
             )}
 
             {appointmentActionError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {appointmentActionError}
               </p>
             )}
@@ -600,17 +600,17 @@ function PortalDashboard() {
 
                   <div
                     key={appt.id}
-                    className="flex flex-col gap-2 rounded-xl border border-ink-800 p-3"
+                    className="flex flex-col gap-2 rounded-xl border border-border p-3"
                   >
 
                     <div className="flex items-center justify-between gap-3">
 
                       <div className="min-w-0">
                         <p className="truncate font-medium">{appt.title}</p>
-                        <p className="text-xs text-slate-500">{formatDate(appt.start_time)}</p>
+                        <p className="text-xs text-fg-faint">{formatDate(appt.start_time)}</p>
                       </div>
 
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-slate-300"}`}>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[appt.status] || "bg-slate-500/20 text-fg-muted"}`}>
                         {STATUS_LABELS[appt.status] || appt.status}
                       </span>
 
@@ -622,19 +622,19 @@ function PortalDashboard() {
 
                         <div className="flex flex-wrap items-center gap-3 text-xs">
 
-                          <span className="text-slate-400">Cancel this appointment?</span>
+                          <span className="text-fg-muted">Cancel this appointment?</span>
 
                           <button
                             onClick={() => handleCancelAppointment(appt.id)}
                             disabled={cancellingId === appt.id}
-                            className="font-semibold text-red-400 hover:text-red-300 disabled:opacity-50"
+                            className="font-semibold text-danger hover:opacity-80 disabled:opacity-50"
                           >
                             {cancellingId === appt.id ? "Cancelling..." : "Yes, cancel it"}
                           </button>
 
                           <button
                             onClick={() => setConfirmingCancelId(null)}
-                            className="text-slate-400 hover:text-white"
+                            className="text-fg-muted hover:text-fg"
                           >
                             Never mind
                           </button>
@@ -647,14 +647,14 @@ function PortalDashboard() {
 
                           <button
                             onClick={() => openRescheduleForm(appt)}
-                            className="text-brand-400 hover:text-brand-300"
+                            className="text-accent-text hover:text-brand-300"
                           >
                             Reschedule
                           </button>
 
                           <button
                             onClick={() => setConfirmingCancelId(appt.id)}
-                            className="text-slate-400 hover:text-red-400"
+                            className="text-fg-muted hover:text-danger"
                           >
                             Cancel
                           </button>
@@ -675,15 +675,15 @@ function PortalDashboard() {
 
           </div>
 
-          <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+          <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
             <h2 className="flex items-center gap-2 text-lg font-bold">
-              <FileText size={18} className="text-brand-400" />
+              <FileText size={18} className="text-accent-text" />
               Quotes &amp; Invoices
             </h2>
 
             {payError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {payError}
               </p>
             )}
@@ -724,7 +724,7 @@ function PortalDashboard() {
 
                     <div
                       key={quote.id}
-                      className="flex flex-col gap-3 rounded-xl border border-ink-800 p-3"
+                      className="flex flex-col gap-3 rounded-xl border border-border p-3"
                     >
 
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -733,37 +733,37 @@ function PortalDashboard() {
                           <p className="truncate font-medium capitalize">
                             {quote.type}
                             {quoteDisplayNumber(quote) && (
-                              <span className="ml-1.5 text-slate-500">
+                              <span className="ml-1.5 text-fg-faint">
                                 {quoteDisplayNumber(quote)}
                               </span>
                             )}
                           </p>
                           {quote.discount_type ? (
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-fg-faint">
                               <span className="mr-1.5 line-through">{formatMoney(quote.subtotal)}</span>
                               {formatMoney(quote.total)}
-                              <span className="ml-1.5 text-green-400">
+                              <span className="ml-1.5 text-success">
                                 ({quote.discount_type === "percent" ? `${quote.discount_value}% off` : `${formatMoney(quote.discount_value)} off`})
                               </span>
                             </p>
                           ) : (
-                            <p className="text-xs text-slate-500">{formatMoney(quote.total)}</p>
+                            <p className="text-xs text-fg-faint">{formatMoney(quote.total)}</p>
                           )}
 
                           {quote.status === "accepted" && quote.accepted_by_name && (
-                            <p className="mt-1 text-xs text-green-400">
+                            <p className="mt-1 text-xs text-success">
                               Approved by {quote.accepted_by_name} on {formatDate(quote.accepted_at)}
                             </p>
                           )}
 
                           {quote.status === "declined" && quote.declined_at && (
-                            <p className="mt-1 text-xs text-red-400">
+                            <p className="mt-1 text-xs text-danger">
                               Declined on {formatDate(quote.declined_at)}
                             </p>
                           )}
 
                           {quote.deposit_type && (
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-fg-faint">
                               {quote.deposit_paid_at
                                 ? `Deposit of ${formatMoney(quote.deposit_amount)} paid`
                                 : `Deposit of ${formatMoney(quote.deposit_amount)} due on approval`}
@@ -773,7 +773,7 @@ function PortalDashboard() {
 
                         <div className="flex shrink-0 items-center gap-2">
 
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-slate-300"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[quote.status] || "bg-slate-500/20 text-fg-muted"}`}>
                             {quote.status}
                           </span>
 
@@ -781,7 +781,7 @@ function PortalDashboard() {
                             onClick={() => handleDownload(quote.id)}
                             disabled={downloadingId === quote.id}
                             aria-label="Download PDF"
-                            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-muted disabled:opacity-50"
                           >
                             <Download size={13} />
                           </button>
@@ -807,7 +807,7 @@ function PortalDashboard() {
 
                       {decidable && (
 
-                        <div className="flex items-center gap-2 border-t border-ink-800 pt-3">
+                        <div className="flex items-center gap-2 border-t border-border pt-3">
 
                           <button
                             onClick={() => openAcceptConfirm(quote)}
@@ -820,7 +820,7 @@ function PortalDashboard() {
                           <button
                             onClick={() => handleDecline(quote.id)}
                             disabled={decliningId === quote.id}
-                            className="flex items-center gap-1.5 rounded-lg border border-ink-700 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-ink-800 disabled:opacity-50"
+                            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted transition hover:bg-surface-muted disabled:opacity-50"
                           >
                             <Ban size={13} />
                             {decliningId === quote.id ? "Declining..." : "Decline"}
@@ -832,7 +832,7 @@ function PortalDashboard() {
 
                       {depositPayable && (
 
-                        <div className="border-t border-ink-800 pt-3">
+                        <div className="border-t border-border pt-3">
 
                           <button
                             onClick={() => handlePayDeposit(quote.id)}
@@ -859,10 +859,10 @@ function PortalDashboard() {
 
           </div>
 
-          <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+          <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
             <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Camera size={18} className="text-brand-400" />
+              <Camera size={18} className="text-accent-text" />
               Photos
             </h2>
 
@@ -883,7 +883,7 @@ function PortalDashboard() {
                   <button
                     key={photo.id}
                     onClick={() => setActivePhoto(photo)}
-                    className="group relative aspect-square overflow-hidden rounded-lg border border-ink-700"
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-border"
                   >
                     <img
                       src={`${API_BASE}${photo.url}`}
@@ -902,7 +902,7 @@ function PortalDashboard() {
 
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-600">
+        <p className="mt-6 text-center text-xs text-fg-faint">
           Powered by Atlas
         </p>
 
@@ -916,7 +916,7 @@ function PortalDashboard() {
         >
 
           <div
-            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -928,7 +928,7 @@ function PortalDashboard() {
 
               <button
                 onClick={() => setShowRequestForm(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -936,12 +936,12 @@ function PortalDashboard() {
 
             </div>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-faint">
               We'll confirm the time with you before it's official.
             </p>
 
             {requestError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {requestError}
               </p>
             )}
@@ -952,7 +952,7 @@ function PortalDashboard() {
                 placeholder="What do you need? (e.g. Leak inspection)"
                 value={requestTitle}
                 onChange={(e) => setRequestTitle(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <div className="flex gap-3">
@@ -961,14 +961,14 @@ function PortalDashboard() {
                   type="date"
                   value={requestDate}
                   onChange={(e) => setRequestDate(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 />
 
                 <input
                   type="time"
                   value={requestTime}
                   onChange={(e) => setRequestTime(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 />
 
               </div>
@@ -977,7 +977,7 @@ function PortalDashboard() {
                 placeholder="Anything else we should know? (optional)"
                 value={requestNotes}
                 onChange={(e) => setRequestNotes(e.target.value)}
-                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-20 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <button
@@ -1004,7 +1004,7 @@ function PortalDashboard() {
         >
 
           <div
-            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -1016,7 +1016,7 @@ function PortalDashboard() {
 
               <button
                 onClick={() => setReschedulingAppointment(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -1024,14 +1024,14 @@ function PortalDashboard() {
 
             </div>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-faint">
               {reschedulingAppointment.status === "scheduled"
                 ? "We'll need to confirm the new time with you before it's official."
                 : "We'll take a look and confirm this time with you."}
             </p>
 
             {rescheduleError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {rescheduleError}
               </p>
             )}
@@ -1042,14 +1042,14 @@ function PortalDashboard() {
                 type="date"
                 value={rescheduleDate}
                 onChange={(e) => setRescheduleDate(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
               />
 
               <input
                 type="time"
                 value={rescheduleTime}
                 onChange={(e) => setRescheduleTime(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
               />
 
             </div>
@@ -1076,12 +1076,12 @@ function PortalDashboard() {
         >
 
           <div
-            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl border border-ink-700 bg-ink-900"
+            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface"
             onClick={(e) => e.stopPropagation()}
           >
 
             {activePhoto.caption && (
-              <p className="truncate p-3 text-sm text-slate-300">
+              <p className="truncate p-3 text-sm text-fg-muted">
                 {activePhoto.caption}
               </p>
             )}
@@ -1106,7 +1106,7 @@ function PortalDashboard() {
         >
 
           <div
-            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -1118,7 +1118,7 @@ function PortalDashboard() {
 
               <button
                 onClick={() => setAcceptingQuote(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -1126,14 +1126,14 @@ function PortalDashboard() {
 
             </div>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-faint">
               Type your name below as your approval record. This isn't a legal
               signature — it just lets {business?.name || "the business"} know
               you're good to go.
             </p>
 
             {decisionError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {decisionError}
               </p>
             )}
@@ -1144,7 +1144,7 @@ function PortalDashboard() {
                 placeholder="Your full name"
                 value={approvalName}
                 onChange={(e) => setApprovalName(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <button

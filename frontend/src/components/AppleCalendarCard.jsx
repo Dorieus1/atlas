@@ -89,7 +89,7 @@ function AppleCalendarCard() {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-xl font-bold flex items-center gap-2">
         <CalendarDays size={20} />
@@ -100,13 +100,13 @@ function AppleCalendarCard() {
 
         <>
 
-          <p className="mt-2 flex items-center gap-2 text-sm text-green-400">
+          <p className="mt-2 flex items-center gap-2 text-sm text-success">
             <CheckCircle2 size={16} />
             Connected{status.email ? ` as ${status.email}` : ""} — new and updated appointments show up on this calendar automatically.
           </p>
 
           {error && (
-            <p className="mt-3 text-sm text-red-400">
+            <p className="mt-3 text-sm text-danger">
               {error}
             </p>
           )}
@@ -114,7 +114,7 @@ function AppleCalendarCard() {
           <button
             onClick={handleDisconnect}
             disabled={disconnecting}
-            className="mt-4 rounded-lg border border-ink-700 px-4 py-2 text-sm font-semibold transition hover:bg-ink-800 disabled:opacity-50"
+            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-surface-muted disabled:opacity-50"
           >
             {disconnecting ? "Disconnecting..." : "Disconnect"}
           </button>
@@ -125,18 +125,18 @@ function AppleCalendarCard() {
 
         <>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-fg-muted">
             Connect Apple Calendar so every appointment scheduled in Atlas shows up on your iPhone, iPad, and Mac calendars too.
           </p>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-fg-muted">
             Apple doesn't let apps sign in with your real Apple ID password - generate a free{" "}
-            <strong className="text-slate-300">app-specific password</strong> instead at{" "}
+            <strong className="text-fg">app-specific password</strong> instead at{" "}
             <a
               href="https://appleid.apple.com/account/manage"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand-400 underline hover:text-brand-300"
+              className="text-accent-text underline hover:opacity-80"
             >
               appleid.apple.com
             </a>
@@ -151,7 +151,7 @@ function AppleCalendarCard() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@icloud.com"
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-brand-500 focus:outline-none"
+              className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:border-brand-500 focus:outline-none"
             />
 
             <input
@@ -160,11 +160,11 @@ function AppleCalendarCard() {
               value={appPassword}
               onChange={(e) => setAppPassword(e.target.value)}
               placeholder="app-specific password (xxxx-xxxx-xxxx-xxxx)"
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-brand-500 focus:outline-none"
+              className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:border-brand-500 focus:outline-none"
             />
 
             {error && (
-              <p className="text-sm text-red-400">
+              <p className="text-sm text-danger">
                 {error}
               </p>
             )}

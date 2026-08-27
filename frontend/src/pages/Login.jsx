@@ -166,7 +166,7 @@ function Login() {
 
       </h1>
 
-      <p className="mb-6 text-slate-400">
+      <p className="mb-6 text-fg-muted">
         Log in to your Atlas account.
       </p>
 
@@ -176,7 +176,7 @@ function Login() {
       {error && (
 
         <p className="
-          text-red-400
+          text-danger
           mb-4
         ">
 
@@ -191,7 +191,7 @@ function Login() {
 
 
 
-      <label htmlFor="login-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="login-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Email
       </label>
 
@@ -208,15 +208,15 @@ function Login() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -225,7 +225,7 @@ function Login() {
 
 
 
-      <label htmlFor="login-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="login-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Password
       </label>
 
@@ -244,15 +244,15 @@ function Login() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -287,9 +287,9 @@ function Login() {
       </button>
 
 
-      <p className="mt-4 text-slate-400">
+      <p className="mt-4 text-fg-muted">
 
-        <Link to="/forgot-password" className="text-brand-400 hover:underline">
+        <Link to="/forgot-password" className="text-accent-text hover:underline">
 
           Forgot your password?
 
@@ -298,11 +298,11 @@ function Login() {
       </p>
 
 
-      <p className="mt-6 text-slate-400">
+      <p className="mt-6 text-fg-muted">
 
         New business?{" "}
 
-        <Link to="/onboarding" className="text-brand-400 hover:underline">
+        <Link to="/onboarding" className="text-accent-text hover:underline">
 
           Set up Atlas
 

@@ -15,7 +15,7 @@ function AuthLayout({ children }) {
 
     <div className="flex min-h-screen">
 
-      <div className="relative hidden w-[42%] shrink-0 flex-col justify-between overflow-hidden bg-ink-900 p-10 lg:flex">
+      <div className="relative hidden w-[42%] shrink-0 flex-col justify-between overflow-hidden bg-surface p-10 lg:flex">
 
         <div
           className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-brand-600/20 blur-[120px]"
@@ -37,15 +37,15 @@ function AuthLayout({ children }) {
             <span className="brand-gradient-text">runs itself.</span>
           </h2>
 
-          <p className="mt-4 max-w-sm text-slate-400">
+          <p className="mt-4 max-w-sm text-fg-muted">
             Atlas answers your customers, tracks every lead, and writes your
             follow-ups — so you can run the business instead of babysitting it.
           </p>
 
           <ul className="mt-8 flex flex-col gap-3">
             {TRUST_POINTS.map((point) => (
-              <li key={point} className="flex items-start gap-2.5 text-sm text-slate-300">
-                <Check size={17} className="mt-0.5 shrink-0 text-brand-400" />
+              <li key={point} className="flex items-start gap-2.5 text-sm text-fg-muted">
+                <Check size={17} className="mt-0.5 shrink-0 text-accent-text" />
                 <span>{point}</span>
               </li>
             ))}
@@ -53,13 +53,13 @@ function AuthLayout({ children }) {
 
         </div>
 
-        <p className="relative z-10 text-xs text-slate-600">
+        <p className="relative z-10 text-xs text-fg-faint">
           &copy; {new Date().getFullYear()} Atlas. All rights reserved.
         </p>
 
       </div>
 
-      <div className="flex flex-1 items-center justify-center bg-ink-950 p-6 sm:p-10">
+      <div className="flex flex-1 items-center justify-center bg-bg p-6 sm:p-10">
 
         <div className="w-full max-w-md">
 

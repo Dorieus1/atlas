@@ -25,7 +25,7 @@ const STATUS_COLUMNS = [
 const PRIORITY_STYLES = {
   hot: "bg-red-500/20 text-red-400",
   warm: "bg-amber-500/20 text-amber-400",
-  cold: "bg-slate-500/20 text-slate-400"
+  cold: "bg-slate-500/20 text-fg-muted"
 };
 
 function LeadPipeline() {
@@ -284,7 +284,7 @@ function LeadPipeline() {
 
         </div>
 
-        <span className={`shrink-0 rounded-full px-3 py-1 capitalize ${PRIORITY_STYLES[lead.priority] || "bg-slate-500/20 text-slate-400"}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 capitalize ${PRIORITY_STYLES[lead.priority] || "bg-slate-500/20 text-fg-muted"}`}>
 
           {lead.priority}
 

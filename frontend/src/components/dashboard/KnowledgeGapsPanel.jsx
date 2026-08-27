@@ -161,13 +161,13 @@ function KnowledgeGapsPanel({ onApproved }) {
 
       <div className="flex items-center gap-2.5">
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600/15 text-brand-400">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600/15 text-accent-text">
           <Sparkles size={17} />
         </div>
 
         <div>
           <h2 className="font-display text-lg font-bold">AI Suggestions</h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-fg-faint">
             {gaps.length} moment{gaps.length === 1 ? "" : "s"} Atlas wasn't sure how to answer
           </p>
         </div>
@@ -175,7 +175,7 @@ function KnowledgeGapsPanel({ onApproved }) {
       </div>
 
       {error && (
-        <p className="mt-3 text-sm text-red-400">
+        <p className="mt-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -189,13 +189,13 @@ function KnowledgeGapsPanel({ onApproved }) {
 
           return (
 
-            <div key={gap.id} className="rounded-xl border border-ink-700 bg-ink-900/60 p-4">
+            <div key={gap.id} className="rounded-xl border border-border bg-surface/60 p-4">
 
-              <p className="text-xs text-slate-500">
-                Customer asked: <span className="text-slate-400">"{gap.question}"</span>
+              <p className="text-xs text-fg-faint">
+                Customer asked: <span className="text-fg-muted">"{gap.question}"</span>
               </p>
 
-              <label htmlFor={`gap-title-${gap.id}`} className="mt-3 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label htmlFor={`gap-title-${gap.id}`} className="mt-3 mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 Title
               </label>
 
@@ -204,10 +204,10 @@ function KnowledgeGapsPanel({ onApproved }) {
                 value={draft.title}
                 onChange={(e) => updateDraft(gap.id, "title", e.target.value)}
                 placeholder="Title"
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm font-medium text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-2.5 text-sm font-medium text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
-              <label htmlFor={`gap-content-${gap.id}`} className="mt-2 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label htmlFor={`gap-content-${gap.id}`} className="mt-2 mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 Content
               </label>
 
@@ -216,7 +216,7 @@ function KnowledgeGapsPanel({ onApproved }) {
                 value={draft.content}
                 onChange={(e) => updateDraft(gap.id, "content", e.target.value)}
                 placeholder="Content"
-                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-20 w-full rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <div className="mt-3 flex items-center gap-2">
@@ -233,7 +233,7 @@ function KnowledgeGapsPanel({ onApproved }) {
                 <button
                   onClick={() => handleDismiss(gap)}
                   disabled={saving}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-ink-800 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-muted disabled:opacity-50"
                 >
                   <X size={13} />
                   Dismiss

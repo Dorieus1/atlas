@@ -38,7 +38,7 @@ import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
 const STATUS_STYLES = {
-  draft: "bg-slate-500/20 text-slate-300",
+  draft: "bg-slate-500/20 text-fg-muted",
   sent: "bg-brand-500/20 text-brand-400",
   accepted: "bg-green-500/20 text-green-400",
   declined: "bg-red-500/20 text-red-400",
@@ -839,7 +839,7 @@ function Quotes() {
             <FileText size={28} />
             Quotes &amp; Invoices
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-fg-faint">
             Price the job, then bill it — all in one place.
           </p>
         </div>
@@ -849,7 +849,7 @@ function Quotes() {
           <button
             onClick={handleExportCsv}
             disabled={exportingCsv}
-            className="flex items-center gap-2 rounded-lg border border-ink-700 bg-ink-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-ink-600 hover:bg-ink-900 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-4 py-2.5 text-sm font-semibold text-fg transition hover:border-border-strong hover:bg-surface disabled:opacity-50"
           >
             <Download size={17} />
             {exportingCsv ? "Exporting..." : "Export CSV"}
@@ -868,18 +868,18 @@ function Quotes() {
       </div>
 
       {loadError && (
-        <p className="mt-4 text-red-400">
+        <p className="mt-4 text-danger">
           {loadError}
         </p>
       )}
 
       {exportError && (
-        <p className="mt-4 text-red-400">
+        <p className="mt-4 text-danger">
           {exportError}
         </p>
       )}
 
-      <div className="mt-6 rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+      <div className="mt-6 rounded-2xl border border-border bg-surface/60 p-6">
 
         {loading ? (
 
@@ -908,7 +908,7 @@ function Quotes() {
               <button
                 key={quote.id}
                 onClick={() => openDetail(quote.id)}
-                className="flex flex-col items-stretch gap-3 rounded-xl border border-ink-700 bg-ink-800 p-4 text-left transition hover:border-ink-600 hover:bg-ink-900 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                className="flex flex-col items-stretch gap-3 rounded-xl border border-border bg-surface-muted p-4 text-left transition hover:border-border-strong hover:bg-surface sm:flex-row sm:items-center sm:justify-between sm:gap-4"
               >
 
                 <div className="min-w-0">
@@ -917,12 +917,12 @@ function Quotes() {
                     <p className="truncate font-semibold">
                       {quote.customer_name || "Unknown customer"}
                     </p>
-                    <span className="shrink-0 rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                    <span className="shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-fg-muted">
                       {quote.type}
                     </span>
                   </div>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-fg-faint">
                     {quoteDisplayNumber(quote)}
                     {quoteDisplayNumber(quote) ? " · " : ""}
                     {new Date(quote.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
@@ -937,7 +937,7 @@ function Quotes() {
                   </span>
 
                   {isOverdueInvoice(quote) && (
-                    <span className="rounded-full bg-red-500/20 px-2.5 py-1 text-[11px] font-medium text-red-400">
+                    <span className="rounded-full bg-danger/20 px-2.5 py-1 text-[11px] font-medium text-danger">
                       Overdue
                     </span>
                   )}
@@ -966,7 +966,7 @@ function Quotes() {
         >
 
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -978,7 +978,7 @@ function Quotes() {
 
               <button
                 onClick={() => setShowForm(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -994,7 +994,7 @@ function Quotes() {
             )}
 
             {formError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {formError}
               </p>
             )}
@@ -1006,7 +1006,7 @@ function Quotes() {
                 onChange={(e) => setFormCustomerId(e.target.value)}
                 disabled={!!editingQuoteId}
                 title={editingQuoteId ? "The customer on a quote can't be changed after it's created" : undefined}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none disabled:opacity-60"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none disabled:opacity-60"
               >
                 <option value="">Choose a customer</option>
                 {customers.map((c) => (
@@ -1023,7 +1023,7 @@ function Quotes() {
                       handleQuickAdd(e.target.value);
                     }
                   }}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-slate-300 focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg-muted focus:border-border-strong focus:outline-none"
                 >
                   <option value="">⚡ Quick add a saved service...</option>
                   {savedItems.map((item) => (
@@ -1037,7 +1037,7 @@ function Quotes() {
 
               <div className="flex flex-col gap-2">
 
-                <div className="flex items-center gap-2 px-0.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div className="flex items-center gap-2 px-0.5 text-xs font-medium uppercase tracking-wide text-fg-faint">
                   <span className="min-w-0 flex-1">Description</span>
                   <span className="w-16">Qty</span>
                   <span className="w-24">Price</span>
@@ -1052,7 +1052,7 @@ function Quotes() {
                       placeholder="Description"
                       value={item.description}
                       onChange={(e) => updateFormItem(index, "description", e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                      className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                     />
 
                     <input
@@ -1061,7 +1061,7 @@ function Quotes() {
                       placeholder="Qty"
                       value={item.quantity}
                       onChange={(e) => updateFormItem(index, "quantity", e.target.value)}
-                      className="w-16 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                      className="w-16 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                     />
 
                     <input
@@ -1071,12 +1071,12 @@ function Quotes() {
                       placeholder="Price"
                       value={item.unit_price}
                       onChange={(e) => updateFormItem(index, "unit_price", e.target.value)}
-                      className="w-24 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                      className="w-24 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                     />
 
                     <button
                       onClick={() => removeFormItem(index)}
-                      className="shrink-0 rounded-lg p-2 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400"
+                      className="shrink-0 rounded-lg p-2 text-fg-faint transition hover:bg-danger/10 hover:text-danger"
                       aria-label="Remove line item"
                     >
                       <Trash2 size={15} />
@@ -1100,7 +1100,7 @@ function Quotes() {
                 placeholder="Notes (optional)"
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
-                className="h-16 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-16 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <div className="flex items-center gap-2">
@@ -1111,7 +1111,7 @@ function Quotes() {
                     setFormDiscountType(e.target.value);
                     if (!e.target.value) setFormDiscountValue("");
                   }}
-                  className="rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                  className="rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                 >
                   <option value="">No discount</option>
                   <option value="percent">% off</option>
@@ -1127,7 +1127,7 @@ function Quotes() {
                     placeholder={formDiscountType === "percent" ? "e.g. 15" : "e.g. 20.00"}
                     value={formDiscountValue}
                     onChange={(e) => setFormDiscountValue(e.target.value)}
-                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                    className="w-28 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                   />
                 )}
 
@@ -1135,7 +1135,7 @@ function Quotes() {
 
               <div className="flex items-center gap-2">
 
-                <label className="text-sm text-slate-400">
+                <label className="text-sm text-fg-muted">
                   Tax rate
                 </label>
 
@@ -1147,10 +1147,10 @@ function Quotes() {
                   placeholder="e.g. 8.5"
                   value={formTaxRate}
                   onChange={(e) => setFormTaxRate(e.target.value)}
-                  className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                  className="w-28 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                 />
 
-                <span className="text-sm text-slate-500">%</span>
+                <span className="text-sm text-fg-faint">%</span>
 
               </div>
 
@@ -1162,7 +1162,7 @@ function Quotes() {
                     setFormDepositType(e.target.value);
                     if (!e.target.value) setFormDepositValue("");
                   }}
-                  className="rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                  className="rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                 >
                   <option value="">No deposit</option>
                   <option value="percent">% deposit</option>
@@ -1178,17 +1178,17 @@ function Quotes() {
                     placeholder={formDepositType === "percent" ? "e.g. 25" : "e.g. 100.00"}
                     value={formDepositValue}
                     onChange={(e) => setFormDepositValue(e.target.value)}
-                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+                    className="w-28 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
                   />
                 )}
 
               </div>
 
-              <div className="flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
+              <div className="flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
 
                 {(formDiscountType || formTotals.tax_amount > 0) && (
 
-                  <div className="flex items-center justify-between text-sm text-slate-400">
+                  <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>Subtotal</span>
                     <span>{formatMoney(formTotals.subtotal)}</span>
                   </div>
@@ -1197,7 +1197,7 @@ function Quotes() {
 
                 {formDiscountType && (
 
-                  <div className="flex items-center justify-between text-sm text-slate-400">
+                  <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>
                       Discount
                       {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
@@ -1209,7 +1209,7 @@ function Quotes() {
 
                 {formTotals.tax_amount > 0 && (
 
-                  <div className="flex items-center justify-between text-sm text-slate-400">
+                  <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>
                       Tax
                       {formTaxRate ? ` (${formTaxRate}%)` : ""}
@@ -1220,14 +1220,14 @@ function Quotes() {
                 )}
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Total</span>
+                  <span className="text-sm text-fg-muted">Total</span>
                   <span className="font-display text-xl font-bold">
                     {formatMoney(formTotals.total)}
                   </span>
                 </div>
 
                 {formDepositType && (
-                  <div className="flex items-center justify-between text-sm text-slate-400">
+                  <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>
                       Deposit due on approval
                       {formDepositType === "percent" && formDepositValue ? ` (${formDepositValue}%)` : ""}
@@ -1264,7 +1264,7 @@ function Quotes() {
         >
 
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -1275,22 +1275,22 @@ function Quotes() {
                   {activeQuote.customer_name || "Quote"}
                 </h3>
                 {quoteDisplayNumber(activeQuote) && (
-                  <p className="text-xs font-medium text-slate-500">
+                  <p className="text-xs font-medium text-fg-faint">
                     {quoteDisplayNumber(activeQuote)}
                   </p>
                 )}
                 {activeQuote.created_by_name && (
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-fg-faint">
                     Added by {activeQuote.created_by_name}
                   </p>
                 )}
                 {activeQuote.status === "accepted" && activeQuote.accepted_by_name && (
-                  <p className="mt-0.5 text-xs text-green-400">
+                  <p className="mt-0.5 text-xs text-success">
                     Approved by {activeQuote.accepted_by_name} on {new Date(activeQuote.accepted_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   </p>
                 )}
                 {activeQuote.status === "declined" && activeQuote.declined_at && (
-                  <p className="mt-0.5 text-xs text-red-400">
+                  <p className="mt-0.5 text-xs text-danger">
                     Declined on {new Date(activeQuote.declined_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   </p>
                 )}
@@ -1298,7 +1298,7 @@ function Quotes() {
 
               <button
                 onClick={() => setActiveQuote(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -1307,13 +1307,13 @@ function Quotes() {
             </div>
 
             {detailError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {detailError}
               </p>
             )}
 
             {detailSuccess && (
-              <p className="mt-3 text-sm text-green-400">
+              <p className="mt-3 text-sm text-success">
                 {detailSuccess}
               </p>
             )}
@@ -1331,7 +1331,7 @@ function Quotes() {
 
                 <div className="mt-4 flex items-center gap-2">
 
-                  <span className="rounded-full bg-ink-700 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-fg-muted">
                     {activeQuote.type}
                   </span>
 
@@ -1347,7 +1347,7 @@ function Quotes() {
 
                 </div>
 
-                <div className="mt-4 flex flex-col divide-y divide-ink-800 rounded-xl border border-ink-700">
+                <div className="mt-4 flex flex-col divide-y divide-border rounded-xl border border-border">
 
                   {(activeQuote.items || []).map((item) => (
 
@@ -1355,7 +1355,7 @@ function Quotes() {
 
                       <div className="min-w-0">
                         <p className="truncate text-sm">{item.description}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-fg-faint">
                           {item.quantity} &times; {formatMoney(item.unit_price)}
                         </p>
                       </div>
@@ -1371,16 +1371,16 @@ function Quotes() {
                 </div>
 
                 {activeQuote.notes && (
-                  <p className="mt-3 text-sm text-slate-400">
+                  <p className="mt-3 text-sm text-fg-muted">
                     {activeQuote.notes}
                   </p>
                 )}
 
-                <div className="mt-4 flex flex-col gap-1 rounded-lg bg-ink-800 px-4 py-3">
+                <div className="mt-4 flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
 
                   {(activeQuote.discount_type || activeQuote.tax_amount > 0) && (
 
-                    <div className="flex items-center justify-between text-sm text-slate-400">
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
                       <span>Subtotal</span>
                       <span>{formatMoney(activeQuote.subtotal)}</span>
                     </div>
@@ -1389,7 +1389,7 @@ function Quotes() {
 
                   {activeQuote.discount_type && (
 
-                    <div className="flex items-center justify-between text-sm text-slate-400">
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
                       <span>
                         Discount
                         {activeQuote.discount_type === "percent"
@@ -1403,7 +1403,7 @@ function Quotes() {
 
                   {activeQuote.tax_amount > 0 && (
 
-                    <div className="flex items-center justify-between text-sm text-slate-400">
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
                       <span>
                         Tax
                         {activeQuote.tax_rate ? ` (${activeQuote.tax_rate}%)` : ""}
@@ -1414,21 +1414,21 @@ function Quotes() {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Total</span>
+                    <span className="text-sm text-fg-muted">Total</span>
                     <span className="font-display text-xl font-bold">
                       {formatMoney(activeQuote.total)}
                     </span>
                   </div>
 
                   {activeQuote.deposit_type && (
-                    <div className="flex items-center justify-between text-sm text-slate-400">
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
                       <span>
                         Deposit
                         {activeQuote.deposit_type === "percent"
                           ? ` (${activeQuote.deposit_value}%)`
                           : ` (${formatMoney(activeQuote.deposit_value)})`}
                       </span>
-                      <span className={activeQuote.deposit_paid_at ? "text-green-400" : ""}>
+                      <span className={activeQuote.deposit_paid_at ? "text-success" : ""}>
                         {formatMoney(activeQuote.deposit_amount)}
                         {activeQuote.deposit_paid_at
                           ? ` · paid ${new Date(activeQuote.deposit_paid_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -1440,12 +1440,12 @@ function Quotes() {
                   {activeQuote.type === "invoice" && activeQuote.amount_paid > 0 && (
 
                     <>
-                      <div className="flex items-center justify-between text-sm text-green-400">
+                      <div className="flex items-center justify-between text-sm text-success">
                         <span>Paid</span>
                         <span>{formatMoney(activeQuote.amount_paid)}</span>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm font-semibold text-slate-300">
+                      <div className="flex items-center justify-between text-sm font-semibold text-fg-muted">
                         <span>Balance Due</span>
                         <span>{formatMoney(activeQuote.balance_due)}</span>
                       </div>
@@ -1455,35 +1455,35 @@ function Quotes() {
 
                 </div>
 
-                <div className="mt-4 rounded-lg border border-ink-700 p-4">
+                <div className="mt-4 rounded-lg border border-border p-4">
 
                   <div className="flex items-center gap-2">
-                    <Receipt size={16} className="text-slate-400" />
+                    <Receipt size={16} className="text-fg-muted" />
                     <h4 className="text-sm font-semibold">Job Costs</h4>
                   </div>
 
                   {activeQuote.expenses?.length > 0 && (
 
-                    <div className="mt-3 flex flex-col divide-y divide-ink-800 rounded-lg border border-ink-800">
+                    <div className="mt-3 flex flex-col divide-y divide-border rounded-lg border border-border">
 
                       {activeQuote.expenses.map((expense) => (
 
                         <div key={expense.id} className="flex items-center justify-between gap-3 p-2.5">
 
-                          <span className="min-w-0 truncate text-sm text-slate-300">
+                          <span className="min-w-0 truncate text-sm text-fg-muted">
                             {expense.description}
                           </span>
 
                           <div className="flex shrink-0 items-center gap-2">
 
-                            <span className="text-sm text-slate-400">
+                            <span className="text-sm text-fg-muted">
                               {formatMoney(expense.amount)}
                             </span>
 
                             <button
                               onClick={() => handleDeleteExpense(expense.id)}
                               disabled={deletingExpenseId === expense.id}
-                              className="rounded p-1 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                              className="rounded p-1 text-fg-faint transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                               aria-label="Remove expense"
                             >
                               <Trash2 size={13} />
@@ -1505,7 +1505,7 @@ function Quotes() {
                       placeholder="Materials, labor, subcontractor..."
                       value={expenseDescription}
                       onChange={(e) => setExpenseDescription(e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                      className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                     />
 
                     <input
@@ -1515,13 +1515,13 @@ function Quotes() {
                       placeholder="Amount"
                       value={expenseAmount}
                       onChange={(e) => setExpenseAmount(e.target.value)}
-                      className="w-24 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                      className="w-24 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
                     />
 
                     <button
                       onClick={handleAddExpense}
                       disabled={addingExpense}
-                      className="shrink-0 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                      className="shrink-0 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                     >
                       {addingExpense ? "Adding..." : "Add"}
                     </button>
@@ -1529,14 +1529,14 @@ function Quotes() {
                   </div>
 
                   {expenseError && (
-                    <p className="mt-2 text-xs text-red-400">{expenseError}</p>
+                    <p className="mt-2 text-xs text-danger">{expenseError}</p>
                   )}
 
                   {activeQuote.expenses?.length > 0 && (
 
-                    <div className="mt-3 flex items-center justify-between border-t border-ink-800 pt-3">
-                      <span className="text-sm font-medium text-slate-300">Margin</span>
-                      <span className={`font-display text-lg font-bold ${activeQuote.margin < 0 ? "text-red-400" : "text-green-400"}`}>
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                      <span className="text-sm font-medium text-fg-muted">Margin</span>
+                      <span className={`font-display text-lg font-bold ${activeQuote.margin < 0 ? "text-danger" : "text-success"}`}>
                         {formatMoney(activeQuote.margin)}
                       </span>
                     </div>
@@ -1547,36 +1547,36 @@ function Quotes() {
 
                 {activeQuote.type === "invoice" && activeQuote.status !== "draft" && activeQuote.status !== "declined" && (
 
-                  <div className="mt-4 rounded-lg border border-ink-700 p-4">
+                  <div className="mt-4 rounded-lg border border-border p-4">
 
                     <div className="flex items-center gap-2">
-                      <Wallet size={16} className="text-slate-400" />
+                      <Wallet size={16} className="text-fg-muted" />
                       <h4 className="text-sm font-semibold">Payments</h4>
                     </div>
 
                     {activeQuote.payments?.length > 0 && (
 
-                      <div className="mt-3 flex flex-col divide-y divide-ink-800 rounded-lg border border-ink-800">
+                      <div className="mt-3 flex flex-col divide-y divide-border rounded-lg border border-border">
 
                         {activeQuote.payments.map((payment) => (
 
                           <div key={payment.id} className="flex items-center justify-between gap-3 p-2.5">
 
                             <div className="min-w-0">
-                              <span className="text-sm text-slate-300">
+                              <span className="text-sm text-fg-muted">
                                 {PAYMENT_METHOD_LABELS[payment.method] || payment.method}
                               </span>
-                              <span className="ml-2 text-xs text-slate-500">
+                              <span className="ml-2 text-xs text-fg-faint">
                                 {new Date(payment.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                               </span>
                               {payment.note && (
-                                <p className="truncate text-xs text-slate-500">{payment.note}</p>
+                                <p className="truncate text-xs text-fg-faint">{payment.note}</p>
                               )}
                             </div>
 
                             <div className="flex shrink-0 items-center gap-2">
 
-                              <span className="text-sm text-green-400">
+                              <span className="text-sm text-success">
                                 {formatMoney(payment.amount)}
                               </span>
 
@@ -1584,7 +1584,7 @@ function Quotes() {
                                 <button
                                   onClick={() => handleDeletePayment(payment.id)}
                                   disabled={deletingPaymentId === payment.id}
-                                  className="rounded p-1 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                                  className="rounded p-1 text-fg-faint transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                                   aria-label="Remove payment"
                                 >
                                   <Trash2 size={13} />
@@ -1609,7 +1609,7 @@ function Quotes() {
                           <select
                             value={paymentMethod}
                             onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                            className="rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
                           >
                             <option value="cash">Cash</option>
                             <option value="check">Check</option>
@@ -1624,13 +1624,13 @@ function Quotes() {
                             placeholder={`Amount (up to ${formatMoney(activeQuote.balance_due)})`}
                             value={paymentAmount}
                             onChange={(e) => setPaymentAmount(e.target.value)}
-                            className="w-40 rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                            className="w-40 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                           />
 
                           <button
                             onClick={handleAddPayment}
                             disabled={addingPayment}
-                            className="shrink-0 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                            className="shrink-0 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                           >
                             {addingPayment ? "Recording..." : "Record Payment"}
                           </button>
@@ -1641,14 +1641,14 @@ function Quotes() {
                           placeholder="Note (optional)"
                           value={paymentNote}
                           onChange={(e) => setPaymentNote(e.target.value)}
-                          className="mt-2 w-full rounded-lg border border-ink-700 bg-ink-800 p-2 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                          className="mt-2 w-full rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                         />
                       </>
 
                     )}
 
                     {paymentError && (
-                      <p className="mt-2 text-xs text-red-400">{paymentError}</p>
+                      <p className="mt-2 text-xs text-danger">{paymentError}</p>
                     )}
 
                   </div>
@@ -1660,7 +1660,7 @@ function Quotes() {
                   {activeQuote.status !== "paid" && !activeQuote.deposit_paid_at && (
                     <button
                       onClick={() => openEditForm(activeQuote)}
-                      className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
+                      className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong"
                     >
                       <Pencil size={14} />
                       Edit
@@ -1670,7 +1670,7 @@ function Quotes() {
                   <button
                     onClick={handleSendToCustomer}
                     disabled={sendingToCustomer}
-                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                   >
                     <Send size={14} />
                     {sendingToCustomer ? "Sending..." : "Send to Customer"}
@@ -1679,7 +1679,7 @@ function Quotes() {
                   <button
                     onClick={handleDownloadPdf}
                     disabled={downloadingPdf}
-                    className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                   >
                     <Download size={14} />
                     {downloadingPdf ? "Downloading..." : "Download PDF"}
@@ -1688,7 +1688,7 @@ function Quotes() {
                   {activeQuote.type === "quote" && (
                     <button
                       onClick={handleConvertToInvoice}
-                      className="flex items-center gap-1.5 rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
+                      className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong"
                     >
                       <ArrowRightLeft size={14} />
                       Convert to Invoice
@@ -1699,7 +1699,7 @@ function Quotes() {
 
                     <div className="ml-auto flex items-center gap-2">
 
-                      <span className="text-xs text-slate-400">Delete this?</span>
+                      <span className="text-xs text-fg-muted">Delete this?</span>
 
                       <button
                         onClick={() => handleDelete(activeQuote.id)}
@@ -1712,7 +1712,7 @@ function Quotes() {
                       <button
                         onClick={() => setConfirmingDelete(false)}
                         disabled={deleting}
-                        className="rounded-lg bg-ink-700 px-3 py-1.5 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                        className="rounded-lg bg-border px-3 py-1.5 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -1723,7 +1723,7 @@ function Quotes() {
 
                     <button
                       onClick={() => setConfirmingDelete(true)}
-                      className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+                      className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger/10"
                     >
                       <Trash2 size={14} />
                       Delete

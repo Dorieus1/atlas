@@ -539,7 +539,7 @@ function CustomerProfile() {
 
             {[0, 1, 2].map((i) => (
 
-              <div key={i} className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+              <div key={i} className="rounded-2xl border border-border bg-surface/60 p-6">
                 <Skeleton className="h-5 w-40" />
                 <SkeletonText lines={2} className="mt-4" />
               </div>
@@ -558,7 +558,7 @@ function CustomerProfile() {
 
       <div className="p-8 text-center">
 
-        <p className="text-slate-300">
+        <p className="text-fg-muted">
 
           {loadError || "This customer doesn't exist, or may have been deleted."}
 
@@ -641,7 +641,7 @@ function CustomerProfile() {
 
       {restoreError && (
 
-        <p className="text-red-400 text-sm">
+        <p className="text-danger text-sm">
 
           {restoreError}
 
@@ -662,7 +662,7 @@ function CustomerProfile() {
 
               {customerEditError && (
 
-                <p className="text-red-400 text-sm">{customerEditError}</p>
+                <p className="text-danger text-sm">{customerEditError}</p>
 
               )}
 
@@ -674,7 +674,7 @@ function CustomerProfile() {
 
                 placeholder="Customer name"
 
-                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2"
+                className="bg-surface-muted text-fg border border-border rounded-lg p-2"
 
               />
 
@@ -686,7 +686,7 @@ function CustomerProfile() {
 
                 placeholder="Customer email"
 
-                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2 ml-2"
+                className="bg-surface-muted text-fg border border-border rounded-lg p-2 ml-2"
 
               />
 
@@ -698,7 +698,7 @@ function CustomerProfile() {
 
                 placeholder="Customer phone"
 
-                className="bg-ink-800 text-white border border-ink-700 rounded-lg p-2 ml-2"
+                className="bg-surface-muted text-fg border border-border rounded-lg p-2 ml-2"
 
               />
 
@@ -710,7 +710,7 @@ function CustomerProfile() {
 
                 placeholder="Service address"
 
-                className="mt-2 block w-full max-w-md bg-ink-800 text-white border border-ink-700 rounded-lg p-2"
+                className="mt-2 block w-full max-w-md bg-surface-muted text-fg border border-border rounded-lg p-2"
 
               />
 
@@ -736,7 +736,7 @@ function CustomerProfile() {
 
                   disabled={savingCustomerEdit}
 
-                  className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg"
+                  className="bg-border hover:bg-border-strong px-4 py-2 rounded-lg"
 
                 >
 
@@ -761,7 +761,7 @@ function CustomerProfile() {
 
                   onClick={startEditCustomer}
 
-                  className="ml-3 text-sm text-slate-400 hover:text-white font-normal"
+                  className="ml-3 text-sm text-fg-muted hover:text-fg font-normal"
 
                 >
 
@@ -771,7 +771,7 @@ function CustomerProfile() {
 
               </h1>
 
-              <p className="text-slate-400">
+              <p className="text-fg-muted">
 
                 {customer.email}
 
@@ -779,7 +779,7 @@ function CustomerProfile() {
 
               {customer.phone && (
 
-                <p className="text-slate-400">
+                <p className="text-fg-muted">
 
                   {customer.phone}
 
@@ -789,7 +789,7 @@ function CustomerProfile() {
 
               {customer.address && (
 
-                <p className="mt-1 flex items-center gap-1.5 text-slate-400">
+                <p className="mt-1 flex items-center gap-1.5 text-fg-muted">
 
                   <MapPin size={14} className="shrink-0" />
                   {customer.address}
@@ -800,7 +800,7 @@ function CustomerProfile() {
 
               {customer.created_by_name && (
 
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-fg-faint">
 
                   Added by {customer.created_by_name}
 
@@ -820,7 +820,7 @@ function CustomerProfile() {
 
             <div className="flex flex-wrap items-center gap-3">
 
-              <span className="text-slate-300 text-sm">
+              <span className="text-fg-muted text-sm">
 
                 Move this customer to trash? They'll be permanently deleted after 30 days, and can be restored any time before then.
 
@@ -846,7 +846,7 @@ function CustomerProfile() {
 
                 disabled={deleting}
 
-                className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg"
+                className="bg-border hover:bg-border-strong px-4 py-2 rounded-lg"
 
               >
 
@@ -862,7 +862,7 @@ function CustomerProfile() {
 
               onClick={() => setConfirmingDelete(true)}
 
-              className="bg-red-600/20 text-red-400 hover:bg-red-600/30 px-4 py-2 rounded-lg"
+              className="bg-danger/20 text-danger hover:bg-danger/30 px-4 py-2 rounded-lg"
 
             >
 
@@ -874,7 +874,7 @@ function CustomerProfile() {
 
           {deleteError && (
 
-            <p className="text-red-400 text-sm mt-2">
+            <p className="text-danger text-sm mt-2">
 
               {deleteError}
 
@@ -892,7 +892,7 @@ function CustomerProfile() {
 
       {quoteStatsError ? (
 
-        <p className="mt-6 text-sm text-red-400">{quoteStatsError}</p>
+        <p className="mt-6 text-sm text-danger">{quoteStatsError}</p>
 
       ) : quoteStats && (quoteStats.jobsCompleted > 0 || quoteStats.totalOutstanding > 0) && (
 
@@ -900,8 +900,8 @@ function CustomerProfile() {
           mt-6
           rounded-2xl
           border
-          border-ink-700
-          bg-ink-900/60
+          border-border
+          bg-surface/60
           p-6
         ">
 
@@ -914,17 +914,17 @@ function CustomerProfile() {
 
             <div>
               <p className="text-2xl font-bold">{formatMoney(quoteStats.totalRevenue)}</p>
-              <p className="mt-1 text-xs text-slate-500">Total Paid</p>
+              <p className="mt-1 text-xs text-fg-faint">Total Paid</p>
             </div>
 
             <div>
               <p className="text-2xl font-bold">{formatMoney(quoteStats.totalOutstanding)}</p>
-              <p className="mt-1 text-xs text-slate-500">Outstanding</p>
+              <p className="mt-1 text-xs text-fg-faint">Outstanding</p>
             </div>
 
             <div>
               <p className="text-2xl font-bold">{quoteStats.jobsCompleted}</p>
-              <p className="mt-1 text-xs text-slate-500">Jobs Completed</p>
+              <p className="mt-1 text-xs text-fg-faint">Jobs Completed</p>
             </div>
 
           </div>
@@ -940,8 +940,8 @@ function CustomerProfile() {
       <div className="
         rounded-2xl
         border
-        border-ink-700
-        bg-ink-900/60
+        border-border
+        bg-surface/60
         p-6
       ">
 
@@ -951,7 +951,7 @@ function CustomerProfile() {
         </h2>
 
         {tagsError && (
-          <p className="mt-3 text-red-400">
+          <p className="mt-3 text-danger">
             {tagsError}
           </p>
         )}
@@ -960,7 +960,7 @@ function CustomerProfile() {
 
           {customerTags.length === 0 ? (
 
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-fg-muted">
               No tags yet.
             </p>
 
@@ -970,7 +970,7 @@ function CustomerProfile() {
 
               <span
                 key={tag.id}
-                className="flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800 px-3 py-1.5 text-sm"
+                className="flex items-center gap-2 rounded-full border border-border bg-surface-muted px-3 py-1.5 text-sm"
               >
 
                 {tag.name}
@@ -978,7 +978,7 @@ function CustomerProfile() {
                 <button
                   onClick={() => handleRemoveTag(tag.id)}
                   disabled={removingTagId === tag.id}
-                  className="text-slate-500 hover:text-red-400 disabled:opacity-50"
+                  className="text-fg-faint hover:text-danger disabled:opacity-50"
                   aria-label={`Remove ${tag.name} tag`}
                 >
                   ×
@@ -997,7 +997,7 @@ function CustomerProfile() {
           <select
             value={selectedTagToAdd}
             onChange={(e) => setSelectedTagToAdd(e.target.value)}
-            className="bg-ink-800 border border-ink-700 rounded-lg p-2 text-sm text-white"
+            className="bg-surface-muted border border-border rounded-lg p-2 text-sm text-fg"
           >
             <option value="">Add existing tag...</option>
             {availableTagsToAdd.map((tag) => (
@@ -1023,13 +1023,13 @@ function CustomerProfile() {
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
             placeholder="Or create a new tag..."
-            className="bg-ink-900/60 border border-ink-700 rounded-lg p-2 text-sm text-white placeholder:text-slate-500"
+            className="bg-surface/60 border border-border rounded-lg p-2 text-sm text-fg placeholder:text-fg-faint"
           />
 
           <button
             onClick={handleCreateAndAssignTag}
             disabled={creatingTag}
-            className="bg-ink-700 hover:bg-ink-600 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+            className="bg-border hover:bg-border-strong px-4 py-2 rounded-lg text-sm disabled:opacity-50"
           >
             {creatingTag ? "Creating..." : "Create & Add"}
           </button>
@@ -1060,8 +1060,8 @@ function CustomerProfile() {
         <div className="
           rounded-2xl
           border
-          border-ink-700
-          bg-ink-900/60
+          border-border
+          bg-surface/60
           p-6
         ">
 
@@ -1074,7 +1074,7 @@ function CustomerProfile() {
 
           <p className="
             mt-3
-            text-slate-400
+            text-fg-muted
           ">
 
             Loading business information...
@@ -1105,8 +1105,8 @@ function CustomerProfile() {
       <div className="
         rounded-2xl
         border
-        border-ink-700
-        bg-ink-900/60
+        border-border
+        bg-surface/60
         p-6
       ">
 
@@ -1119,7 +1119,7 @@ function CustomerProfile() {
 
         {summaryError ? (
 
-          <p className="mt-4 whitespace-pre-wrap text-red-400">
+          <p className="mt-4 whitespace-pre-wrap text-danger">
             {summaryError}
           </p>
 
@@ -1144,8 +1144,8 @@ function CustomerProfile() {
       <div className="
         rounded-2xl
         border
-        border-ink-700
-        bg-ink-900/60
+        border-border
+        bg-surface/60
         p-6
       ">
 
@@ -1208,9 +1208,9 @@ function CustomerProfile() {
               }
 
               className="
-                bg-ink-800
+                bg-surface-muted
                 border
-                border-ink-700
+                border-border
                 rounded-lg
                 p-3
               "
@@ -1241,7 +1241,7 @@ function CustomerProfile() {
 
           <p className={
             "mt-4 " +
-            (leadError ? "text-red-400" : "text-slate-400")
+            (leadError ? "text-danger" : "text-fg-muted")
           }>
 
             {leadError || "No lead found."}

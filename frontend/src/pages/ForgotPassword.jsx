@@ -76,14 +76,14 @@ function ForgotPassword() {
 
       </h1>
 
-      <p className="mb-6 text-slate-400">
+      <p className="mb-6 text-fg-muted">
         We'll email you a link to get back in.
       </p>
 
 
       {submitted ? (
 
-        <p className="text-slate-300">
+        <p className="text-fg-muted">
 
           If that email is registered, a reset link has been sent. Check your inbox (and spam folder) for a message from Atlas.
 
@@ -93,7 +93,7 @@ function ForgotPassword() {
 
         <>
 
-          <p className="text-slate-400 mb-6">
+          <p className="text-fg-muted mb-6">
 
             Enter the email you used to sign up, and we'll send you a link to reset your password.
 
@@ -102,7 +102,7 @@ function ForgotPassword() {
           {error && (
 
             <p className="
-              text-red-400
+              text-danger
               mb-4
             ">
 
@@ -112,7 +112,7 @@ function ForgotPassword() {
 
           )}
 
-          <label htmlFor="forgot-password-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label htmlFor="forgot-password-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
             Email
           </label>
 
@@ -129,15 +129,15 @@ function ForgotPassword() {
             className="
               w-full
               mb-4
-              bg-ink-800
+              bg-surface-muted
               border
-              border-ink-700
+              border-border
               rounded-lg
               p-3
-              text-white
-              placeholder:text-slate-500
+              text-fg
+              placeholder:text-fg-faint
               focus:outline-none
-              focus:border-ink-600
+              focus:border-border-strong
             "
 
           />
@@ -172,9 +172,9 @@ function ForgotPassword() {
       )}
 
 
-      <p className="mt-6 text-slate-400">
+      <p className="mt-6 text-fg-muted">
 
-        <Link to="/login" className="text-brand-400 hover:underline">
+        <Link to="/login" className="text-accent-text hover:underline">
 
           Back to login
         </Link>

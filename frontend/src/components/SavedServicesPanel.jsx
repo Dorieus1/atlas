@@ -199,19 +199,19 @@ function SavedServicesPanel() {
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <Wrench size={22} />
         Saved Services
       </h2>
 
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-fg-faint">
         Save your go-to services with a default price so you can quick-add them while building a quote or invoice.
       </p>
 
       {loadError && (
-        <p className="mt-3 text-red-400">
+        <p className="mt-3 text-danger">
           {loadError}
         </p>
       )}
@@ -222,7 +222,7 @@ function SavedServicesPanel() {
           placeholder="Description (e.g. Roof inspection)"
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
-          className="min-w-[220px] flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+          className="min-w-[220px] flex-1 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
         />
 
         <input
@@ -232,7 +232,7 @@ function SavedServicesPanel() {
           placeholder="Price"
           value={newPrice}
           onChange={(e) => setNewPrice(e.target.value)}
-          className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+          className="w-28 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
         />
 
         <button
@@ -247,14 +247,14 @@ function SavedServicesPanel() {
       </div>
 
       {addError && (
-        <p className="mt-2 text-sm text-red-400">
+        <p className="mt-2 text-sm text-danger">
           {addError}
         </p>
       )}
 
       {items.length > 0 && (
 
-        <div className="mt-4 flex flex-col divide-y divide-ink-800 rounded-xl border border-ink-700">
+        <div className="mt-4 flex flex-col divide-y divide-border rounded-xl border border-border">
 
           {items.map((item) => (
 
@@ -267,7 +267,7 @@ function SavedServicesPanel() {
                   <input
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
-                    className="min-w-[220px] flex-1 rounded-lg border border-ink-700 bg-ink-900 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                    className="min-w-[220px] flex-1 rounded-lg border border-border bg-surface p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
                   />
 
                   <input
@@ -276,7 +276,7 @@ function SavedServicesPanel() {
                     step="0.01"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
-                    className="w-28 rounded-lg border border-ink-700 bg-ink-900 p-2 text-sm text-white focus:border-ink-600 focus:outline-none"
+                    className="w-28 rounded-lg border border-border bg-surface p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
                   />
 
                   <button
@@ -289,13 +289,13 @@ function SavedServicesPanel() {
 
                   <button
                     onClick={cancelEdit}
-                    className="rounded-lg bg-ink-700 px-3 py-2 text-sm font-medium transition hover:bg-ink-600"
+                    className="rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong"
                   >
                     Cancel
                   </button>
 
                   {editError && (
-                    <p className="w-full text-sm text-red-400">
+                    <p className="w-full text-sm text-danger">
                       {editError}
                     </p>
                   )}
@@ -308,14 +308,14 @@ function SavedServicesPanel() {
 
                   <div className="min-w-0">
                     <p className="truncate text-sm">{item.description}</p>
-                    <p className="text-xs text-slate-500">{formatMoney(item.unit_price)}</p>
+                    <p className="text-xs text-fg-faint">{formatMoney(item.unit_price)}</p>
                   </div>
 
                   {confirmingDeleteId === item.id ? (
 
                     <div className="flex shrink-0 items-center gap-2">
 
-                      <span className="text-xs text-slate-400">Delete this?</span>
+                      <span className="text-xs text-fg-muted">Delete this?</span>
 
                       <button
                         onClick={() => handleDelete(item.id)}
@@ -328,7 +328,7 @@ function SavedServicesPanel() {
                       <button
                         onClick={() => setConfirmingDeleteId(null)}
                         disabled={deletingId === item.id}
-                        className="rounded-lg bg-ink-700 px-3 py-1.5 text-sm font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                        className="rounded-lg bg-border px-3 py-1.5 text-sm font-medium transition hover:bg-border-strong disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -341,14 +341,14 @@ function SavedServicesPanel() {
 
                       <button
                         onClick={() => startEdit(item)}
-                        className="text-sm text-slate-400 transition hover:text-white"
+                        className="text-sm text-fg-muted transition hover:text-fg"
                       >
                         Edit
                       </button>
 
                       <button
                         onClick={() => setConfirmingDeleteId(item.id)}
-                        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400"
+                        className="rounded-lg p-1.5 text-fg-faint transition hover:bg-danger/10 hover:text-danger"
                         aria-label="Delete saved service"
                       >
                         <Trash2 size={15} />

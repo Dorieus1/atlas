@@ -99,7 +99,7 @@ function ResetPassword() {
 
       {!token && (
 
-        <p className="text-red-400 mb-4">
+        <p className="text-danger mb-4">
 
           This link is missing its reset token. Please request a new reset link.
 
@@ -110,7 +110,7 @@ function ResetPassword() {
       {error && (
 
         <p className="
-          text-red-400
+          text-danger
           mb-4
         ">
 
@@ -120,7 +120,7 @@ function ResetPassword() {
 
       )}
 
-      <label htmlFor="reset-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="reset-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         New Password
       </label>
 
@@ -139,20 +139,20 @@ function ResetPassword() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
 
-      <label htmlFor="reset-confirm-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="reset-confirm-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Confirm New Password
       </label>
 
@@ -171,15 +171,15 @@ function ResetPassword() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -210,9 +210,9 @@ function ResetPassword() {
       </button>
 
 
-      <p className="mt-6 text-slate-400">
+      <p className="mt-6 text-fg-muted">
 
-        <Link to="/login" className="text-brand-400 hover:underline">
+        <Link to="/login" className="text-accent-text hover:underline">
 
           Back to login
         </Link>

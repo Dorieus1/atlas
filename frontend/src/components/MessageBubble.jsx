@@ -10,7 +10,7 @@ function MessageBubble({ message }) {
         max-w-[80%]
         p-3
         rounded-xl
-        ${isUser ? "bg-brand-600 text-white" : "bg-ink-800 text-white"}
+        ${isUser ? "bg-brand-600 text-white" : "bg-surface-muted text-fg"}
       `}>
 
         <strong className="text-sm opacity-80">

@@ -34,7 +34,7 @@ const STATUS_STYLES = {
   requested: "bg-amber-500/20 text-amber-400",
   scheduled: "bg-brand-500/20 text-brand-400",
   completed: "bg-green-500/20 text-green-400",
-  cancelled: "bg-slate-500/20 text-slate-400"
+  cancelled: "bg-slate-500/20 text-fg-muted"
 };
 
 const RECURRENCE_LABELS = {
@@ -656,7 +656,7 @@ function Schedule() {
             <CalendarDays size={28} />
             Schedule
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-fg-faint">
             Every job and appointment, at a glance.
           </p>
         </div>
@@ -668,7 +668,7 @@ function Schedule() {
               value={assigneeFilter}
               onChange={(e) => setAssigneeFilter(e.target.value)}
               aria-label="Filter by assignee"
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2.5 text-sm text-white focus:border-ink-600 focus:outline-none"
+              className="rounded-lg border border-border bg-surface-muted px-3 py-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
             >
               <option value="all">Everyone</option>
               <option value="unassigned">Unassigned</option>
@@ -693,22 +693,22 @@ function Schedule() {
       </div>
 
       {loadError && (
-        <p className="mt-4 text-red-400">
+        <p className="mt-4 text-danger">
           {loadError}
         </p>
       )}
 
       {actionError && (
-        <p className="mt-4 text-red-400">
+        <p className="mt-4 text-danger">
           {actionError}
         </p>
       )}
 
       {actionSuccess && (
-        <p className="mt-4 text-green-400">
+        <p className="mt-4 text-success">
           {actionSuccess.message}{" "}
           {actionSuccess.showQuotesLink && (
-            <Link to="/quotes" className="underline hover:text-green-300">
+            <Link to="/quotes" className="underline hover:text-success/80">
               View it in Quotes
             </Link>
           )}
@@ -717,7 +717,7 @@ function Schedule() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 lg:col-span-8">
+        <div className="rounded-2xl border border-border bg-surface/60 p-5 lg:col-span-8">
 
           <div className="flex flex-wrap items-center justify-between gap-3">
 
@@ -735,11 +735,11 @@ function Schedule() {
 
             <div className="flex items-center gap-3">
 
-              <div className="flex rounded-lg border border-ink-700 p-0.5 text-xs font-medium">
+              <div className="flex rounded-lg border border-border p-0.5 text-xs font-medium">
 
                 <button
                   onClick={() => setCalendarView("month")}
-                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "month" ? "bg-ink-700 text-white" : "text-slate-400 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "month" ? "bg-border text-fg" : "text-fg-muted hover:text-fg"}`}
                 >
                   Month
                 </button>
@@ -749,7 +749,7 @@ function Schedule() {
                     setCalendarView("week");
                     setViewWeekStart(getWeekStart(selectedDate));
                   }}
-                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "week" ? "bg-ink-700 text-white" : "text-slate-400 hover:text-white"}`}
+                  className={`rounded-md px-2.5 py-1 transition ${calendarView === "week" ? "bg-border text-fg" : "text-fg-muted hover:text-fg"}`}
                 >
                   Week
                 </button>
@@ -770,7 +770,7 @@ function Schedule() {
                       });
                     }
                   }}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+                  className="rounded-lg p-2 text-fg-muted transition hover:bg-surface-muted hover:text-fg"
                   aria-label={calendarView === "month" ? "Previous month" : "Previous week"}
                 >
                   <ChevronLeft size={18} />
@@ -788,7 +788,7 @@ function Schedule() {
                       });
                     }
                   }}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-ink-800 hover:text-white"
+                  className="rounded-lg p-2 text-fg-muted transition hover:bg-surface-muted hover:text-fg"
                   aria-label={calendarView === "month" ? "Next month" : "Next week"}
                 >
                   <ChevronRight size={18} />
@@ -802,7 +802,7 @@ function Schedule() {
 
           {calendarView === "month" && (
 
-            <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-slate-500">
+            <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-fg-faint">
               {WEEKDAYS.map((day) => (
                 <div key={day} className="pb-1">
                   {day}
@@ -847,7 +847,7 @@ function Schedule() {
                   }}
                   className={`
                     relative flex min-h-[76px] flex-col items-start rounded-xl border p-2 text-left transition
-                    ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
+                    ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-border hover:border-border-strong hover:bg-surface-muted"}
                     ${isDragTarget ? "border-brand-400 bg-brand-600/20" : ""}
                     ${!isCurrentMonth ? "opacity-40" : ""}
                   `}
@@ -863,7 +863,7 @@ function Schedule() {
                   <span
                     className={`
                       flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium
-                      ${isToday ? "bg-brand-600 text-white" : "text-slate-300"}
+                      ${isToday ? "bg-brand-600 text-white" : "text-fg-muted"}
                     `}
                   >
                     {day.getDate()}
@@ -886,7 +886,7 @@ function Schedule() {
                         }}
                         title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
                         className={`
-                          flex items-center gap-1 truncate rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300 transition
+                          flex items-center gap-1 truncate rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-fg-muted transition
                           ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
                         `}
                       >
@@ -898,7 +898,7 @@ function Schedule() {
                     ))}
 
                     {dayAppointments.length > 2 && (
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] text-fg-faint">
                         +{dayAppointments.length - 2} more
                       </span>
                     )}
@@ -952,7 +952,7 @@ function Schedule() {
                     onClick={() => setSelectedDate(day)}
                     className={`
                       relative flex flex-col items-center rounded-xl border py-1.5 transition
-                      ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
+                      ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-border hover:border-border-strong hover:bg-surface-muted"}
                     `}
                   >
 
@@ -963,14 +963,14 @@ function Schedule() {
                       />
                     )}
 
-                    <span className="text-[10px] font-medium text-slate-500">
+                    <span className="text-[10px] font-medium text-fg-faint">
                       {WEEKDAYS[day.getDay()]}
                     </span>
 
                     <span
                       className={`
                         mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium
-                        ${isToday ? "bg-brand-600 text-white" : "text-slate-300"}
+                        ${isToday ? "bg-brand-600 text-white" : "text-fg-muted"}
                       `}
                     >
                       {day.getDate()}
@@ -984,7 +984,7 @@ function Schedule() {
 
             </div>
 
-            <div className="mt-1.5 max-h-[620px] overflow-y-auto rounded-xl border border-ink-700">
+            <div className="mt-1.5 max-h-[620px] overflow-y-auto rounded-xl border border-border">
 
               <div
                 className="relative grid grid-cols-[3rem_repeat(7,1fr)] gap-1.5 p-1.5"
@@ -997,7 +997,7 @@ function Schedule() {
 
                     <div
                       key={hour}
-                      className="absolute right-1.5 -translate-y-1/2 text-[10px] text-slate-500"
+                      className="absolute right-1.5 -translate-y-1/2 text-[10px] text-fg-faint"
                       style={{ top: (hour - weekGridStartHour) * WEEK_HOUR_ROW_HEIGHT }}
                     >
                       {new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: "numeric" })}
@@ -1037,14 +1037,14 @@ function Schedule() {
                       }}
                       className={`
                         relative cursor-pointer rounded-lg border transition
-                        ${isDragTarget ? "border-brand-400 bg-brand-600/20" : "border-ink-800/60 bg-ink-950/40 hover:bg-ink-900/60"}
+                        ${isDragTarget ? "border-brand-400 bg-brand-600/20" : "border-border/60 bg-bg/40 hover:bg-surface/60"}
                       `}
                     >
 
                       {weekGridHours.map((hour, i) => (
                         <div
                           key={hour}
-                          className="absolute inset-x-0 border-t border-ink-800/60"
+                          className="absolute inset-x-0 border-t border-border/60"
                           style={{ top: i * WEEK_HOUR_ROW_HEIGHT }}
                         />
                       ))}
@@ -1084,7 +1084,7 @@ function Schedule() {
                             }}
                             title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
                             className={`
-                              absolute inset-x-0.5 overflow-hidden rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300 transition
+                              absolute inset-x-0.5 overflow-hidden rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-fg-muted transition
                               ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
                             `}
                             style={{
@@ -1100,7 +1100,7 @@ function Schedule() {
                               <span className="truncate font-medium">{appt.title}</span>
                             </span>
 
-                            <span className="text-slate-500">
+                            <span className="text-fg-faint">
                               {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                             </span>
 
@@ -1128,7 +1128,7 @@ function Schedule() {
 
         </div>
 
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5 lg:col-span-4">
+        <div className="rounded-2xl border border-border bg-surface/60 p-5 lg:col-span-4">
 
           <h2 className="font-display text-lg font-semibold">
             {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
@@ -1140,7 +1140,7 @@ function Schedule() {
 
               {[0, 1].map((i) => (
 
-                <div key={i} className="rounded-xl border border-ink-700 bg-ink-800 p-3.5">
+                <div key={i} className="rounded-xl border border-border bg-surface-muted p-3.5">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="mt-2 h-3 w-1/3" />
                 </div>
@@ -1167,7 +1167,7 @@ function Schedule() {
 
                 <div
                   key={appt.id}
-                  className="rounded-xl border border-ink-700 bg-ink-800 p-3.5"
+                  className="rounded-xl border border-border bg-surface-muted p-3.5"
                 >
 
                   <div className="flex items-start justify-between gap-2">
@@ -1181,38 +1181,38 @@ function Schedule() {
                         {appt.title}
                       </p>
 
-                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
+                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-muted">
                         <Clock size={12} />
                         {new Date(appt.start_time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                       </p>
 
                       {appt.customer_name && (
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-fg-faint">
                           {appt.customer_name}
                         </p>
                       )}
 
                       {appt.recurrence_id && (
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+                        <p className="mt-1 flex items-center gap-1 text-[11px] text-fg-faint">
                           <Repeat size={11} />
                           Repeats {RECURRENCE_LABELS[appt.recurrence_rule] || appt.recurrence_rule}
                         </p>
                       )}
 
                       {appt.created_by_name && (
-                        <p className="mt-1 text-[11px] text-slate-500">
+                        <p className="mt-1 text-[11px] text-fg-faint">
                           Added by {appt.created_by_name}
                         </p>
                       )}
 
                       {teammates.length > 1 && (
                         <div className="mt-1.5 flex items-center gap-1.5">
-                          <User size={11} className="shrink-0 text-slate-500" />
+                          <User size={11} className="shrink-0 text-fg-faint" />
                           <select
                             value={appt.assigned_user_id || ""}
                             onChange={(e) => handleReassign(appt, e.target.value)}
                             aria-label="Assigned to"
-                            className="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[11px] text-slate-300 focus:border-ink-600 focus:outline-none"
+                            className="rounded border border-border bg-surface px-1.5 py-0.5 text-[11px] text-fg-muted focus:border-border-strong focus:outline-none"
                           >
                             <option value="">Unassigned</option>
                             {teammates.map((t) => (
@@ -1238,7 +1238,7 @@ function Schedule() {
                   )}
 
                   {appt.notes && (
-                    <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    <p className="mt-2 text-xs leading-relaxed text-fg-muted">
                       {appt.notes}
                     </p>
                   )}
@@ -1257,7 +1257,7 @@ function Schedule() {
 
                         <button
                           onClick={() => handleStatusChange(appt.id, "cancelled")}
-                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                          className="rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
                         >
                           Decline
                         </button>
@@ -1268,7 +1268,7 @@ function Schedule() {
                       <>
                         <button
                           onClick={() => handleStatusChange(appt.id, "completed")}
-                          className="flex items-center gap-1 rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                          className="flex items-center gap-1 rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
                         >
                           <Check size={13} />
                           Done
@@ -1282,7 +1282,7 @@ function Schedule() {
                               handleStatusChange(appt.id, "cancelled");
                             }
                           }}
-                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                          className="rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
                         >
                           Cancel
                         </button>
@@ -1293,27 +1293,27 @@ function Schedule() {
 
                       <div className="flex flex-wrap items-center gap-1.5">
 
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-fg-faint">
                           Cancel:
                         </span>
 
                         <button
                           onClick={() => handleStatusChange(appt.id, "cancelled", "this")}
-                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                          className="rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
                         >
                           This one
                         </button>
 
                         <button
                           onClick={() => handleStatusChange(appt.id, "cancelled", "future")}
-                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600"
+                          className="rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong"
                         >
                           This & future
                         </button>
 
                         <button
                           onClick={() => setCancelPromptId(null)}
-                          className="rounded-lg px-2 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-ink-700"
+                          className="rounded-lg px-2 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-border"
                           aria-label="Nevermind"
                         >
                           <X size={13} />
@@ -1333,14 +1333,14 @@ function Schedule() {
 
                             <button
                               onClick={() => setDeleteScope("this")}
-                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "this" ? "bg-brand-600 text-white" : "bg-ink-700 text-slate-300 hover:bg-ink-600"}`}
+                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "this" ? "bg-brand-600 text-white" : "bg-border text-fg-muted hover:bg-border-strong"}`}
                             >
                               This one
                             </button>
 
                             <button
                               onClick={() => setDeleteScope("future")}
-                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "future" ? "bg-brand-600 text-white" : "bg-ink-700 text-slate-300 hover:bg-ink-600"}`}
+                              className={`rounded-lg px-2 py-1 text-[11px] font-medium transition ${deleteScope === "future" ? "bg-brand-600 text-white" : "bg-border text-fg-muted hover:bg-border-strong"}`}
                             >
                               This & future
                             </button>
@@ -1363,7 +1363,7 @@ function Schedule() {
                             setDeleteScope("this");
                           }}
                           disabled={deletingId === appt.id}
-                          className="rounded-lg bg-ink-700 px-2.5 py-1.5 text-xs font-medium transition hover:bg-ink-600 disabled:opacity-50"
+                          className="rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -1378,7 +1378,7 @@ function Schedule() {
                           setDeleteScope("this");
                         }}
                         aria-label="Delete appointment"
-                        className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                        className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/10"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -1407,7 +1407,7 @@ function Schedule() {
         >
 
           <div
-            className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -1419,7 +1419,7 @@ function Schedule() {
 
               <button
                 onClick={() => setShowForm(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white"
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -1428,7 +1428,7 @@ function Schedule() {
             </div>
 
             {formError && (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {formError}
               </p>
             )}
@@ -1439,13 +1439,13 @@ function Schedule() {
                 placeholder="Title (e.g. Roof inspection)"
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <select
                 value={formCustomerId}
                 onChange={(e) => setFormCustomerId(e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
               >
                 <option value="">No customer linked</option>
                 {customers.map((c) => (
@@ -1458,7 +1458,7 @@ function Schedule() {
                   value={formAssignedUserId}
                   onChange={(e) => setFormAssignedUserId(e.target.value)}
                   aria-label="Assign to"
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 >
                   <option value="">Unassigned</option>
                   {teammates.map((t) => (
@@ -1473,27 +1473,27 @@ function Schedule() {
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 />
 
                 <input
                   type="time"
                   value={formTime}
                   onChange={(e) => setFormTime(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 />
 
               </div>
 
               <div>
-                <label htmlFor="appointment-duration" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor="appointment-duration" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                   Duration
                 </label>
                 <select
                   id="appointment-duration"
                   value={formDurationMinutes}
                   onChange={(e) => setFormDurationMinutes(Number(e.target.value))}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 >
                   <option value={15}>15 minutes</option>
                   <option value={30}>30 minutes</option>
@@ -1512,7 +1512,7 @@ function Schedule() {
                 <select
                   value={formRecurrence}
                   onChange={(e) => setFormRecurrence(e.target.value)}
-                  className="w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                 >
                   <option value="none">Does not repeat</option>
                   <option value="weekly">Repeats weekly</option>
@@ -1528,14 +1528,14 @@ function Schedule() {
                     value={formOccurrences}
                     onChange={(e) => setFormOccurrences(e.target.value)}
                     placeholder="Times"
-                    className="w-28 rounded-lg border border-ink-700 bg-ink-800 p-3 text-white focus:border-ink-600 focus:outline-none"
+                    className="w-28 rounded-lg border border-border bg-surface-muted p-3 text-fg focus:border-border-strong focus:outline-none"
                   />
                 )}
 
               </div>
 
               {formRecurrence !== "none" && (
-                <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                <p className="flex items-center gap-1.5 text-xs text-fg-faint">
                   <Repeat size={12} />
                   Creates {formOccurrences || 0} appointments, {RECURRENCE_LABELS[formRecurrence]} apart (max {MAX_RECURRING_OCCURRENCES}).
                 </p>
@@ -1545,7 +1545,7 @@ function Schedule() {
                 placeholder="Notes (optional)"
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
-                className="h-20 w-full rounded-lg border border-ink-700 bg-ink-800 p-3 text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+                className="h-20 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
               <button

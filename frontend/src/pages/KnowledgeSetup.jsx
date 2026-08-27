@@ -188,8 +188,8 @@ function KnowledgeSetup() {
       mb-12
       rounded-2xl
       border
-      border-ink-700
-      bg-ink-900/60
+      border-border
+      bg-surface/60
       p-8
     ">
 
@@ -212,7 +212,7 @@ function KnowledgeSetup() {
 
       {error && (
 
-        <p className="text-red-400 mb-4">
+        <p className="text-danger mb-4">
 
           {error}
 
@@ -221,7 +221,7 @@ function KnowledgeSetup() {
       )}
 
 
-      <label htmlFor="knowledge-hours" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-hours" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Business Hours
       </label>
 
@@ -238,15 +238,15 @@ function KnowledgeSetup() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -254,7 +254,7 @@ function KnowledgeSetup() {
 
 
 
-      <label htmlFor="knowledge-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Services You Offer
       </label>
 
@@ -271,15 +271,15 @@ function KnowledgeSetup() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -287,7 +287,7 @@ function KnowledgeSetup() {
 
 
 
-      <label htmlFor="knowledge-service-area" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-service-area" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Areas You Serve
       </label>
 
@@ -304,15 +304,15 @@ function KnowledgeSetup() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -320,7 +320,7 @@ function KnowledgeSetup() {
 
 
 
-      <label htmlFor="knowledge-faq" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-faq" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Common Customer Questions
       </label>
 
@@ -337,15 +337,15 @@ function KnowledgeSetup() {
         className="
           w-full
           mb-4
-          bg-ink-800
+          bg-surface-muted
           border
-          border-ink-700
+          border-border
           rounded-lg
           p-3
-          text-white
-          placeholder:text-slate-500
+          text-fg
+          placeholder:text-fg-faint
           focus:outline-none
-          focus:border-ink-600
+          focus:border-border-strong
         "
 
       />
@@ -379,9 +379,9 @@ function KnowledgeSetup() {
       </button>
 
 
-      <p className="mt-6 text-slate-400">
+      <p className="mt-6 text-fg-muted">
 
-        <Link to="/dashboard" className="text-brand-400 hover:underline">
+        <Link to="/dashboard" className="text-accent-text hover:underline">
 
           Skip for now
         </Link>
