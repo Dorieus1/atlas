@@ -39,7 +39,10 @@ const insertOldAppointment = (business_id, customer_id) => {
 describe("Ask Atlas", () => {
 
   beforeEach(() => {
-    global.__mockOpenAICreate.mockClear();
+    // mockReset (not mockClear) so a `mockResolvedValueOnce` a test
+    // queues but doesn't fully consume can't survive into the next one;
+    // then re-establish the default.
+    global.__mockOpenAICreate.mockReset();
     global.__mockOpenAICreate.mockResolvedValue({ output_text: "You have 2 customers and no outstanding invoices right now." });
   });
 

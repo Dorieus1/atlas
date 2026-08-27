@@ -1,5 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
+const { flushBackgroundWork } = require("../services/chatService");
 const { createBusinessAndUser } = require("./setup/helpers");
 
 const createCustomer = async (app, authHeader, name) => {
@@ -14,37 +15,26 @@ const createCustomer = async (app, authHeader, name) => {
 };
 
 
-// Lead detection (classifyLead) now runs detached from the chat response
+// Lead detection (classifyLead) runs detached from the chat response
 // (see chatService.js's runLeadDetection) so it can never delay the
 // reply the customer is actually waiting on - which means the resulting
-// notification doesn't necessarily exist yet the instant POST /api/chat
-// returns. Polls briefly rather than asserting immediately, matching the
-// same pattern already used for Google Calendar sync and knowledge-gap
-// detection elsewhere in this test suite.
-const waitFor = async (checkFn, { timeout = 1000, interval = 20 } = {}) => {
-
-  const start = Date.now();
-
-  while (true) {
-
-    const result = await checkFn();
-
-    if (result || Date.now() - start > timeout) {
-      return result;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, interval));
-
-  }
-
-};
+// notification doesn't exist yet the instant POST /api/chat returns.
+// flushBackgroundWork() waits for that detached work to finish, so tests
+// can assert on its results without polling on a timeout.
 
 
 describe("Notifications", () => {
 
   beforeEach(() => {
-    global.__mockOpenAICreate.mockClear();
+    // mockReset (not mockClear) so a `mockResolvedValueOnce` value left
+    // in the queue by a previous test - e.g. one whose detached lead-
+    // detection call hadn't fired yet - can't be consumed by this one.
+    global.__mockOpenAICreate.mockReset();
     global.__mockOpenAICreate.mockResolvedValue({ output_text: "hot" });
+  });
+
+  afterEach(async () => {
+    await flushBackgroundWork();
   });
 
 
@@ -58,15 +48,11 @@ describe("Notifications", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "I need an estimate for a new roof" });
 
-    const list = await waitFor(async () => {
+    await flushBackgroundWork();
 
-      const res = await request(app)
-        .get("/api/notifications")
-        .set("Authorization", authHeader);
-
-      return res.body.length > 0 ? res : null;
-
-    });
+    const list = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
 
     expect(list.status).toBe(200);
     expect(list.body.length).toBe(1);
@@ -94,10 +80,10 @@ describe("Notifications", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "Just saying hello" });
 
-    // Nothing to poll FOR here (the whole point is absence) - a short
-    // fixed wait is the standard way to assert a negative against a
-    // detached, mocked (near-instant) async chain.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // Nothing to poll FOR here (the whole point is absence). Wait for
+    // the detached lead-detection work to actually finish rather than
+    // guessing at a fixed delay, then assert nothing came of it.
+    await flushBackgroundWork();
 
     const list = await request(app)
       .get("/api/notifications")
@@ -159,15 +145,11 @@ describe("Notifications", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerTwoId, message: "What's the price for a repair?" });
 
-    const listAfterBoth = await waitFor(async () => {
+    await flushBackgroundWork();
 
-      const res = await request(app)
-        .get("/api/notifications")
-        .set("Authorization", authHeader);
-
-      return res.body.length >= 2 ? res : null;
-
-    });
+    const listAfterBoth = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
 
     expect(listAfterBoth.body.length).toBe(2);
 
@@ -216,15 +198,7 @@ describe("Notifications", () => {
       .set("Authorization", bizA.authHeader)
       .send({ customer_id: customerId, message: "I need an estimate" });
 
-    await waitFor(async () => {
-
-      const res = await request(app)
-        .get("/api/notifications")
-        .set("Authorization", bizA.authHeader);
-
-      return res.body.length > 0 ? res : null;
-
-    });
+    await flushBackgroundWork();
 
     const bList = await request(app)
       .get("/api/notifications")
@@ -253,15 +227,11 @@ describe("Notifications", () => {
       .set("Authorization", bizA.authHeader)
       .send({ customer_id: customerId, message: "I need an estimate" });
 
-    const list = await waitFor(async () => {
+    await flushBackgroundWork();
 
-      const res = await request(app)
-        .get("/api/notifications")
-        .set("Authorization", bizA.authHeader);
-
-      return res.body.length > 0 ? res : null;
-
-    });
+    const list = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", bizA.authHeader);
 
     const notificationId = list.body[0].id;
 

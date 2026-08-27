@@ -100,7 +100,10 @@ describe("Automated lead follow-up", () => {
 
   beforeEach(() => {
     global.fetch.mockClear();
-    global.__mockOpenAICreate.mockClear();
+    // mockReset (not mockClear) so a `mockResolvedValueOnce` /
+    // `mockRejectedValueOnce` a test queues but doesn't fully consume
+    // can't survive into the next test; then re-establish the default.
+    global.__mockOpenAICreate.mockReset();
     global.__mockOpenAICreate.mockResolvedValue({ output_text: "Hi there, just checking in on your project!" });
   });
 

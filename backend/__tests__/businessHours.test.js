@@ -1,5 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
+const { flushBackgroundWork } = require("../services/chatService");
 const { createBusinessAndUser } = require("./setup/helpers");
 
 
@@ -259,8 +260,15 @@ describe("Business hours", () => {
   describe("AI chat grounding", () => {
 
     beforeEach(() => {
-      global.__mockOpenAICreate.mockClear();
+      // mockReset (not mockClear) so no queued `mockResolvedValueOnce`
+      // from another test's detached lead-/gap-detection call survives
+      // into this one.
+      global.__mockOpenAICreate.mockReset();
       global.__mockOpenAICreate.mockResolvedValue({ output_text: "We're open Monday 09:00-17:00." });
+    });
+
+    afterEach(async () => {
+      await flushBackgroundWork();
     });
 
     test("structured business hours reach the AI's instructions without any Knowledge Base entry", async () => {
