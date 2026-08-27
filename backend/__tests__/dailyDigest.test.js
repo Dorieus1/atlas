@@ -278,6 +278,48 @@ describe("Daily digest emails", () => {
   });
 
 
+  // Regression test for a real HTML-injection vulnerability found during
+  // review: a lead's name/an appointment's title are attacker-
+  // controllable end to end via the public, unauthenticated chat widget
+  // and portal appointment requests - this digest email is the one place
+  // that data reaches a DIFFERENT person (the business owner) than the
+  // customer who supplied it, unescaped, so a malicious name/title could
+  // inject arbitrary HTML into the owner's inbox (CWE-79 stored XSS).
+  test("a lead name or appointment title containing HTML is escaped, not injected raw", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "DigestXssGuard");
+    await setTimezone(authHeader, "DigestXssGuard Business", "America/New_York");
+
+    const customerId = await createCustomer(authHeader, "XSS Customer", "xsscust@test.com");
+
+    await insertLead(business_id, customerId, {
+      name: '<img src=x onerror="alert(1)">',
+      email: "xsslead@test.com",
+      priority: "hot"
+    });
+
+    await createAppointment(
+      authHeader,
+      customerId,
+      '<script>alert(document.cookie)</script>',
+      "2026-01-15T20:00:00.000Z"
+    );
+
+    jest.useFakeTimers().setSystemTime(new Date(NY_LOCAL_8AM));
+
+    await sendDailyDigests();
+
+    const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
+    const body = JSON.parse(lastCall[1].body);
+
+    expect(body.html).not.toContain("<img src=x onerror=");
+    expect(body.html).not.toContain("<script>alert(document.cookie)</script>");
+    expect(body.html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    expect(body.html).toContain("&lt;script&gt;alert(document.cookie)&lt;/script&gt;");
+
+  });
+
+
   test("only owners receive the digest, not staff", async () => {
 
     const { authHeader, business_id } = await createBusinessAndUser(app, "DigestRoles");
