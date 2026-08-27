@@ -5,6 +5,15 @@ import { API_BASE, handleSessionExpired, generateFollowUpMessage } from "../api/
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
 
+// Matches Analytics.jsx's own PIPELINE_STAGES - same four stages, same
+// order, so the board reads consistently with the funnel chart there.
+const STATUS_COLUMNS = [
+  { key: "new", label: "New" },
+  { key: "contacted", label: "Contacted" },
+  { key: "qualified", label: "Qualified" },
+  { key: "closed", label: "Closed" }
+];
+
 function LeadPipeline() {
 
   const [leads, setLeads] = useState([]);
@@ -208,6 +217,156 @@ function LeadPipeline() {
 
   };
 
+
+  const renderLeadCard = (lead) => (
+
+    <div
+      key={lead.id}
+      className={`bg-ink-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
+    >
+
+      <div className="flex justify-between">
+
+        <div className="min-w-0">
+
+          <h3 className="truncate font-bold text-lg">
+
+            {lead.name || "Unknown Customer"}
+
+          </h3>
+
+          {lead.customer_id && (
+
+            // A lead and its customer are two separate records for the
+            // same person - without this, an owner has no way to get
+            // from a lead card to that person's full history (past
+            // jobs, notes, quotes) without separately searching
+            // Customers by name and hoping it matches.
+            <Link
+              to={`/customers/${lead.customer_id}`}
+              className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
+            >
+              <UserSquare2 size={12} />
+              View customer profile
+            </Link>
+
+          )}
+
+          <p className="mt-1 truncate text-slate-400">
+
+            {lead.email}
+
+          </p>
+
+          {lead.phone && (
+
+            <p className="text-slate-400">
+
+              {lead.phone}
+
+            </p>
+
+          )}
+
+        </div>
+
+        <span className="shrink-0 rounded-full bg-red-500/20 px-3 py-1 text-red-400">
+
+          {lead.priority}
+
+        </span>
+
+      </div>
+
+      <p className="mt-4">
+
+        {lead.interest}
+
+      </p>
+
+      {lead.last_contacted && (
+
+        <p className="mt-1 text-slate-400 text-sm">
+
+          Last contacted: {formatDate(lead.last_contacted)}
+
+        </p>
+
+      )}
+
+      {lead.next_follow_up && (
+
+        <p className={`mt-1 text-sm ${isFollowUpOverdue(lead) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+
+          {isFollowUpOverdue(lead) ? "Follow-up overdue since " : "Next follow-up: "}
+          {formatDate(lead.next_follow_up)}
+
+        </p>
+
+      )}
+
+      <div className="flex flex-wrap gap-2 mt-4">
+
+        {["contacted", "qualified", "closed"].map((statusOption) => {
+
+          const isActive = (lead.status || "new") === statusOption;
+
+          return (
+
+            <button
+              key={statusOption}
+              onClick={() => updateStatus(lead.id, statusOption)}
+              disabled={updatingId === lead.id || isActive}
+              className={
+                isActive
+                  ? "bg-brand-600/20 text-brand-400 border border-brand-500 px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-100"
+                  : "bg-ink-900 hover:bg-ink-700 border border-ink-700 px-3 py-1.5 rounded-lg text-xs capitalize disabled:opacity-50"
+              }
+            >
+              {statusOption}
+            </button>
+
+          );
+
+        })}
+
+      </div>
+
+      <div className="mt-4 border-t border-ink-700 pt-4">
+
+        <button
+          onClick={() => generateFollowUp(lead)}
+          disabled={followUpLoadingId === lead.id}
+          className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50 inline-flex items-center gap-1.5"
+        >
+          {followUpLoadingId === lead.id
+            ? "Generating..."
+            : (<><Sparkles size={14} /> Generate Follow-Up Message</>)}
+        </button>
+
+        {followUpErrors[lead.id] && (
+
+          <p className="mt-2 text-sm text-red-400">
+            {followUpErrors[lead.id]}
+          </p>
+
+        )}
+
+        {followUpMessages[lead.id] && (
+
+          <div className="mt-3 whitespace-pre-wrap rounded-lg bg-ink-900 p-4 text-sm">
+            {followUpMessages[lead.id]}
+          </div>
+
+        )}
+
+      </div>
+
+    </div>
+
+  );
+
+
   return (
 
     <div className="h-full rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
@@ -243,9 +402,9 @@ function LeadPipeline() {
         </p>
       )}
 
-      <div className="mt-5 space-y-4">
+      {leads.length === 0 ? (
 
-        {leads.length === 0 ? (
+        <div className="mt-5">
 
           <EmptyState
             icon={Flame}
@@ -253,166 +412,62 @@ function LeadPipeline() {
             description="Leads are created automatically as Atlas chats with your customers."
           />
 
-        ) : (
+        </div>
 
-          leads.map((lead) => (
+      ) : (
 
-            <div
-              key={lead.id}
-              className={`bg-ink-800 rounded-xl p-5 ${isFollowUpOverdue(lead) ? "border border-red-600/50" : ""}`}
-            >
+        // Grouped into a status board rather than one long list - a
+        // business with real lead volume needs to scan "what's stuck in
+        // Contacted" at a glance, not scroll past every Closed lead to
+        // find it. Each column scrolls independently once it grows past
+        // a screen's worth, rather than the whole page growing forever.
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-              <div className="flex justify-between">
+          {STATUS_COLUMNS.map((column) => {
 
-                <div>
+            const columnLeads = leads.filter((lead) => (lead.status || "new") === column.key);
 
-                  <h3 className="font-bold text-lg">
+            return (
 
-                    {lead.name || "Unknown Customer"}
+              <div key={column.key} className="flex min-w-0 flex-col">
 
+                <div className="flex items-center gap-2 px-1 pb-3">
+
+                  <h3 className="text-sm font-semibold text-slate-300">
+                    {column.label}
                   </h3>
 
-                  {lead.customer_id && (
+                  <span className="rounded-full bg-ink-800 px-2 py-0.5 text-xs text-slate-500">
+                    {columnLeads.length}
+                  </span>
 
-                    // A lead and its customer are two separate records
-                    // for the same person - without this, an owner has
-                    // no way to get from a lead card to that person's
-                    // full history (past jobs, notes, quotes) without
-                    // separately searching Customers by name and hoping
-                    // it matches.
-                    <Link
-                      to={`/customers/${lead.customer_id}`}
-                      className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300"
-                    >
-                      <UserSquare2 size={12} />
-                      View customer profile
-                    </Link>
+                </div>
 
-                  )}
+                <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-0.5">
 
-                  <p className="mt-1 text-slate-400">
+                  {columnLeads.length === 0 ? (
 
-                    {lead.email}
-
-                  </p>
-
-                  {lead.phone && (
-
-                    <p className="text-slate-400">
-
-                      {lead.phone}
-
+                    <p className="rounded-xl border border-dashed border-ink-700 p-4 text-center text-xs text-slate-500">
+                      Nothing here
                     </p>
+
+                  ) : (
+
+                    columnLeads.map((lead) => renderLeadCard(lead))
 
                   )}
 
                 </div>
 
-                <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded-full">
-
-                  {lead.priority}
-
-                </span>
-
               </div>
 
-              <p className="mt-4">
+            );
 
-                {lead.interest}
+          })}
 
-              </p>
+        </div>
 
-              <p className="mt-2 text-slate-400">
-
-                Status: {lead.status || "new"}
-
-              </p>
-
-              {lead.last_contacted && (
-
-                <p className="mt-1 text-slate-400 text-sm">
-
-                  Last contacted: {formatDate(lead.last_contacted)}
-
-                </p>
-
-              )}
-
-              {lead.next_follow_up && (
-
-                <p className={`mt-1 text-sm ${isFollowUpOverdue(lead) ? "text-red-400 font-semibold" : "text-slate-400"}`}>
-
-                  {isFollowUpOverdue(lead) ? "Follow-up overdue since " : "Next follow-up: "}
-                  {formatDate(lead.next_follow_up)}
-
-                </p>
-
-              )}
-
-              <div className="flex flex-wrap gap-3 mt-4">
-
-                {["contacted", "qualified", "closed"].map((statusOption) => {
-
-                  const isActive = (lead.status || "new") === statusOption;
-
-                  return (
-
-                    <button
-                      key={statusOption}
-                      onClick={() => updateStatus(lead.id, statusOption)}
-                      disabled={updatingId === lead.id || isActive}
-                      className={
-                        isActive
-                          ? "bg-brand-600/20 text-brand-400 border border-brand-500 px-4 py-2 rounded-lg capitalize disabled:opacity-100"
-                          : "bg-ink-800 hover:bg-ink-700 border border-ink-700 px-4 py-2 rounded-lg capitalize disabled:opacity-50"
-                      }
-                    >
-                      {statusOption}
-                    </button>
-
-                  );
-
-                })}
-
-              </div>
-
-              <div className="mt-4 border-t border-ink-700 pt-4">
-
-                <button
-                  onClick={() => generateFollowUp(lead)}
-                  disabled={followUpLoadingId === lead.id}
-                  className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {followUpLoadingId === lead.id
-                    ? "Generating..."
-                    : (<><Sparkles size={14} /> Generate Follow-Up Message</>)}
-                </button>
-
-                {followUpErrors[lead.id] && (
-
-                  <p className="mt-2 text-sm text-red-400">
-                    {followUpErrors[lead.id]}
-                  </p>
-
-                )}
-
-                {followUpMessages[lead.id] && (
-
-                  <div className="mt-3 whitespace-pre-wrap rounded-lg bg-ink-900 p-4 text-sm">
-                    {followUpMessages[lead.id]}
-                  </div>
-
-                )}
-
-              </div>
-
-            </div>
-
-          ))
-
-        )}
-
-      </div>
+      )}
 
     </div>
 
