@@ -10,6 +10,35 @@ const { createNotification } = require("./notificationService");
 const { createKnowledgeGap } = require("./knowledgeGapService");
 
 
+// Lead detection and knowledge-gap detection are fired off without being
+// awaited (see below), so the chat reply never waits on them. That makes
+// them invisible to a caller that wants to know when they've finished -
+// which tests do, so they can assert on a lead or a gap without polling
+// on a timeout. Every detached job is registered here while it runs;
+// flushBackgroundWork() waits for whatever is currently outstanding.
+const backgroundWork = new Set();
+
+const trackBackgroundWork = (promise) => {
+
+  backgroundWork.add(promise);
+
+  promise.finally(() => backgroundWork.delete(promise));
+
+  return promise;
+
+};
+
+const flushBackgroundWork = async () => {
+
+  while (backgroundWork.size > 0) {
+
+    await Promise.allSettled([...backgroundWork]);
+
+  }
+
+};
+
+
 // Shared by the authenticated chat endpoint and the public chat page -
 // both routes resolve their own customer/business first (with their own
 // ownership/scoping rules), then hand off here for the actual AI reply
@@ -86,9 +115,13 @@ const processChatMessage = async (customer, business, message) => {
   // OpenAI call (on top of the reply itself) before ever seeing their
   // answer. Using the real classification as the gate instead fixes the
   // accuracy problem; detaching it fixes the latency one for free.
-  runLeadDetection(customer, business_id, message).catch(
+  trackBackgroundWork(
 
-    (leadError) => console.error("LEAD DETECTION FAILED:", leadError)
+    runLeadDetection(customer, business_id, message).catch(
+
+      (leadError) => console.error("LEAD DETECTION FAILED:", leadError)
+
+    )
 
   );
 
@@ -98,9 +131,13 @@ const processChatMessage = async (customer, business, message) => {
   // reply the customer is actually waiting on; the reply above is
   // already generated and saved either way, and this only ever adds a
   // suggestion for the owner to review later.
-  runKnowledgeGapDetection(business_id, customer_id, message, reply, knowledge).catch(
+  trackBackgroundWork(
 
-    (gapError) => console.error("KNOWLEDGE GAP DETECTION FAILED:", gapError)
+    runKnowledgeGapDetection(business_id, customer_id, message, reply, knowledge).catch(
+
+      (gapError) => console.error("KNOWLEDGE GAP DETECTION FAILED:", gapError)
+
+    )
 
   );
 
@@ -199,4 +236,4 @@ const runKnowledgeGapDetection = async (business_id, customer_id, message, reply
 };
 
 
-module.exports = { processChatMessage };
+module.exports = { processChatMessage, flushBackgroundWork };

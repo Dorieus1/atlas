@@ -1,5 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
+const { flushBackgroundWork } = require("../services/chatService");
 const { createBusinessAndUser } = require("./setup/helpers");
 
 
@@ -17,25 +18,18 @@ const createCustomer = async (app, authHeader, name) => {
 
 // Knowledge-gap detection runs detached from the chat response (it's a
 // second OpenAI call and must never delay the customer's reply), so a
-// gap this test expects to exist may not be saved yet the instant the
-// chat request resolves. Poll briefly instead of asserting immediately.
-const waitForGaps = async (app, authHeader, { minLength = 1, timeout = 1000, interval = 20 } = {}) => {
+// gap this test expects to exist is not saved yet the instant the chat
+// request resolves. flushBackgroundWork() waits for that detached work
+// to finish - deterministically, so we neither poll on a timeout nor
+// leave a half-finished background call to bleed into the next test and
+// consume a mock response queued for it.
+const waitForGaps = async (app, authHeader) => {
 
-  const start = Date.now();
+  await flushBackgroundWork();
 
-  while (true) {
-
-    const res = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
-
-    if (res.body.length >= minLength || Date.now() - start > timeout) {
-      return res;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, interval));
-
-  }
+  return request(app)
+    .get("/api/knowledge-gaps")
+    .set("Authorization", authHeader);
 
 };
 
@@ -43,7 +37,18 @@ const waitForGaps = async (app, authHeader, { minLength = 1, timeout = 1000, int
 describe("Self-improving knowledge base (knowledge gaps)", () => {
 
   beforeEach(() => {
-    global.__mockOpenAICreate.mockClear();
+    // mockReset (not mockClear) so no `mockResolvedValueOnce` value
+    // queued by a previous test survives into this one; then put back
+    // the always-on default that setup/mockOpenai.js installs.
+    global.__mockOpenAICreate.mockReset();
+    global.__mockOpenAICreate.mockResolvedValue({ output_text: "hot" });
+  });
+
+  afterEach(async () => {
+    // Drain any still-running detached lead-/gap-detection call before
+    // the next test resets the mock, so it can't consume that test's
+    // queued responses.
+    await flushBackgroundWork();
   });
 
 
@@ -106,9 +111,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, message: "What are your hours?" });
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     expect(gaps.body.length).toBe(0);
 
@@ -133,9 +136,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
     expect(chat.status).toBe(200);
     expect(chat.body.reply).toBe("Here's an answer for you.");
 
-    const gaps = await request(app)
-      .get("/api/knowledge-gaps")
-      .set("Authorization", authHeader);
+    const gaps = await waitForGaps(app, authHeader);
 
     expect(gaps.body.length).toBe(0);
 
