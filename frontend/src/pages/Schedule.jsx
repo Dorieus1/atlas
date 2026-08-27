@@ -136,6 +136,63 @@ function buildWeekGrid(weekStart) {
 }
 
 
+// Week view's hourly grid needs a shared vertical scale to place each
+// appointment at its actual time of day - this is what one hour tall
+// looks like on that scale, in pixels.
+const WEEK_HOUR_ROW_HEIGHT = 48;
+
+// The New Appointment form has no duration field, so almost nothing here
+// ever gets a real end_time. Falling back to the same default the
+// backend already uses for conflict detection (appointmentService.js's
+// DEFAULT_DURATION_MS) keeps a block's on-screen height consistent with
+// what "conflict" actually means server-side.
+const DEFAULT_APPOINTMENT_DURATION_MINUTES = 60;
+
+function getAppointmentEnd(appt) {
+
+  if (appt.end_time) {
+    return new Date(appt.end_time);
+  }
+
+  return new Date(new Date(appt.start_time).getTime() + DEFAULT_APPOINTMENT_DURATION_MINUTES * 60 * 1000);
+
+}
+
+// 7am-7pm covers the large majority of service-business appointments and
+// is a reasonable default grid to show even on an empty week. But a real
+// appointment outside that window must still be visible rather than
+// clipped off the top or bottom - so the range only ever widens to fit
+// whatever's actually scheduled that specific week, never shrinks below
+// the default.
+const DEFAULT_WEEK_GRID_START_HOUR = 7;
+const DEFAULT_WEEK_GRID_END_HOUR = 19;
+
+function computeWeekHourRange(weekDays, appointmentsByDay) {
+
+  let startHour = DEFAULT_WEEK_GRID_START_HOUR;
+  let endHour = DEFAULT_WEEK_GRID_END_HOUR;
+
+  weekDays.forEach((day) => {
+
+    const key = toDateKey(day);
+
+    (appointmentsByDay[key] || []).forEach((appt) => {
+
+      const start = new Date(appt.start_time);
+      const end = getAppointmentEnd(appt);
+
+      startHour = Math.min(startHour, start.getHours());
+      endHour = Math.max(endHour, end.getMinutes() > 0 ? end.getHours() + 1 : end.getHours());
+
+    });
+
+  });
+
+  return { startHour, endHour: Math.max(endHour, startHour + 1) };
+
+}
+
+
 function buildMonthGrid(monthDate) {
 
   const year = monthDate.getFullYear();
@@ -558,6 +615,10 @@ function Schedule() {
     (a, b) => new Date(a.start_time) - new Date(b.start_time)
   );
 
+  const { startHour: weekGridStartHour, endHour: weekGridEndHour } = computeWeekHourRange(weekDays, appointmentsByDay);
+  const weekGridHours = Array.from({ length: weekGridEndHour - weekGridStartHour }, (_, i) => weekGridStartHour + i);
+  const weekGridHeight = (weekGridEndHour - weekGridStartHour) * WEEK_HOUR_ROW_HEIGHT;
+
 
   return (
 
@@ -829,55 +890,58 @@ function Schedule() {
 
           ) : (
 
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="mt-1 overflow-x-auto">
 
-            {weekDays.map((day) => {
+            {/*
+              Squeezing 7 day columns plus an hour gutter into a phone's
+              width makes each column illegibly thin rather than actually
+              responsive - below the sm breakpoint this floor gives every
+              column a workable width (~85px) and lets the row scroll
+              horizontally instead of squishing. The floor drops away at
+              sm and up: below lg this card is already full page width
+              (the calendar and side panel stack, not sit side by side),
+              and at lg+ where they do share a row, natural 1fr sizing
+              still gives each column a reasonable ~80px+ - no forced
+              scroll needed on an actual desktop-sized panel. Both the
+              day-header row and the hourly grid below share this one
+              width so they always scroll in sync.
+            */}
+            <div className="min-w-[640px] sm:min-w-0">
 
-              const key = toDateKey(day);
-              const dayAppointments = (appointmentsByDay[key] || []).sort(
-                (a, b) => new Date(a.start_time) - new Date(b.start_time)
-              );
-              const isToday = sameDay(day, today);
-              const isSelected = sameDay(day, selectedDate);
-              const dayHasConflict = dayAppointments.some((appt) => appt.has_conflict);
-              const isDragTarget = dragOverKey === key && draggedAppointmentId;
+            <div className="grid grid-cols-[3rem_repeat(7,1fr)] gap-1.5">
 
-              return (
+              <div />
 
-                <button
-                  key={key}
-                  onClick={() => setSelectedDate(day)}
-                  onDragOver={(e) => {
-                    if (draggedAppointmentId) {
-                      e.preventDefault();
-                      if (dragOverKey !== key) setDragOverKey(key);
-                    }
-                  }}
-                  onDragLeave={() => {
-                    if (dragOverKey === key) setDragOverKey(null);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    handleDropOnDay(day);
-                  }}
-                  className={`
-                    relative flex min-h-[320px] flex-col items-stretch gap-1 rounded-xl border p-2 text-left align-top transition
-                    ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
-                    ${isDragTarget ? "border-brand-400 bg-brand-600/20" : ""}
-                  `}
-                >
+              {weekDays.map((day) => {
 
-                  {dayHasConflict && (
-                    <span
-                      className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-500"
-                      aria-label="This day has overlapping appointments"
-                    />
-                  )}
+                const key = toDateKey(day);
+                const dayAppointments = appointmentsByDay[key] || [];
+                const isToday = sameDay(day, today);
+                const isSelected = sameDay(day, selectedDate);
+                const dayHasConflict = dayAppointments.some((appt) => appt.has_conflict);
 
-                  <div className="flex flex-col items-center pb-1">
+                return (
+
+                  <button
+                    key={key}
+                    onClick={() => setSelectedDate(day)}
+                    className={`
+                      relative flex flex-col items-center rounded-xl border py-1.5 transition
+                      ${isSelected ? "border-brand-500 bg-brand-600/10" : "border-ink-700 hover:border-ink-600 hover:bg-ink-800"}
+                    `}
+                  >
+
+                    {dayHasConflict && (
+                      <span
+                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-500"
+                        aria-label="This day has overlapping appointments"
+                      />
+                    )}
+
                     <span className="text-[10px] font-medium text-slate-500">
                       {WEEKDAYS[day.getDay()]}
                     </span>
+
                     <span
                       className={`
                         mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium
@@ -886,48 +950,152 @@ function Schedule() {
                     >
                       {day.getDate()}
                     </span>
-                  </div>
 
-                  <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto">
+                  </button>
 
-                    {dayAppointments.map((appt) => (
-                      <span
-                        key={appt.id}
-                        draggable
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          e.dataTransfer.effectAllowed = "move";
-                          setDraggedAppointmentId(appt.id);
-                        }}
-                        onDragEnd={() => {
-                          setDraggedAppointmentId(null);
-                          setDragOverKey(null);
-                        }}
-                        title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
-                        className={`
-                          flex flex-col items-start gap-0.5 truncate rounded bg-ink-800 px-1.5 py-1 text-[10px] text-slate-300 transition
-                          ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
-                        `}
-                      >
-                        <span className="flex w-full items-center gap-1">
-                          {teammates.length > 1 && (
-                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${teammateColor(appt.assigned_user_id)}`} />
-                          )}
-                          <span className="truncate font-medium">{appt.title}</span>
-                        </span>
-                        <span className="text-slate-500">
-                          {new Date(appt.start_time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                        </span>
-                      </span>
-                    ))}
+                );
 
-                  </div>
+              })}
 
-                </button>
+            </div>
 
-              );
+            <div className="mt-1.5 max-h-[620px] overflow-y-auto rounded-xl border border-ink-700">
 
-            })}
+              <div
+                className="relative grid grid-cols-[3rem_repeat(7,1fr)] gap-1.5 p-1.5"
+                style={{ height: weekGridHeight }}
+              >
+
+                <div className="relative">
+
+                  {weekGridHours.map((hour) => (
+
+                    <div
+                      key={hour}
+                      className="absolute right-1.5 -translate-y-1/2 text-[10px] text-slate-500"
+                      style={{ top: (hour - weekGridStartHour) * WEEK_HOUR_ROW_HEIGHT }}
+                    >
+                      {new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: "numeric" })}
+                    </div>
+
+                  ))}
+
+                </div>
+
+                {weekDays.map((day) => {
+
+                  const key = toDateKey(day);
+                  const dayAppointments = appointmentsByDay[key] || [];
+                  const isToday = sameDay(day, today);
+                  const isDragTarget = dragOverKey === key && draggedAppointmentId;
+                  const now = new Date();
+                  const nowMinutes = (now.getHours() - weekGridStartHour) * 60 + now.getMinutes();
+                  const showNowLine = isToday && nowMinutes >= 0 && nowMinutes <= (weekGridEndHour - weekGridStartHour) * 60;
+
+                  return (
+
+                    <div
+                      key={key}
+                      onClick={() => setSelectedDate(day)}
+                      onDragOver={(e) => {
+                        if (draggedAppointmentId) {
+                          e.preventDefault();
+                          if (dragOverKey !== key) setDragOverKey(key);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverKey === key) setDragOverKey(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnDay(day);
+                      }}
+                      className={`
+                        relative cursor-pointer rounded-lg border transition
+                        ${isDragTarget ? "border-brand-400 bg-brand-600/20" : "border-ink-800/60 bg-ink-950/40 hover:bg-ink-900/60"}
+                      `}
+                    >
+
+                      {weekGridHours.map((hour, i) => (
+                        <div
+                          key={hour}
+                          className="absolute inset-x-0 border-t border-ink-800/60"
+                          style={{ top: i * WEEK_HOUR_ROW_HEIGHT }}
+                        />
+                      ))}
+
+                      {showNowLine && (
+                        <div
+                          className="absolute inset-x-0 z-10 h-px bg-red-500"
+                          style={{ top: (nowMinutes / 60) * WEEK_HOUR_ROW_HEIGHT }}
+                        />
+                      )}
+
+                      {dayAppointments.map((appt) => {
+
+                        const start = new Date(appt.start_time);
+                        const end = getAppointmentEnd(appt);
+
+                        const startMinutes = (start.getHours() - weekGridStartHour) * 60 + start.getMinutes();
+                        const durationMinutes = Math.max((end.getTime() - start.getTime()) / 60000, 15);
+
+                        return (
+
+                          <div
+                            key={appt.id}
+                            draggable
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              e.dataTransfer.effectAllowed = "move";
+                              setDraggedAppointmentId(appt.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedAppointmentId(null);
+                              setDragOverKey(null);
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDate(day);
+                            }}
+                            title={appt.assigned_user_id ? teammatesById[appt.assigned_user_id]?.name : "Unassigned"}
+                            className={`
+                              absolute inset-x-0.5 overflow-hidden rounded bg-ink-800 px-1.5 py-0.5 text-[10px] text-slate-300 transition
+                              ${reschedulingId === appt.id ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
+                            `}
+                            style={{
+                              top: (startMinutes / 60) * WEEK_HOUR_ROW_HEIGHT,
+                              height: (durationMinutes / 60) * WEEK_HOUR_ROW_HEIGHT
+                            }}
+                          >
+
+                            <span className="flex items-center gap-1">
+                              {teammates.length > 1 && (
+                                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${teammateColor(appt.assigned_user_id)}`} />
+                              )}
+                              <span className="truncate font-medium">{appt.title}</span>
+                            </span>
+
+                            <span className="text-slate-500">
+                              {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                            </span>
+
+                          </div>
+
+                        );
+
+                      })}
+
+                    </div>
+
+                  );
+
+                })}
+
+              </div>
+
+            </div>
+
+            </div>
 
           </div>
 
