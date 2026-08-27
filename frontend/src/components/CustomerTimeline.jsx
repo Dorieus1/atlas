@@ -74,7 +74,12 @@ const QUOTE_STATUS_STYLES = {
 // quotes stay read-only here (they're managed on the Schedule/Quotes
 // pages, which this links out to); notes are the one event type that's
 // actually authored here, so add/edit/delete lives inline.
-function CustomerTimeline({ customerId }) {
+// onNoteChange is optional - CustomerProfile passes its own loadSummary
+// through it, since the AI Customer Summary is generated from the same
+// notes this component owns. Without it, adding/editing/deleting a note
+// left the summary panel showing a stale summary from before the edit
+// until the whole page was refreshed - a real bug found during review.
+function CustomerTimeline({ customerId, onNoteChange }) {
 
   const navigate = useNavigate();
 
@@ -141,6 +146,7 @@ function CustomerTimeline({ customerId }) {
       await createNote(customerId, newNote.trim());
       setNewNote("");
       await loadTimeline();
+      onNoteChange?.();
 
     } catch (err) {
 
@@ -186,6 +192,7 @@ function CustomerTimeline({ customerId }) {
       setEditingNoteId(null);
       setNoteError("");
       await loadTimeline();
+      onNoteChange?.();
 
     } catch (err) {
 
@@ -204,6 +211,7 @@ function CustomerTimeline({ customerId }) {
       setConfirmingDeleteNoteId(null);
       setNoteError("");
       await loadTimeline();
+      onNoteChange?.();
 
     } catch (err) {
 

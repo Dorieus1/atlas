@@ -1039,7 +1039,7 @@ function CustomerProfile() {
       </div>
 
 
-      <CustomerTimeline customerId={id} />
+      <CustomerTimeline customerId={id} onNoteChange={loadSummary} />
 
 
 
