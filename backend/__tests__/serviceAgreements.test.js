@@ -1,0 +1,344 @@
+const request = require("supertest");
+const app = require("../server");
+const { createBusinessAndUser } = require("./setup/helpers");
+const { INITIAL_OCCURRENCES, RENEWAL_OCCURRENCES } = require("../services/serviceAgreementService");
+
+
+const createCustomer = async (authHeader, name = "Plan Customer") => {
+
+  const res = await request(app)
+    .post("/api/customers")
+    .set("Authorization", authHeader)
+    .send({ name });
+
+  return res.body.id;
+
+};
+
+
+const createPlan = async (authHeader, customer_id, overrides = {}) => {
+
+  return request(app)
+    .post("/api/service-agreements")
+    .set("Authorization", authHeader)
+    .send({
+      customer_id,
+      title: "Quarterly Pest Control",
+      frequency: "quarterly",
+      start_date: "2026-09-01T10:00:00.000Z",
+      price: 120,
+      ...overrides
+    });
+
+};
+
+
+describe("Service agreements", () => {
+
+  test("creating a plan generates its first batch of appointments, all tagged with the plan", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanCreate");
+    const customerId = await createCustomer(authHeader);
+
+    const created = await createPlan(authHeader, customerId);
+
+    expect(created.status).toBe(201);
+    expect(created.body.id).toBeTruthy();
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    expect(generated).toHaveLength(INITIAL_OCCURRENCES);
+    expect(generated.every((a) => a.title === "Quarterly Pest Control")).toBe(true);
+    expect(generated.every((a) => a.status === "scheduled")).toBe(true);
+
+    // Quarterly = 3 months apart, so the second occurrence should land
+    // exactly 3 months after the first.
+    const sorted = generated.map((a) => a.start_time).sort();
+    const first = new Date(sorted[0]);
+    const second = new Date(sorted[1]);
+    const monthsApart = (second.getUTCFullYear() - first.getUTCFullYear()) * 12 + (second.getUTCMonth() - first.getUTCMonth());
+    expect(monthsApart).toBe(3);
+
+  });
+
+
+  test("validation: missing customer, missing title, bad frequency, bad start_date, and negative price are all rejected", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanValidation");
+    const customerId = await createCustomer(authHeader);
+
+    const noCustomer = await createPlan(authHeader, undefined);
+    expect(noCustomer.status).toBe(400);
+
+    const unknownCustomer = await createPlan(authHeader, "does-not-exist");
+    expect(unknownCustomer.status).toBe(400);
+
+    const noTitle = await createPlan(authHeader, customerId, { title: "   " });
+    expect(noTitle.status).toBe(400);
+
+    const badFrequency = await createPlan(authHeader, customerId, { frequency: "daily" });
+    expect(badFrequency.status).toBe(400);
+
+    const badStartDate = await createPlan(authHeader, customerId, { start_date: "not-a-date" });
+    expect(badStartDate.status).toBe(400);
+
+    const negativePrice = await createPlan(authHeader, customerId, { price: -5 });
+    expect(negativePrice.status).toBe(400);
+
+  });
+
+
+  test("price is optional - a plan with no price still generates appointments fine", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanNoPrice");
+    const customerId = await createCustomer(authHeader);
+
+    const created = await createPlan(authHeader, customerId, { price: undefined });
+
+    expect(created.status).toBe(201);
+
+  });
+
+
+  test("a customer's plans list and the business-wide list both surface the created plan", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanList");
+    const customerId = await createCustomer(authHeader, "List Customer");
+
+    const created = await createPlan(authHeader, customerId);
+
+    const customerList = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(customerList.status).toBe(200);
+    expect(customerList.body).toHaveLength(1);
+    expect(customerList.body[0].id).toBe(created.body.id);
+    expect(customerList.body[0].status).toBe("active");
+
+    const businessList = await request(app)
+      .get("/api/service-agreements")
+      .set("Authorization", authHeader);
+
+    expect(businessList.status).toBe(200);
+    expect(businessList.body[0].customer_name).toBe("List Customer");
+
+  });
+
+
+  test("a plan is scoped to its own business - another business can't see or act on it", async () => {
+
+    const businessA = await createBusinessAndUser(app, "PlanScopeA");
+    const businessB = await createBusinessAndUser(app, "PlanScopeB");
+
+    const customerId = await createCustomer(businessA.authHeader);
+    const created = await createPlan(businessA.authHeader, customerId);
+
+    const crossList = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", businessB.authHeader);
+
+    expect(crossList.body).toHaveLength(0);
+
+    const crossStatus = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", businessB.authHeader)
+      .send({ status: "paused" });
+
+    expect(crossStatus.status).toBe(404);
+
+  });
+
+
+  test("pausing a plan leaves its future appointments untouched; cancelling cancels only the still-scheduled future ones", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanPauseCancel");
+    const customerId = await createCustomer(authHeader);
+
+    const created = await createPlan(authHeader, customerId);
+
+    const paused = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "paused" });
+
+    expect(paused.status).toBe(200);
+
+    let list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    let generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+    expect(generated.every((a) => a.status === "scheduled")).toBe(true);
+
+    // Complete one occurrence before cancelling, to prove cancellation
+    // doesn't touch history.
+    await request(app)
+      .patch(`/api/appointments/${generated[0].id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "completed" });
+
+    const cancelled = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "cancelled" });
+
+    expect(cancelled.status).toBe(200);
+
+    list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    const stillCompleted = list.body.find((a) => a.status === "completed" && a.service_agreement_id === created.body.id);
+    expect(stillCompleted).toBeTruthy();
+
+    const stillScheduledCount = generated.filter((a) => a.status === "scheduled").length;
+    expect(stillScheduledCount).toBe(0);
+
+    const nowCancelledCount = generated.filter((a) => a.status === "cancelled").length;
+    expect(nowCancelledCount).toBe(INITIAL_OCCURRENCES - 1);
+
+  });
+
+
+  test("an invalid status value is rejected, and a nonexistent plan 404s", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanBadStatus");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    const badStatus = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "on_hold" });
+
+    expect(badStatus.status).toBe(400);
+
+    const notFound = await request(app)
+      .patch(`/api/service-agreements/does-not-exist/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "paused" });
+
+    expect(notFound.status).toBe(404);
+
+  });
+
+
+  test("renewing an active plan appends more occurrences with no date gap or duplicate", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanRenew");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    const renewed = await request(app)
+      .post(`/api/service-agreements/${created.body.id}/renew`)
+      .set("Authorization", authHeader);
+
+    expect(renewed.status).toBe(200);
+    expect(renewed.body.addedCount).toBe(RENEWAL_OCCURRENCES);
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    expect(generated).toHaveLength(INITIAL_OCCURRENCES + RENEWAL_OCCURRENCES);
+
+    const startTimes = generated.map((a) => a.start_time);
+    const uniqueStartTimes = new Set(startTimes);
+    expect(uniqueStartTimes.size).toBe(startTimes.length);
+
+    // The 13th occurrence (index 12, quarterly) should be exactly 3
+    // months after the 12th (index 11) - continuing the same cadence,
+    // not restarting the count from the renewal date.
+    const sorted = startTimes.slice().sort();
+    const twelfth = new Date(sorted[INITIAL_OCCURRENCES - 1]);
+    const thirteenth = new Date(sorted[INITIAL_OCCURRENCES]);
+    const monthsApart = (thirteenth.getUTCFullYear() - twelfth.getUTCFullYear()) * 12 + (thirteenth.getUTCMonth() - twelfth.getUTCMonth());
+    expect(monthsApart).toBe(3);
+
+  });
+
+
+  test("renewing a paused or cancelled plan is rejected", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanRenewBlocked");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "paused" });
+
+    const renewPaused = await request(app)
+      .post(`/api/service-agreements/${created.body.id}/renew`)
+      .set("Authorization", authHeader);
+
+    expect(renewPaused.status).toBe(400);
+
+  });
+
+
+  test("completing a plan-generated appointment pre-fills the draft invoice with the plan's price", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanInvoicePrice");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId, { price: 150 });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const firstOccurrence = list.body.find((a) => a.service_agreement_id === created.body.id);
+
+    const completed = await request(app)
+      .patch(`/api/appointments/${firstOccurrence.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "completed" });
+
+    expect(completed.status).toBe(200);
+    expect(completed.body.draft_invoice_id).toBeTruthy();
+
+    const invoice = await request(app)
+      .get(`/api/quotes/${completed.body.draft_invoice_id}`)
+      .set("Authorization", authHeader);
+
+    expect(invoice.body.items[0].unit_price).toBe(150);
+
+  });
+
+
+  test("completing a plan-generated appointment with no price set still falls back to the $0 placeholder", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanInvoiceNoPrice");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId, { price: undefined });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const firstOccurrence = list.body.find((a) => a.service_agreement_id === created.body.id);
+
+    const completed = await request(app)
+      .patch(`/api/appointments/${firstOccurrence.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "completed" });
+
+    const invoice = await request(app)
+      .get(`/api/quotes/${completed.body.draft_invoice_id}`)
+      .set("Authorization", authHeader);
+
+    expect(invoice.body.items[0].unit_price).toBe(0);
+
+  });
+
+});

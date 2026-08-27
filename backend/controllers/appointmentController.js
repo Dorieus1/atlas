@@ -24,6 +24,8 @@ const {
 
 const { getUserById } = require("../services/authService");
 
+const { getServiceAgreementById } = require("../services/serviceAgreementService");
+
 
 const VALID_STATUSES = ["scheduled", "completed", "cancelled"];
 
@@ -353,6 +355,15 @@ const updateAppointmentStatus = async (req, res) => {
             // it's their action that triggered this invoice.
             const actingUser = await getUserById(req.user.id, business_id);
 
+            // A visit generated from a service agreement already has an
+            // agreed price - pre-filling the draft with $0 for one of
+            // these would just make the owner retype the same number
+            // every single visit, defeating half the point of setting a
+            // price on the plan in the first place.
+            const agreement = appointment.service_agreement_id
+              ? await getServiceAgreementById(appointment.service_agreement_id, business_id)
+              : null;
+
             const draftInvoice = await createQuote(
 
               business_id,
@@ -363,7 +374,11 @@ const updateAppointmentStatus = async (req, res) => {
 
               `Auto-created from the completed appointment "${appointment.title}"`,
 
-              [{ description: appointment.title, quantity: 1, unit_price: 0 }],
+              [{
+                description: appointment.title,
+                quantity: 1,
+                unit_price: agreement && agreement.price != null ? agreement.price : 0
+              }],
 
               id,
 

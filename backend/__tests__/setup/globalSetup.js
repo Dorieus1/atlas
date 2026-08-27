@@ -235,7 +235,26 @@ module.exports = async () => {
           google_event_id TEXT,
           assigned_user_id TEXT,
           clock_in_at DATETIME,
-          clock_out_at DATETIME
+          clock_out_at DATETIME,
+          service_agreement_id TEXT
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE service_agreements (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          notes TEXT,
+          price REAL,
+          frequency TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'active',
+          recurrence_id TEXT,
+          start_date DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_by_user_id TEXT,
+          created_by_name TEXT
         )
       `);
 

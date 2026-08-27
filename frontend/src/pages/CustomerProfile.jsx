@@ -20,6 +20,7 @@ import {
 
 import ChatWindow from "../components/ChatWindow";
 import CustomerTimeline from "../components/CustomerTimeline";
+import ServiceAgreements from "../components/ServiceAgreements";
 import MemoryPanel from "../components/MemoryPanel";
 import PhotoGallery from "../components/PhotoGallery";
 import ReviewRequestPanel from "../components/ReviewRequestPanel";
@@ -1037,6 +1038,9 @@ function CustomerProfile() {
         </div>
 
       </div>
+
+
+      <ServiceAgreements customerId={id} />
 
 
       <CustomerTimeline customerId={id} onNoteChange={loadSummary} />

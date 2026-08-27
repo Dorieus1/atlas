@@ -1020,6 +1020,52 @@ export const deleteAppointment = (id, scope) =>
 
 
 
+/* ---------- Service Agreements ---------- */
+
+
+export const createServiceAgreement = (customer_id, title, notes, price, frequency, start_date) =>
+
+  request("/service-agreements", {
+
+    method: "POST",
+
+    body: JSON.stringify({ customer_id, title, notes, price, frequency, start_date })
+
+  });
+
+
+export const getCustomerServiceAgreements = (customerId) =>
+
+  request(`/service-agreements/customer/${customerId}`);
+
+
+export const getServiceAgreements = () =>
+
+  request("/service-agreements");
+
+
+// status: "active", "paused", or "cancelled".
+export const updateServiceAgreementStatus = (id, status) =>
+
+  request(`/service-agreements/${id}/status`, {
+
+    method: "PATCH",
+
+    body: JSON.stringify({ status })
+
+  });
+
+
+export const renewServiceAgreement = (id) =>
+
+  request(`/service-agreements/${id}/renew`, {
+
+    method: "POST"
+
+  });
+
+
+
 /* ---------- Quotes & Invoices ---------- */
 
 

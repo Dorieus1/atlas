@@ -83,7 +83,12 @@ const CONFLICTABLE_STATUSES = new Set(["scheduled", "requested"]);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const RECURRENCE_RULES = new Set(["weekly", "biweekly", "monthly"]);
+// "quarterly" and "annually" were added for service agreements (see
+// serviceAgreementService.js) but work identically for a plain recurring
+// appointment too - there's nothing service-agreement-specific about
+// them, so they're just two more entries in the one shared set every
+// recurrence validation already draws from.
+const RECURRENCE_RULES = new Set(["weekly", "biweekly", "monthly", "quarterly", "annually"]);
 
 // One request can never generate more than this many rows - roughly 6
 // months of a weekly series or a year of a monthly one. Keeps a single
@@ -137,6 +142,14 @@ function occurrenceStartTime(baseStart, rule, index) {
 
   if (rule === "monthly") {
     return addMonthsClamped(base, index).toISOString();
+  }
+
+  if (rule === "quarterly") {
+    return addMonthsClamped(base, index * 3).toISOString();
+  }
+
+  if (rule === "annually") {
+    return addMonthsClamped(base, index * 12).toISOString();
   }
 
   throw new Error(`Unknown recurrence rule: ${rule}`);
@@ -226,7 +239,8 @@ function insertAppointmentRow(
   recurrence_rule,
   created_by_user_id,
   created_by_name,
-  assigned_user_id
+  assigned_user_id,
+  service_agreement_id = null
 
 ) {
 
@@ -253,10 +267,11 @@ function insertAppointmentRow(
         recurrence_rule,
         created_by_user_id,
         created_by_name,
-        assigned_user_id
+        assigned_user_id,
+        service_agreement_id
       )
 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
       [
@@ -273,7 +288,8 @@ function insertAppointmentRow(
         recurrence_rule || null,
         created_by_user_id || null,
         created_by_name || null,
-        assigned_user_id || null
+        assigned_user_id || null,
+        service_agreement_id || null
 
       ],
 
@@ -613,6 +629,15 @@ const createAppointment = async (
 // MAX_RECURRING_OCCURRENCES cap) is expected to have already happened
 // at the controller level, matching how every other create-appointment
 // field is validated before this service is called.
+// `startIndex` and `existing_recurrence_id` exist for exactly one caller:
+// serviceAgreementService.js's renewal path, which needs to append more
+// occurrences to an already-existing series without disturbing the rows
+// already created. Every occurrence's date is still computed from the
+// SAME original `start_time` (via occurrenceStartTime's index-based
+// math) rather than from the last existing occurrence - continuing the
+// index sequence instead of restarting it at 0 from a new anchor is what
+// keeps a renewed monthly plan landing on the same day-of-month it
+// always has, with no drift.
 const createRecurringAppointments = async (
 
   business_id,
@@ -626,19 +651,23 @@ const createRecurringAppointments = async (
   occurrences,
   created_by_user_id = null,
   created_by_name = null,
-  assigned_user_id = null
+  assigned_user_id = null,
+  service_agreement_id = null,
+  startIndex = 0,
+  existing_recurrence_id = null
 
 ) => {
 
-  const recurrence_id = uuidv4();
+  const recurrence_id = existing_recurrence_id || uuidv4();
 
   const durationMs = end_time
     ? new Date(end_time).getTime() - new Date(start_time).getTime()
     : null;
 
   const ids = [];
+  let lastOccStart = null;
 
-  for (let i = 0; i < occurrences; i++) {
+  for (let i = startIndex; i < startIndex + occurrences; i++) {
 
     const occStart = occurrenceStartTime(start_time, recurrence, i);
     const occEnd = durationMs !== null
@@ -661,7 +690,8 @@ const createRecurringAppointments = async (
       recurrence,
       created_by_user_id,
       created_by_name,
-      assigned_user_id
+      assigned_user_id,
+      service_agreement_id
 
     );
 
@@ -679,10 +709,81 @@ const createRecurringAppointments = async (
       .catch((err) => console.error("APPLE CALENDAR SYNC (create) FAILED:", err));
 
     ids.push(id);
+    lastOccStart = occStart;
 
   }
 
-  return { recurrence_id, ids };
+  return { recurrence_id, ids, lastOccurrenceIndex: startIndex + occurrences - 1, lastOccurrenceStart: lastOccStart };
+
+};
+
+
+
+// How many occurrences a service agreement has ever generated - counts
+// every status (scheduled, completed, even cancelled), not just the
+// still-upcoming ones, because this feeds the `startIndex` renewal math
+// above, which needs the true count of dates already claimed from the
+// plan's original start_time to avoid generating a duplicate date.
+const countAppointmentsForServiceAgreement = (service_agreement_id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT COUNT(*) as count
+      FROM appointments
+      WHERE service_agreement_id = ?
+      AND business_id = ?
+      `,
+
+      [service_agreement_id, business_id],
+
+      (err, row) => (err ? reject(err) : resolve(row.count))
+
+    );
+
+  });
+
+};
+
+
+
+// Cancelling a plan should stop future visits from showing up on the
+// schedule, but must never touch history - a completed visit (and
+// whatever invoice it already produced) is a real record of work done,
+// not something a cancellation should be able to quietly erase evidence
+// of.
+const cancelFutureServiceAgreementAppointments = (service_agreement_id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE appointments
+      SET status = 'cancelled'
+      WHERE service_agreement_id = ?
+      AND business_id = ?
+      AND status = 'scheduled'
+      AND start_time > datetime('now')
+      `,
+
+      [service_agreement_id, business_id],
+
+      function (err) {
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes);
+        }
+
+      }
+
+    );
+
+  });
 
 };
 
@@ -1264,6 +1365,10 @@ module.exports = {
   createAppointment,
 
   createRecurringAppointments,
+
+  countAppointmentsForServiceAgreement,
+
+  cancelFutureServiceAgreementAppointments,
 
   getAppointmentById,
 

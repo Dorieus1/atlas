@@ -42,7 +42,9 @@ const STATUS_STYLES = {
 const RECURRENCE_LABELS = {
   weekly: "1 week",
   biweekly: "2 weeks",
-  monthly: "1 month"
+  monthly: "1 month",
+  quarterly: "3 months",
+  annually: "1 year"
 };
 
 // A plain "2h 15m" readout for a completed clock-in/out session - minutes
@@ -1590,6 +1592,8 @@ function Schedule() {
                   <option value="weekly">Repeats weekly</option>
                   <option value="biweekly">Repeats every 2 weeks</option>
                   <option value="monthly">Repeats monthly</option>
+                  <option value="quarterly">Repeats every 3 months</option>
+                  <option value="annually">Repeats annually</option>
                 </select>
 
                 {formRecurrence !== "none" && (
