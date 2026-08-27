@@ -75,25 +75,25 @@ function ChangePasswordPanel() {
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
       <h2 className="text-xl font-bold mb-4">
         Change Your Password
       </h2>
 
       {error && (
-        <p className="text-red-400 text-sm mb-3">
+        <p className="text-danger text-sm mb-3">
           {error}
         </p>
       )}
 
       {success && (
-        <p className="text-green-400 text-sm mb-3">
+        <p className="text-success text-sm mb-3">
           {success}
         </p>
       )}
 
-      <label htmlFor="current-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="current-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Current Password
       </label>
 
@@ -107,13 +107,13 @@ function ChangePasswordPanel() {
 
         placeholder="Current password"
 
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+        className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
         onChange={(e) => setCurrentPassword(e.target.value)}
 
       />
 
-      <label htmlFor="new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         New Password
       </label>
 
@@ -127,13 +127,13 @@ function ChangePasswordPanel() {
 
         placeholder="New password"
 
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+        className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
         onChange={(e) => setNewPassword(e.target.value)}
 
       />
 
-      <label htmlFor="confirm-new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="confirm-new-password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Confirm New Password
       </label>
 
@@ -147,7 +147,7 @@ function ChangePasswordPanel() {
 
         placeholder="Confirm new password"
 
-        className="w-full bg-ink-800 text-white placeholder:text-slate-500 border border-ink-700 rounded-lg p-3 mb-3"
+        className="w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3"
 
         onChange={(e) => setConfirmPassword(e.target.value)}
 

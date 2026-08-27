@@ -112,19 +112,19 @@ function TagManagerPanel() {
 
   return (
 
-    <div className="bg-ink-900/60 border border-ink-700 rounded-2xl p-6 mt-6">
+    <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
 
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <Tag size={22} />
         Customer Tags
       </h2>
 
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-fg-faint">
         Create tags like "VIP" or "Recurring" to segment your customer list. Assign or remove them from a customer's profile page.
       </p>
 
       {loadError && (
-        <p className="mt-3 text-red-400">
+        <p className="mt-3 text-danger">
           {loadError}
         </p>
       )}
@@ -135,7 +135,7 @@ function TagManagerPanel() {
           placeholder="Tag name (e.g. VIP)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          className="min-w-[220px] flex-1 rounded-lg border border-ink-700 bg-ink-800 p-2.5 text-sm text-white placeholder:text-slate-500 focus:border-ink-600 focus:outline-none"
+          className="min-w-[220px] flex-1 rounded-lg border border-border bg-surface-muted p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
         />
 
         <button
@@ -150,7 +150,7 @@ function TagManagerPanel() {
       </div>
 
       {addError && (
-        <p className="mt-2 text-sm text-red-400">
+        <p className="mt-2 text-sm text-danger">
           {addError}
         </p>
       )}
@@ -163,7 +163,7 @@ function TagManagerPanel() {
 
             <span
               key={tag.id}
-              className="flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800 px-3 py-1.5 text-sm"
+              className="flex items-center gap-2 rounded-full border border-border bg-surface-muted px-3 py-1.5 text-sm"
             >
 
               {tag.name}
@@ -175,7 +175,7 @@ function TagManagerPanel() {
                   <button
                     onClick={() => handleDelete(tag.id)}
                     disabled={deletingId === tag.id}
-                    className="text-xs font-medium text-red-400 hover:text-red-300 disabled:opacity-50"
+                    className="text-xs font-medium text-danger hover:opacity-80 disabled:opacity-50"
                   >
                     {deletingId === tag.id ? "Deleting..." : "Confirm"}
                   </button>
@@ -183,7 +183,7 @@ function TagManagerPanel() {
                   <button
                     onClick={() => setConfirmingDeleteId(null)}
                     disabled={deletingId === tag.id}
-                    className="text-xs text-slate-400 hover:text-white"
+                    className="text-xs text-fg-muted hover:text-fg"
                   >
                     Cancel
                   </button>
@@ -194,7 +194,7 @@ function TagManagerPanel() {
 
                 <button
                   onClick={() => setConfirmingDeleteId(tag.id)}
-                  className="text-slate-500 hover:text-red-400"
+                  className="text-fg-faint hover:text-danger"
                   aria-label={`Delete ${tag.name} tag`}
                 >
                   <Trash2 size={13} />

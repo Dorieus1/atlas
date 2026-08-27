@@ -57,7 +57,7 @@ function StripeConnectCard() {
 
   return (
 
-    <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface/60 p-6">
 
       <h2 className="text-xl font-bold flex items-center gap-2">
         <CreditCard size={20} />
@@ -68,7 +68,7 @@ function StripeConnectCard() {
 
         <>
 
-          <p className="mt-2 flex items-center gap-2 text-sm text-green-400">
+          <p className="mt-2 flex items-center gap-2 text-sm text-success">
             <CheckCircle2 size={16} />
             Connected — customers can pay their invoices online from your portal.
           </p>
@@ -76,7 +76,7 @@ function StripeConnectCard() {
           <button
             onClick={handleConnect}
             disabled={connecting}
-            className="mt-4 rounded-lg border border-ink-700 px-4 py-2 text-sm font-semibold transition hover:bg-ink-800 disabled:opacity-50"
+            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-surface-muted disabled:opacity-50"
           >
             Manage Stripe account
           </button>
@@ -87,12 +87,12 @@ function StripeConnectCard() {
 
         <>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-fg-muted">
             Connect a free Stripe account so customers can pay invoices right from their portal — the money goes straight to your own bank account, Atlas never touches it.
           </p>
 
           {error && (
-            <p className="mt-3 text-sm text-red-400">
+            <p className="mt-3 text-sm text-danger">
               {error}
             </p>
           )}

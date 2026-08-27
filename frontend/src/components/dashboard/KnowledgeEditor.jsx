@@ -101,7 +101,7 @@ function KnowledgeEditor({ onSaved }) {
 
   return (
 
-    <div className="h-full bg-ink-900/60 border border-ink-700 rounded-2xl p-6">
+    <div className="h-full bg-surface/60 border border-border rounded-2xl p-6">
 
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <Plus size={22} />
@@ -109,43 +109,43 @@ function KnowledgeEditor({ onSaved }) {
       </h2>
 
       {error && (
-        <p className="text-red-400 mt-3">
+        <p className="text-danger mt-3">
           {error}
         </p>
       )}
 
-      <label htmlFor="knowledge-title" className="mt-5 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-title" className="mt-5 mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Title
       </label>
 
       <input
         id="knowledge-title"
-        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
+        className="w-full bg-surface-muted border border-border rounded-xl p-3 placeholder:text-fg-faint"
         placeholder="Title"
         value={title}
         onChange={(e)=>setTitle(e.target.value)}
       />
 
-      <label htmlFor="knowledge-content" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-content" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Content
       </label>
 
       <textarea
         id="knowledge-content"
-        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 h-32 placeholder:text-slate-500"
+        className="w-full bg-surface-muted border border-border rounded-xl p-3 h-32 placeholder:text-fg-faint"
         placeholder="Content"
         value={content}
         onChange={(e)=>setContent(e.target.value)}
       />
 
-      <label htmlFor="knowledge-category" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor="knowledge-category" className="mt-4 mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
         Category (optional)
       </label>
 
       <input
         id="knowledge-category"
         list="knowledge-category-options"
-        className="w-full bg-ink-800 border border-ink-700 rounded-xl p-3 placeholder:text-slate-500"
+        className="w-full bg-surface-muted border border-border rounded-xl p-3 placeholder:text-fg-faint"
         placeholder="e.g. Pricing, Hours & Location"
         value={category}
         onChange={(e)=>setCategory(e.target.value)}
