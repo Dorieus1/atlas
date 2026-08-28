@@ -3,6 +3,34 @@ const { v4: uuidv4 } = require("uuid");
 const { withTransaction } = require("../../database/transactionQueue");
 
 
+// A drawn signature is expected to be a modest handful of KB - this cap
+// (500,000 base64 characters, ~375KB decoded) is generous for that
+// while still refusing an obviously-wrong or abusive payload outright,
+// long before it ever reaches a database write. Shared by both
+// acceptance paths (the customer's own portal, and a staff member
+// capturing a signature in person) so the two can never drift into
+// accepting different things.
+const MAX_SIGNATURE_LENGTH = 500000;
+
+function validateSignature(signature) {
+
+  if (typeof signature !== "string" || !signature.trim()) {
+    return "A signature is required";
+  }
+
+  if (!signature.startsWith("data:image/png;base64,")) {
+    return "Signature must be a PNG image";
+  }
+
+  if (signature.length > MAX_SIGNATURE_LENGTH) {
+    return "That signature is too large";
+  }
+
+  return null;
+
+}
+
+
 const runAsync = (sql, params = []) => {
 
   return new Promise((resolve, reject) => {
@@ -1000,6 +1028,8 @@ module.exports = {
   markQuotePaidAtomic,
 
   markQuoteDepositPaidAtomic,
+
+  validateSignature,
 
   getQuotes,
 

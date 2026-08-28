@@ -78,6 +78,76 @@ function bottomOf(doc) {
 }
 
 
+// A signature captured through either acceptance path (the customer's
+// own portal, or a staff member's device on-site) is a base64 PNG data
+// URI - "data:image/png;base64,<data>". PDFKit's doc.image() wants a
+// raw Buffer, not the data URI string itself, so this strips the prefix
+// and decodes it. Draws nothing at all if there's no signature (an
+// older, pre-signature acceptance, or a quote nobody's accepted yet) -
+// this is purely additive to the PDF, never a required section.
+function drawSignature(doc, quote, y) {
+
+  if (!quote.signature) {
+    return;
+  }
+
+  const SIGNATURE_HEIGHT = 60;
+  const BLOCK_HEIGHT = 30 + SIGNATURE_HEIGHT + 14;
+
+  let signatureY = y + 30;
+
+  if (signatureY + BLOCK_HEIGHT > bottomOf(doc)) {
+
+    doc.addPage();
+    signatureY = PAGE_MARGIN;
+
+  }
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor(MUTED_COLOR)
+    .text("SIGNATURE", 50, signatureY);
+
+  try {
+
+    const base64Data = quote.signature.replace(/^data:image\/png;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+
+    doc.image(imageBuffer, 50, signatureY + 14, { fit: [220, SIGNATURE_HEIGHT] });
+
+  } catch (imageError) {
+
+    // A corrupt/unreadable signature must never take down the whole PDF
+    // download - the rest of the document (the actual quote/invoice
+    // content) is what matters most, and this is the one section of it
+    // that's cosmetic.
+    console.error("SIGNATURE PDF RENDER FAILED:", imageError);
+
+  }
+
+  const signedLine = quote.accepted_by_name
+    ? `Signed by ${quote.accepted_by_name}${quote.accepted_at ? ` on ${formatDate(quote.accepted_at)}` : ""}`
+    : null;
+
+  if (signedLine) {
+
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor(MUTED_COLOR)
+      .text(
+        quote.signature_method === "in_person" ? `${signedLine} (signed in person)` : signedLine,
+        50,
+        signatureY + 14 + SIGNATURE_HEIGHT + 4
+      );
+
+  }
+
+}
+
+
+
 // Streams a PDF straight to res (an Express response, or any writable
 // stream) - the caller sets headers and pipes this in, nothing gets
 // buffered in memory. Paginates: a long line-item list (up to the 100
@@ -344,7 +414,11 @@ function streamQuotePdf(res, quote, business) {
       .fillColor(INK_COLOR)
       .text(quote.notes, 50, y + 14, { width: 495 });
 
+    y += 14 + notesHeight;
+
   }
+
+  drawSignature(doc, quote, y);
 
   doc
     .font("Helvetica")

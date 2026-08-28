@@ -284,7 +284,9 @@ module.exports = async () => {
           deposit_type TEXT,
           deposit_value REAL,
           deposit_paid_at DATETIME,
-          tax_rate REAL
+          tax_rate REAL,
+          signature TEXT,
+          signature_method TEXT
         )
       `);
 

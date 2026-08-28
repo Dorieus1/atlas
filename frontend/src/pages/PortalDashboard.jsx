@@ -22,6 +22,7 @@ import {
 import Logo from "../components/Logo";
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import SignaturePad from "../components/SignaturePad";
 import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
@@ -150,6 +151,7 @@ function PortalDashboard() {
   const [decisionError, setDecisionError] = useState("");
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
+  const signaturePadRef = useRef(null);
 
 
   useEffect(() => {
@@ -377,6 +379,11 @@ function PortalDashboard() {
     setApprovalName("");
     setAcceptingQuote(quote);
 
+    // The pad itself isn't mounted yet on this same render (the modal
+    // JSX is gated on acceptingQuote), so clearing next tick avoids
+    // reaching for a ref that doesn't exist yet.
+    requestAnimationFrame(() => signaturePadRef.current?.clear());
+
   };
 
 
@@ -389,12 +396,19 @@ function PortalDashboard() {
       return;
     }
 
+    const signature = signaturePadRef.current?.getSignature();
+
+    if (!signature) {
+      setDecisionError("Please sign above to approve this.");
+      return;
+    }
+
     setDecisionSubmitting(true);
     setDecisionError("");
 
     try {
 
-      await acceptPortalQuote(acceptingQuote.id, approvalName.trim());
+      await acceptPortalQuote(acceptingQuote.id, approvalName.trim(), signature);
 
       setAcceptingQuote(null);
 
@@ -1127,9 +1141,8 @@ function PortalDashboard() {
             </div>
 
             <p className="mt-1 text-sm text-fg-faint">
-              Type your name below as your approval record. This isn't a legal
-              signature — it just lets {business?.name || "the business"} know
-              you're good to go.
+              Type your name and sign below to approve this. {business?.name || "The business"} will
+              have your signature on record.
             </p>
 
             {decisionError && (
@@ -1146,6 +1159,8 @@ function PortalDashboard() {
                 onChange={(e) => setApprovalName(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
+
+              <SignaturePad ref={signaturePadRef} />
 
               <button
                 onClick={handleConfirmAccept}

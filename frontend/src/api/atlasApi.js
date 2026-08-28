@@ -1208,6 +1208,20 @@ export const deleteQuote = (id) =>
 
   });
 
+// The "on-site" signature path - a staff member's own authenticated
+// session, capturing a signature the customer draws standing right
+// there, as opposed to acceptPortalQuote above (the customer's own
+// portal login, used remotely).
+export const signQuoteInPerson = (id, name, signature) =>
+
+  request(`/quotes/${id}/sign`, {
+
+    method: "POST",
+
+    body: JSON.stringify({ name, signature })
+
+  });
+
 
 
 export const downloadQuotePdf = (id) =>
@@ -1549,10 +1563,10 @@ export const createInvoiceCheckout = (quoteId) =>
     method:"POST"
   });
 
-export const acceptPortalQuote = (quoteId, name) =>
+export const acceptPortalQuote = (quoteId, name, signature) =>
   portalRequest(`/portal/account/quotes/${quoteId}/accept`, {
     method:"POST",
-    body: JSON.stringify({ name })
+    body: JSON.stringify({ name, signature })
   });
 
 export const declinePortalQuote = (quoteId) =>

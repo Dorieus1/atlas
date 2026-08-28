@@ -11,7 +11,8 @@ import {
   Pencil,
   Send,
   Receipt,
-  Wallet
+  Wallet,
+  PenLine
 } from "lucide-react";
 
 import {
@@ -29,11 +30,13 @@ import {
   exportQuotesCsv,
   getCustomers,
   getSavedLineItems,
-  getBusinesses
+  getBusinesses,
+  signQuoteInPerson
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import SignaturePad from "../components/SignaturePad";
 import { quoteDisplayNumber } from "../utils/quoteNumber";
 
 
@@ -173,6 +176,12 @@ function Quotes() {
   const [addingPayment, setAddingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
+
+  const [signingOnSite, setSigningOnSite] = useState(false);
+  const [signName, setSignName] = useState("");
+  const [signError, setSignError] = useState("");
+  const [signSubmitting, setSignSubmitting] = useState(false);
+  const signaturePadRef = useRef(null);
 
 
   const loadQuotes = async () => {
@@ -638,6 +647,62 @@ function Quotes() {
     } finally {
 
       setSendingToCustomer(false);
+
+    }
+
+  };
+
+
+  const openSignOnSite = () => {
+
+    setSignError("");
+    setSignName(activeQuote?.customer_name || "");
+    setSigningOnSite(true);
+
+    // The pad isn't mounted on this same render (it's gated on
+    // signingOnSite), same reasoning as the portal's own accept modal.
+    requestAnimationFrame(() => signaturePadRef.current?.clear());
+
+  };
+
+
+  const handleSignOnSite = async () => {
+
+    if (!activeQuote) return;
+
+    if (!signName.trim()) {
+      setSignError("The customer's name is required.");
+      return;
+    }
+
+    const signature = signaturePadRef.current?.getSignature();
+
+    if (!signature) {
+      setSignError("Have the customer sign above first.");
+      return;
+    }
+
+    setSignSubmitting(true);
+    setSignError("");
+
+    try {
+
+      await signQuoteInPerson(activeQuote.id, signName.trim(), signature);
+
+      setSigningOnSite(false);
+      setDetailSuccess("Signed and marked accepted.");
+      await loadQuotes();
+      const data = await getQuote(activeQuote.id);
+      setActiveQuote(data);
+
+    } catch (error) {
+
+      console.error("SIGN ON-SITE ERROR:", error);
+      setSignError(error.message || "Couldn't save that signature. Please try again.");
+
+    } finally {
+
+      setSignSubmitting(false);
 
     }
 
@@ -1287,7 +1352,16 @@ function Quotes() {
                 {activeQuote.status === "accepted" && activeQuote.accepted_by_name && (
                   <p className="mt-0.5 text-xs text-success">
                     Approved by {activeQuote.accepted_by_name} on {new Date(activeQuote.accepted_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    {activeQuote.signature_method === "in_person" ? " (in person)" : ""}
                   </p>
+                )}
+
+                {activeQuote.signature && (
+                  <img
+                    src={activeQuote.signature}
+                    alt={`${activeQuote.accepted_by_name || "Customer"}'s signature`}
+                    className="mt-1.5 h-10 rounded border border-border bg-white px-1"
+                  />
                 )}
                 {activeQuote.status === "declined" && activeQuote.declined_at && (
                   <p className="mt-0.5 text-xs text-danger">
@@ -1676,6 +1750,16 @@ function Quotes() {
                     {sendingToCustomer ? "Sending..." : "Send to Customer"}
                   </button>
 
+                  {activeQuote.status === "sent" && (
+                    <button
+                      onClick={openSignOnSite}
+                      className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+                    >
+                      <PenLine size={14} />
+                      Sign On-Site
+                    </button>
+                  )}
+
                   <button
                     onClick={handleDownloadPdf}
                     disabled={downloadingPdf}
@@ -1736,6 +1820,72 @@ function Quotes() {
               </>
 
             )}
+
+          </div>
+
+        </div>
+
+      )}
+
+      {signingOnSite && activeQuote && (
+
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setSigningOnSite(false)}
+        >
+
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Sign On-Site
+              </h3>
+
+              <button
+                onClick={() => setSigningOnSite(false)}
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-1 text-sm text-fg-faint">
+              Hand your device to the customer to sign. This marks the {activeQuote.type} accepted immediately.
+            </p>
+
+            {signError && (
+              <p className="mt-3 text-sm text-danger">
+                {signError}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3">
+
+              <input
+                placeholder="Customer's full name"
+                value={signName}
+                onChange={(e) => setSignName(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+              />
+
+              <SignaturePad ref={signaturePadRef} />
+
+              <button
+                onClick={handleSignOnSite}
+                disabled={signSubmitting}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+              >
+                <PenLine size={16} />
+                {signSubmitting ? "Saving..." : "Save Signature"}
+              </button>
+
+            </div>
 
           </div>
 

@@ -15,7 +15,8 @@ const {
   addQuoteExpense: addQuoteExpenseService,
   deleteQuoteExpense: deleteQuoteExpenseService,
   addQuotePayment: addQuotePaymentService,
-  deleteQuotePayment: deleteQuotePaymentService
+  deleteQuotePayment: deleteQuotePaymentService,
+  validateSignature
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -1215,6 +1216,97 @@ const deleteQuote = async (req, res) => {
 
 
 
+const MAX_SIGN_IN_PERSON_NAME_LENGTH = 200;
+
+// The "on-site" half of e-signature: a staff member physically standing
+// with the customer hands over their own phone/tablet and the customer
+// draws a real signature directly in the business's app - no portal
+// login, no separate device, no email link to wait on. Same acceptance
+// rule as the portal's own accept endpoint (only a 'sent' quote can be
+// signed, and only once), deliberately kept in sync with it even though
+// they're two different controllers/auth paths, because they represent
+// the exact same real-world event from the customer's side: agreeing to
+// the quote.
+const signQuoteInPerson = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const { name, signature } = req.body;
+    const business_id = req.user.business_id;
+
+    if (!name || !name.trim()) {
+
+      return res.status(400).json({
+        error: "The customer's name is required"
+      });
+
+    }
+
+    if (name.trim().length > MAX_SIGN_IN_PERSON_NAME_LENGTH) {
+
+      return res.status(400).json({
+        error: "That name is too long"
+      });
+
+    }
+
+    const signatureError = validateSignature(signature);
+
+    if (signatureError) {
+
+      return res.status(400).json({
+        error: signatureError
+      });
+
+    }
+
+    const quote = await getQuoteByIdService(id, business_id);
+
+    if (!quote) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    if (quote.status !== "sent") {
+
+      return res.status(400).json({
+        error: quote.status === "accepted" || quote.status === "paid"
+          ? "This has already been signed"
+          : `A ${quote.status} ${quote.type} can't be signed - send it to the customer first`
+      });
+
+    }
+
+    await updateQuoteFieldsService(id, business_id, {
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      accepted_by_name: name.trim(),
+      signature,
+      signature_method: "in_person"
+    });
+
+    res.json({
+      message: "Signed"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const downloadQuotePdf = async (req, res) => {
 
   try {
@@ -1285,6 +1377,8 @@ module.exports = {
 
   deleteQuote,
 
-  downloadQuotePdf
+  downloadQuotePdf,
+
+  signQuoteInPerson
 
 };

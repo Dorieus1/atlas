@@ -77,6 +77,11 @@ const ITEMS = [
 // 150 + 4*85 = 490
 const SUBTOTAL = 490;
 
+// A minimal valid 1x1 transparent PNG - accept() now requires a real
+// signature image, not just a typed name, so every test that gets past
+// name validation needs one of these on the request body.
+const TEST_SIGNATURE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
 
 beforeEach(() => {
 
@@ -136,7 +141,7 @@ describe("Customer accept/decline", () => {
     const accept = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Jane Homeowner" });
+      .send({ name: "Jane Homeowner", signature: TEST_SIGNATURE });
 
     expect(accept.status).toBe(200);
 
@@ -215,7 +220,7 @@ describe("Customer accept/decline", () => {
     const accept = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Someone" });
+      .send({ name: "Someone", signature: TEST_SIGNATURE });
 
     expect(accept.status).toBe(400);
 
@@ -249,12 +254,12 @@ describe("Customer accept/decline", () => {
     await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "First Approval" });
+      .send({ name: "First Approval", signature: TEST_SIGNATURE });
 
     const secondAccept = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Second Approval" });
+      .send({ name: "Second Approval", signature: TEST_SIGNATURE });
 
     expect(secondAccept.status).toBe(400);
 
@@ -295,7 +300,7 @@ describe("Customer accept/decline", () => {
     const accept = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Too Late" });
+      .send({ name: "Too Late", signature: TEST_SIGNATURE });
 
     expect(accept.status).toBe(400);
 
@@ -335,7 +340,7 @@ describe("Customer accept/decline", () => {
     const accept = await request(app)
       .post(`/api/portal/account/quotes/${quoteB.body.id}/accept`)
       .set("Authorization", customerAAuthHeader)
-      .send({ name: "Sneaky" });
+      .send({ name: "Sneaky", signature: TEST_SIGNATURE });
 
     expect(accept.status).toBe(404);
 
@@ -373,7 +378,7 @@ describe("Customer accept/decline", () => {
     const accept = await request(app)
       .post(`/api/portal/account/quotes/${quoteForA.body.id}/accept`)
       .set("Authorization", customerBAuthHeader)
-      .send({ name: "Wrong Person" });
+      .send({ name: "Wrong Person", signature: TEST_SIGNATURE });
 
     expect(accept.status).toBe(404);
 
@@ -593,7 +598,7 @@ describe("Paying a deposit from the portal", () => {
     await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Deposit Payer" });
+      .send({ name: "Deposit Payer", signature: TEST_SIGNATURE });
 
     const checkout = await request(app)
       .post(`/api/portal/account/quotes/${created.body.id}/deposit-checkout`)
@@ -662,7 +667,7 @@ describe("Paying a deposit from the portal", () => {
     await request(app)
       .post(`/api/portal/account/quotes/${withoutDeposit.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "No Deposit Here" });
+      .send({ name: "No Deposit Here", signature: TEST_SIGNATURE });
 
     const noDepositConfigured = await request(app)
       .post(`/api/portal/account/quotes/${withoutDeposit.body.id}/deposit-checkout`)
@@ -727,12 +732,12 @@ describe("Paying a deposit from the portal", () => {
     await request(app)
       .post(`/api/portal/account/quotes/${partial.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Remaining Balance Payer" });
+      .send({ name: "Remaining Balance Payer", signature: TEST_SIGNATURE });
 
     await request(app)
       .post(`/api/portal/account/quotes/${full.body.id}/accept`)
       .set("Authorization", customerAuthHeader)
-      .send({ name: "Remaining Balance Payer" });
+      .send({ name: "Remaining Balance Payer", signature: TEST_SIGNATURE });
 
     // Pay both deposits, then simulate Stripe's webhook confirming each -
     // that's what actually sets deposit_paid_at, not the checkout call

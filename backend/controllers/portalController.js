@@ -2,7 +2,7 @@ const { getBusinessBySlug, getBusinessById } = require("../services/businessServ
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail, escapeHtml } = require("../services/emailService");
-const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature } = require("../services/quoteService");
 const {
   getAppointmentsByCustomer,
   createAppointment,
@@ -854,7 +854,7 @@ const acceptQuote = async (req, res) => {
   try {
 
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, signature } = req.body;
     const business_id = req.customer.business_id;
 
     if (!name || !name.trim()) {
@@ -869,6 +869,16 @@ const acceptQuote = async (req, res) => {
 
       return res.status(400).json({
         error: "That name is too long"
+      });
+
+    }
+
+    const signatureError = validateSignature(signature);
+
+    if (signatureError) {
+
+      return res.status(400).json({
+        error: signatureError
       });
 
     }
@@ -900,7 +910,9 @@ const acceptQuote = async (req, res) => {
     await updateQuoteFields(id, business_id, {
       status: "accepted",
       accepted_at: new Date().toISOString(),
-      accepted_by_name: approvedName
+      accepted_by_name: approvedName,
+      signature,
+      signature_method: "portal"
     });
 
     // Best-effort - the customer's approval is already saved above, so a

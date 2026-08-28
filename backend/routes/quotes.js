@@ -17,7 +17,8 @@ const {
   deleteQuotePayment,
   updateQuote,
   deleteQuote,
-  downloadQuotePdf
+  downloadQuotePdf,
+  signQuoteInPerson
 } = require("../controllers/quoteController");
 
 
@@ -94,6 +95,12 @@ router.patch(
   "/:id",
   authMiddleware,
   updateQuote
+);
+
+router.post(
+  "/:id/sign",
+  authMiddleware,
+  signQuoteInPerson
 );
 
 router.delete(
