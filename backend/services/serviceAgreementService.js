@@ -148,12 +148,41 @@ const getServiceAgreementById = (id, business_id) => {
 
 
 
+// Both queries below carry the same two correlated subqueries - how
+// many still-scheduled future visits a plan has left, and when the
+// next one is. A real depth gap found in review: a plan silently runs
+// out of visits with no warning anywhere (renewal is 100% manual, via
+// "Add More Visits"), and neither the customer-profile card nor the
+// business-wide list ever showed anything that would tell an owner it
+// was getting low. datetime(...) wraps both sides of the comparison -
+// same fix as cancelFutureServiceAgreementAppointments in
+// appointmentService.js, needed because start_time is a JS ISO string
+// ("...T...Z") while raw SQLite datetime('now') is space-separated, and
+// comparing them unwrapped silently mismatches same-day timestamps.
+const VISIT_SUBQUERIES = `
+  (
+    SELECT COUNT(*)
+    FROM appointments
+    WHERE appointments.service_agreement_id = service_agreements.id
+    AND appointments.status = 'scheduled'
+    AND datetime(appointments.start_time) > datetime('now')
+  ) as visits_remaining,
+  (
+    SELECT MIN(appointments.start_time)
+    FROM appointments
+    WHERE appointments.service_agreement_id = service_agreements.id
+    AND appointments.status = 'scheduled'
+    AND datetime(appointments.start_time) > datetime('now')
+  ) as next_visit_at
+`;
+
+
 const getServiceAgreementsByCustomer = (customer_id, business_id) => {
 
   return allAsync(
 
     `
-    SELECT *
+    SELECT service_agreements.*, ${VISIT_SUBQUERIES}
     FROM service_agreements
     WHERE customer_id = ?
     AND business_id = ?
@@ -168,16 +197,15 @@ const getServiceAgreementsByCustomer = (customer_id, business_id) => {
 
 
 
-// Business-wide view, customer name joined in - this is the shape a
-// future "all active plans" list page would want, even though nothing
-// links to one yet (v1 only surfaces plans from the customer's own
-// profile).
+// Business-wide view, customer name joined in - the shape a "all
+// active plans" list page wants. Built when nothing linked to one yet;
+// now the backing data source for the Plans page.
 const getServiceAgreementsByBusiness = (business_id) => {
 
   return allAsync(
 
     `
-    SELECT service_agreements.*, customers.name as customer_name
+    SELECT service_agreements.*, customers.name as customer_name, ${VISIT_SUBQUERIES}
     FROM service_agreements
     JOIN customers ON customers.id = service_agreements.customer_id
     WHERE service_agreements.business_id = ?

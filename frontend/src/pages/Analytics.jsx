@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BarChart3, DollarSign, Hourglass, PiggyBank, Repeat, Award } from "lucide-react";
+import { BarChart3, DollarSign, Hourglass, PiggyBank, Repeat, Award, Wallet } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -102,7 +102,9 @@ function Analytics() {
     hourlyLaborCost: null,
     totalMargin: 0,
     repeatCustomerRate: 0,
-    avgCustomerValue: 0
+    avgCustomerValue: 0,
+    activeServiceAgreements: 0,
+    monthlyRecurringRevenue: 0
   });
 
   const [loadError, setLoadError] = useState("");
@@ -216,6 +218,14 @@ function Analytics() {
           format={formatMoney}
           icon={<Award size={20} />}
           description="Average revenue collected per paying customer"
+        />
+
+        <StatCard
+          title="Monthly Recurring Revenue"
+          value={stats.monthlyRecurringRevenue}
+          format={formatMoney}
+          icon={<Wallet size={20} />}
+          description={`${stats.activeServiceAgreements} active plan${stats.activeServiceAgreements === 1 ? "" : "s"}`}
         />
 
       </div>

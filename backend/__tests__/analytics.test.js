@@ -75,6 +75,8 @@ describe("Analytics", () => {
     expect(res.body.totalMargin).toBe(0);
     expect(res.body.repeatCustomerRate).toBe(0);
     expect(res.body.avgCustomerValue).toBe(0);
+    expect(res.body.activeServiceAgreements).toBe(0);
+    expect(res.body.monthlyRecurringRevenue).toBe(0);
 
   });
 
@@ -454,6 +456,69 @@ describe("Analytics", () => {
       .set("Authorization", bizB.authHeader);
 
     expect(resB.body.revenuePaid).toBe(0);
+
+  });
+
+
+  describe("Recurring revenue (service agreements)", () => {
+
+    const createPlan = async (authHeader, customerId, overrides = {}) => {
+
+      return request(app)
+        .post("/api/service-agreements")
+        .set("Authorization", authHeader)
+        .send({
+          customer_id: customerId,
+          title: "Test Plan",
+          frequency: "monthly",
+          start_date: "2026-09-01T09:00:00.000Z",
+          price: 100,
+          ...overrides
+        });
+
+    };
+
+    test("monthlyRecurringRevenue converts every plan's cadence to a monthly-equivalent, and excludes paused/cancelled/priceless plans", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "AnalyticsMRR");
+
+      const customerId = (await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "MRR Customer" })).body.id;
+
+      // Monthly $100 -> $100/mo.
+      await createPlan(authHeader, customerId, { frequency: "monthly", price: 100 });
+
+      // Weekly $50 -> 50 * 52/12 = 216.666... -> rounds to 216.67.
+      await createPlan(authHeader, customerId, { frequency: "weekly", price: 50 });
+
+      // Paused - must not count.
+      const paused = await createPlan(authHeader, customerId, { frequency: "monthly", price: 500 });
+      await request(app)
+        .patch(`/api/service-agreements/${paused.body.id}/status`)
+        .set("Authorization", authHeader)
+        .send({ status: "paused" });
+
+      // Cancelled - must not count.
+      const cancelled = await createPlan(authHeader, customerId, { frequency: "monthly", price: 500 });
+      await request(app)
+        .patch(`/api/service-agreements/${cancelled.body.id}/status`)
+        .set("Authorization", authHeader)
+        .send({ status: "cancelled" });
+
+      // Active but no price - counts toward activeServiceAgreements,
+      // contributes $0 to the revenue figure.
+      await createPlan(authHeader, customerId, { frequency: "monthly", price: undefined });
+
+      const res = await request(app)
+        .get("/api/analytics")
+        .set("Authorization", authHeader);
+
+      expect(res.body.activeServiceAgreements).toBe(3);
+      expect(res.body.monthlyRecurringRevenue).toBe(316.67);
+
+    });
 
   });
 

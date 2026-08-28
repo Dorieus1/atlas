@@ -5,6 +5,21 @@ const { applyDiscount } = require("./quoteService");
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 
+// A plan's price is per-visit, not per-month, so "recurring revenue"
+// needs a monthly-equivalent conversion before it can be summed across
+// plans on different cadences - a $100 weekly plan and a $100 monthly
+// plan are not worth the same amount. Average weeks/months-per-year
+// (52/12, 26/12) rather than a fixed "4 visits" assumption, so this
+// doesn't systematically overstate a weekly plan's monthly value.
+const MONTHLY_EQUIVALENT_MULTIPLIER = {
+  weekly: 52 / 12,
+  biweekly: 26 / 12,
+  monthly: 1,
+  quarterly: 1 / 3,
+  annually: 1 / 12
+};
+
+
 const getAsync = (sql, params = []) => {
 
   return new Promise((resolve, reject) => {
@@ -68,7 +83,8 @@ const getAnalytics = async (business_id) => {
     outstandingInvoices,
     expensesPaid,
     laborHours,
-    business
+    business,
+    activeServiceAgreementRows
   ] = await Promise.all([
 
     getAsync(`SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND deleted_at IS NULL`, [business_id]),
@@ -207,7 +223,19 @@ const getAnalytics = async (business_id) => {
 
     ),
 
-    getAsync(`SELECT default_hourly_labor_cost FROM businesses WHERE id = ?`, [business_id])
+    getAsync(`SELECT default_hourly_labor_cost FROM businesses WHERE id = ?`, [business_id]),
+
+    // Recurring revenue - a real depth gap found in review: the plans
+    // themselves (service_agreements) were fully built and reachable
+    // per-customer, but nothing anywhere told an owner how many they
+    // have or what they're worth as a whole. Only price/frequency are
+    // needed here; the monthly-equivalent conversion happens in JS below
+    // since it's the same small lookup table computeMonthlyEquivalent
+    // uses for the Plans page display, not something worth a SQL CASE.
+    allAsync(
+      `SELECT price, frequency FROM service_agreements WHERE business_id = ? AND status = 'active'`,
+      [business_id]
+    )
 
   ]);
 
@@ -345,6 +373,24 @@ const getAnalytics = async (business_id) => {
     ? round2(laborHours.hours * hourlyLaborCost)
     : 0;
 
+  // Plans with no price set contribute 0 - "recurring revenue" can only
+  // ever mean money, and a priceless plan (a courtesy check-in, say)
+  // isn't that, even though it's still a perfectly real active plan and
+  // still counts toward activeServiceAgreements below.
+  const monthlyRecurringRevenue = round2(
+
+    activeServiceAgreementRows.reduce((sum, row) => {
+
+      if (row.price == null) {
+        return sum;
+      }
+
+      return sum + row.price * (MONTHLY_EQUIVALENT_MULTIPLIER[row.frequency] || 0);
+
+    }, 0)
+
+  );
+
   return {
 
     customers: customers.count,
@@ -366,7 +412,10 @@ const getAnalytics = async (business_id) => {
     totalMargin: round2(revenuePaidTotal - expensesPaid.total - laborCostTotal),
 
     repeatCustomerRate,
-    avgCustomerValue
+    avgCustomerValue,
+
+    activeServiceAgreements: activeServiceAgreementRows.length,
+    monthlyRecurringRevenue
 
   };
 

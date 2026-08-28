@@ -5,6 +5,7 @@ import {
   Flame,
   CalendarDays,
   FileText,
+  Repeat,
   BookOpen,
   BarChart3,
   Settings,
@@ -85,6 +86,13 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       path: "/quotes",
       icon: FileText,
       tourId: "nav-quotes"
+    },
+
+    {
+      name: "Plans",
+      path: "/plans",
+      icon: Repeat,
+      tourId: "nav-plans"
     },
 
     {

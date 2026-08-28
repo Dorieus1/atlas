@@ -142,6 +142,45 @@ describe("Service agreements", () => {
   });
 
 
+  // Regression test for a real depth gap a feature-skim caught: a plan
+  // could silently run out of visits with nothing anywhere telling the
+  // owner it was getting low. Both list endpoints now surface how many
+  // scheduled future visits remain and when the next one is.
+  test("both list endpoints report visits remaining and the next visit date, and update after cancelling", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanVisitsRemaining");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    const customerList = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(customerList.body[0].visits_remaining).toBe(INITIAL_OCCURRENCES);
+    expect(customerList.body[0].next_visit_at).toBeTruthy();
+
+    const businessList = await request(app)
+      .get("/api/service-agreements")
+      .set("Authorization", authHeader);
+
+    expect(businessList.body[0].visits_remaining).toBe(INITIAL_OCCURRENCES);
+    expect(businessList.body[0].next_visit_at).toBe(customerList.body[0].next_visit_at);
+
+    await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "cancelled" });
+
+    const afterCancel = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(afterCancel.body[0].visits_remaining).toBe(0);
+    expect(afterCancel.body[0].next_visit_at).toBeFalsy();
+
+  });
+
+
   test("a plan is scoped to its own business - another business can't see or act on it", async () => {
 
     const businessA = await createBusinessAndUser(app, "PlanScopeA");

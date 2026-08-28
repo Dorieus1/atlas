@@ -32,6 +32,7 @@ const Leads = lazy(() => import("./pages/Leads"));
 const Today = lazy(() => import("./pages/Today"));
 const Schedule = lazy(() => import("./pages/Schedule"));
 const Quotes = lazy(() => import("./pages/Quotes"));
+const Plans = lazy(() => import("./pages/Plans"));
 const PublicChat = lazy(() => import("./pages/PublicChat"));
 const PortalLogin = lazy(() => import("./pages/PortalLogin"));
 const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
@@ -176,6 +177,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Quotes />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/plans"
+            element={
+              <ProtectedRoute>
+                <Plans />
               </ProtectedRoute>
             }
           />

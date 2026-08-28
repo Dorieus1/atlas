@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Repeat, Plus, Pause, Play, X, RotateCw } from "lucide-react";
+import { Repeat, Plus, Pause, Play, X, RotateCw, AlertTriangle } from "lucide-react";
 
 import {
   getCustomerServiceAgreements,
@@ -8,30 +8,15 @@ import {
   renewServiceAgreement
 } from "../api/atlasApi";
 
+import {
+  FREQUENCY_OPTIONS,
+  FREQUENCY_LABELS,
+  STATUS_STYLES,
+  LOW_VISITS_THRESHOLD,
+  formatMoney,
+  formatDate
+} from "../utils/serviceAgreements";
 
-function formatMoney(amount) {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
-}
-
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString(undefined, { dateStyle: "medium" });
-}
-
-const FREQUENCY_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "biweekly", label: "Every 2 weeks" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Every 3 months" },
-  { value: "annually", label: "Annually" }
-];
-
-const FREQUENCY_LABELS = Object.fromEntries(FREQUENCY_OPTIONS.map((f) => [f.value, f.label]));
-
-const STATUS_STYLES = {
-  active: "bg-success/20 text-success",
-  paused: "bg-warning/20 text-warning",
-  cancelled: "bg-slate-500/20 text-fg-muted"
-};
 
 const todayLocal = () => {
   const d = new Date();
@@ -374,6 +359,38 @@ function ServiceAgreements({ customerId }) {
                     {agreement.price != null && ` · ${formatMoney(agreement.price)} per visit`}
                     {` · Started ${formatDate(agreement.start_date)}`}
                   </p>
+
+                  {agreement.status === "active" && (
+
+                    <p className="mt-1 flex items-center gap-1 text-xs">
+
+                      {agreement.next_visit_at ? (
+
+                        <span className="text-fg-faint">
+                          Next visit {formatDate(agreement.next_visit_at)}
+                        </span>
+
+                      ) : (
+
+                        <span className="flex items-center gap-1 text-warning">
+                          <AlertTriangle size={11} />
+                          No visits scheduled - renew below
+                        </span>
+
+                      )}
+
+                      {agreement.next_visit_at && agreement.visits_remaining <= LOW_VISITS_THRESHOLD && (
+
+                        <span className="flex items-center gap-1 text-warning">
+                          <AlertTriangle size={11} />
+                          {agreement.visits_remaining} left - running low
+                        </span>
+
+                      )}
+
+                    </p>
+
+                  )}
 
                 </div>
 
