@@ -364,31 +364,53 @@ const updateAppointmentStatus = async (req, res) => {
               ? await getServiceAgreementById(appointment.service_agreement_id, business_id)
               : null;
 
-            const draftInvoice = await createQuote(
+            try {
 
-              business_id,
+              const draftInvoice = await createQuote(
 
-              appointment.customer_id,
+                business_id,
 
-              "invoice",
+                appointment.customer_id,
 
-              `Auto-created from the completed appointment "${appointment.title}"`,
+                "invoice",
 
-              [{
-                description: appointment.title,
-                quantity: 1,
-                unit_price: agreement && agreement.price != null ? agreement.price : 0
-              }],
+                `Auto-created from the completed appointment "${appointment.title}"`,
 
-              id,
+                [{
+                  description: appointment.title,
+                  quantity: 1,
+                  unit_price: agreement && agreement.price != null ? agreement.price : 0
+                }],
 
-              req.user.id,
+                id,
 
-              actingUser ? actingUser.name : null
+                req.user.id,
 
-            );
+                actingUser ? actingUser.name : null
 
-            draftInvoiceId = draftInvoice.id;
+              );
+
+              draftInvoiceId = draftInvoice.id;
+
+            } catch (createError) {
+
+              // A database-level unique index (migration 052) now
+              // guards against exactly this: a double-click or a
+              // client retry on a slow request racing this same
+              // "does a quote already exist for this appointment"
+              // check, both reading "no" before either has committed.
+              // Losing that race isn't a real failure - the other
+              // request's invoice is the real one, so fetch and use it
+              // instead of surfacing an error for what the owner
+              // correctly did just once.
+              if (!/UNIQUE constraint failed/.test(createError.message || "")) {
+                throw createError;
+              }
+
+              const winner = await getQuoteByAppointmentId(id, business_id);
+              draftInvoiceId = winner ? winner.id : null;
+
+            }
 
           }
 

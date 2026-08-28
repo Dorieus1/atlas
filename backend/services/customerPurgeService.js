@@ -84,6 +84,26 @@ const purgeCustomer = async (customer) => {
 
       await runAsync(`DELETE FROM appointments WHERE customer_id = ?`, [customer.id]);
 
+      // A real bug review caught this omission: service_agreements
+      // (added in migration 051, after this purge cascade was written)
+      // was never included here, so a permanently-purged customer's
+      // plan row survived forever with a customer_id pointing at
+      // nothing - and since renewServiceAgreement's startIndex comes
+      // from a plain COUNT(*) of the plan's appointments (now zero,
+      // since the DELETE above just removed every one of them with no
+      // service_agreement_id guard - this is a background purge job,
+      // not the API delete endpoints that already refuse to touch a
+      // plan-linked appointment), a stray renew call against that
+      // orphaned plan would regenerate its entire original schedule as
+      // brand-new appointments attached to a customer that no longer
+      // exists. Unlike a live cancel (which only ever flips status, to
+      // preserve history), a full purge is a genuine "this customer and
+      // everything about them is gone forever" operation, so deleting
+      // the plan row outright here - matching how every other table in
+      // this cascade is actually removed, not soft-cancelled - is the
+      // correct, consistent treatment.
+      await runAsync(`DELETE FROM service_agreements WHERE customer_id = ?`, [customer.id]);
+
       await runAsync(
         `DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE customer_id = ?)`,
         [customer.id]

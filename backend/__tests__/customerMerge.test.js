@@ -76,6 +76,16 @@ describe("Merging duplicate customers", () => {
 
     await insertLead(business_id, loserId);
 
+    const planRes = await request(app)
+      .post("/api/service-agreements")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: loserId,
+        title: "Monthly Lawn Care",
+        frequency: "monthly",
+        start_date: "2026-09-01T09:00:00.000Z"
+      });
+
     const merged = await request(app)
       .post("/api/customers/merge")
       .set("Authorization", authHeader)
@@ -98,6 +108,16 @@ describe("Merging duplicate customers", () => {
 
     const leads = await getAsync("SELECT COUNT(*) as count FROM leads WHERE customer_id = ?", [survivorId]);
     expect(leads.count).toBe(1);
+
+    // Regression check for a real bug a review pass caught:
+    // service_agreements (added after this merge list was written) was
+    // missing from CUSTOMER_ID_TABLES, so a plan's row stayed pointed at
+    // the loser and became invisible/unmanageable once the loser was
+    // trashed, even though the plan's own generated appointments (in
+    // the appointments table, which IS in the list) correctly moved to
+    // the survivor above.
+    const plan = await getAsync("SELECT customer_id FROM service_agreements WHERE id = ?", [planRes.body.id]);
+    expect(plan.customer_id).toBe(survivorId);
 
     const loserRow = await getAsync("SELECT deleted_at FROM customers WHERE id = ?", [loserId]);
     expect(loserRow.deleted_at).toBeTruthy();

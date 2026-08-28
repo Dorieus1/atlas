@@ -266,6 +266,38 @@ describe("Appointment time tracking", () => {
 
     });
 
+
+    // Regression test for a real bug a review pass caught: every other
+    // money figure on this endpoint is gated on a real status
+    // (revenuePaid on 'paid', expensesPaid on a paid invoice), but labor
+    // cost had no status filter at all - a job clocked in, worked for a
+    // while, then called off (cancelled) was still dragging the margin
+    // down for work that was never actually completed for the customer.
+    test("labor cost excludes a clocked session on an appointment that was later cancelled", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "LaborCancelledExcluded");
+
+      await request(app)
+        .put("/api/business")
+        .set("Authorization", authHeader)
+        .send({ name: "LaborCancelledExcluded Business", default_hourly_labor_cost: 50 });
+
+      const appointmentId = await createAppointment(authHeader);
+
+      await runAsync(
+        `UPDATE appointments SET clock_in_at = ?, clock_out_at = ?, status = 'cancelled' WHERE id = ?`,
+        ["2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z", appointmentId]
+      );
+
+      const res = await request(app)
+        .get("/api/analytics")
+        .set("Authorization", authHeader);
+
+      expect(res.body.laborHours).toBe(0);
+      expect(res.body.laborCost).toBe(0);
+
+    });
+
   });
 
 

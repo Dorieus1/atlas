@@ -214,6 +214,19 @@ describe("Quotes and Invoices", () => {
 
     expect(bAttempt.status).toBe(404);
 
+    // Regression check for a real bug a review pass caught: the 404
+    // above used to be a lie - deleteQuote's child deletes (items,
+    // expenses, payments) ran unscoped by business_id BEFORE the
+    // ownership check, so business B's blocked delete attempt was
+    // silently wiping business A's line items anyway even though the
+    // parent quote row (correctly scoped) survived and the API reported
+    // 404. The quote must still have every line item it started with.
+    const survivedQuote = await request(app)
+      .get(`/api/quotes/${quoteId}`)
+      .set("Authorization", bizA.authHeader);
+
+    expect(survivedQuote.body.items.length).toBe(VALID_ITEMS.length);
+
     const ownDelete = await request(app)
       .delete(`/api/quotes/${quoteId}`)
       .set("Authorization", bizA.authHeader);

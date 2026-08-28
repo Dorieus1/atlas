@@ -648,6 +648,17 @@ const findPossibleDuplicates = async (business_id) => {
 // controller, which requires explicit owner confirmation via the UI) to
 // already know which one should survive - this never guesses, and never
 // runs automatically off the duplicate-detection groups on its own.
+// A real bug review caught a genuine gap here: service_agreements
+// (added in migration 051, after this list was written) was missing -
+// appointments gets re-pointed to the survivor just fine, but the plan
+// row that GENERATED those appointments stayed pointed at the loser and
+// then got soft-deleted along with it. The plan's visits kept showing
+// up on the survivor's calendar while the plan itself became invisible
+// and unpausable/uncancellable (getServiceAgreementsByCustomer looks up
+// by customer_id, which now pointed at a trashed customer no page links
+// to). No special handling needed here the way customer_tags needs
+// below - service_agreements has no unique/composite key on customer_id
+// to collide on, so it's a plain drop-in to this same generic loop.
 const CUSTOMER_ID_TABLES = [
   "quotes",
   "appointments",
@@ -659,7 +670,8 @@ const CUSTOMER_ID_TABLES = [
   "tasks",
   "review_requests",
   "activities",
-  "knowledge_gaps"
+  "knowledge_gaps",
+  "service_agreements"
 ];
 
 const mergeCustomers = async (business_id, survivor_id, loser_id) => {

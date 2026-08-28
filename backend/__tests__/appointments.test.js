@@ -350,4 +350,58 @@ describe("Appointments", () => {
 
   });
 
+
+  // Regression test for a real race a review pass caught: completing an
+  // appointment auto-creates a draft invoice if none exists yet, but the
+  // "does one already exist" check and the create weren't atomic -
+  // firing the same completion twice concurrently (a double-click, or a
+  // client retry on a slow request) could let both read "no existing
+  // quote" and both create one. Migration 052 added a unique index on
+  // quotes.appointment_id (partial, non-null) as the real fix; this
+  // confirms the end-to-end behavior stays correct under real
+  // concurrent requests rather than just asserting the constraint
+  // exists.
+  test("completing the same appointment twice concurrently only ever produces one draft invoice", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptCompleteRace");
+    const customerId = await createCustomer(app, authHeader, "Race Customer");
+
+    const created = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, title: "Race job", start_time: "2026-09-01T10:00:00.000Z" });
+
+    const [first, second] = await Promise.all([
+
+      request(app)
+        .patch(`/api/appointments/${created.body.id}`)
+        .set("Authorization", authHeader)
+        .send({ status: "completed" }),
+
+      request(app)
+        .patch(`/api/appointments/${created.body.id}`)
+        .set("Authorization", authHeader)
+        .send({ status: "completed" })
+
+    ]);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.body.draft_invoice_id).toBeTruthy();
+    expect(second.body.draft_invoice_id).toBeTruthy();
+
+    // Both requests must agree on the SAME winning invoice, not each
+    // walk away thinking a different one is "theirs".
+    expect(first.body.draft_invoice_id).toBe(second.body.draft_invoice_id);
+
+    const quotes = await request(app)
+      .get("/api/quotes")
+      .set("Authorization", authHeader);
+
+    const linkedToThisAppointment = quotes.body.filter((q) => q.appointment_id === created.body.id);
+
+    expect(linkedToThisAppointment).toHaveLength(1);
+
+  });
+
 });

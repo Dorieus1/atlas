@@ -1,7 +1,19 @@
 const request = require("supertest");
 const app = require("../server");
+const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
 const { INITIAL_OCCURRENCES, RENEWAL_OCCURRENCES } = require("../services/serviceAgreementService");
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
 
 
 const createCustomer = async (authHeader, name = "Plan Customer") => {
@@ -465,6 +477,85 @@ describe("Service agreements", () => {
       expect(new Set(startTimes).size).toBe(startTimes.length);
 
     });
+
+  });
+
+
+  // Regression test for a real bug a review pass caught: STATUSES
+  // allowed any transition, including cancelled -> active, even though
+  // cancelling had already flipped every future visit to 'cancelled' -
+  // nothing un-cancels them, so the plan would read "active" while
+  // having no real schedule behind it.
+  test("a cancelled plan can't be reactivated", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanCancelFinal");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "cancelled" });
+
+    const reactivate = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "active" });
+
+    expect(reactivate.status).toBe(400);
+
+    const list = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(list.body[0].status).toBe("cancelled");
+
+  });
+
+
+  // Regression test for a real bug a review pass caught: start_time is
+  // stored as a JS ISO string ("...T...Z"), while raw SQLite
+  // datetime('now') is space-separated with no T/Z - comparing them
+  // directly as strings made every appointment on the SAME calendar day
+  // as "now" register as "future" regardless of its actual time,
+  // because 'T' sorts higher than ' ' at the first point they differ.
+  // Cancelling a plan could wrongly cancel a visit from earlier the same
+  // day - exactly the "must never touch history" case the function's
+  // own comment says can't happen.
+  test("cancelling a plan doesn't cancel a visit scheduled earlier today", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanCancelSameDay");
+    const customerId = await createCustomer(authHeader);
+    const created = await createPlan(authHeader, customerId);
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const oneOccurrence = list.body.find((a) => a.service_agreement_id === created.body.id);
+
+    // Backdated to earlier today (real wall-clock "today", not the
+    // plan's own fictional future start_date) - this is the exact
+    // shape that tripped the string-comparison bug.
+    const earlierToday = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    await runAsync(
+      `UPDATE appointments SET start_time = ? WHERE id = ?`,
+      [earlierToday, oneOccurrence.id]
+    );
+
+    await request(app)
+      .patch(`/api/service-agreements/${created.body.id}/status`)
+      .set("Authorization", authHeader)
+      .send({ status: "cancelled" });
+
+    const after = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const stillThere = after.body.find((a) => a.id === oneOccurrence.id);
+
+    expect(stillThere.status).toBe("scheduled");
 
   });
 

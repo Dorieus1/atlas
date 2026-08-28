@@ -288,6 +288,18 @@ module.exports = async () => {
         )
       `);
 
+      // Mirrors migration 052 - guards against two concurrent "mark
+      // appointment completed" requests both creating a draft invoice
+      // for the same appointment. Without this in the hand-maintained
+      // test schema, a test exercising that race would pass for the
+      // wrong reason (no constraint to catch it) rather than actually
+      // proving the fix works.
+      db.run(`
+        CREATE UNIQUE INDEX idx_quotes_appointment_id_unique
+        ON quotes(appointment_id)
+        WHERE appointment_id IS NOT NULL
+      `);
+
       db.run(`
         CREATE TABLE quote_items (
           id TEXT PRIMARY KEY,

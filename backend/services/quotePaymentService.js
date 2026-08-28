@@ -1,4 +1,4 @@
-const { getQuoteById, updateQuoteFields, formatQuoteNumber } = require("./quoteService");
+const { getQuoteById, formatQuoteNumber, markQuotePaidAtomic, markQuoteDepositPaidAtomic } = require("./quoteService");
 const { getCustomerById } = require("./customerService");
 const { getBusinessById } = require("./businessService");
 const { sendReviewRequestForCustomer } = require("./reviewRequestService");
@@ -10,6 +10,17 @@ const { createNotification } = require("./notificationService");
 // the exact same idempotency guarantee (never re-fire the review-request
 // automation on an invoice that's already paid) and the same "ask for a
 // review" follow-up, so this is the one place that logic lives.
+//
+// The guard here is markQuotePaidAtomic's own conditional UPDATE, not a
+// separate read first - a review pass caught that the old
+// read-then-write shape (getQuoteById, branch, THEN write) had a real
+// race: two overlapping Stripe webhook deliveries for the same session
+// (Stripe does retry on timeout) could both read status !== 'paid'
+// before either had committed, and both would go on to send the
+// customer a review-request email. Doing the write FIRST as a single
+// atomic UPDATE...WHERE status != 'paid' means only one caller can ever
+// win that race, full stop - the loser's `wonRace` is false and it
+// skips every side effect below.
 const markQuotePaid = async (quote_id, business_id) => {
 
   const before = await getQuoteById(quote_id, business_id);
@@ -18,14 +29,11 @@ const markQuotePaid = async (quote_id, business_id) => {
     return { found: false, alreadyPaid: false, reviewRequestSent: false };
   }
 
-  if (before.status === "paid") {
+  const wonRace = await markQuotePaidAtomic(quote_id, business_id, new Date().toISOString());
+
+  if (!wonRace) {
     return { found: true, alreadyPaid: true, reviewRequestSent: false };
   }
-
-  await updateQuoteFields(quote_id, business_id, {
-    status: "paid",
-    paid_at: new Date().toISOString()
-  });
 
   let reviewRequestSent = false;
 
@@ -74,13 +82,14 @@ const markQuoteDepositPaid = async (quote_id, business_id) => {
     return { found: false, alreadyPaid: false };
   }
 
-  if (before.deposit_paid_at) {
+  // Same atomic-UPDATE-as-the-guard shape as markQuotePaid above, and
+  // for the same reason - closes the identical race for overlapping
+  // deposit-session webhook deliveries.
+  const wonRace = await markQuoteDepositPaidAtomic(quote_id, business_id, new Date().toISOString());
+
+  if (!wonRace) {
     return { found: true, alreadyPaid: true };
   }
-
-  await updateQuoteFields(quote_id, business_id, {
-    deposit_paid_at: new Date().toISOString()
-  });
 
   // Best-effort - same reasoning as the review-request send above: a
   // notification failure must never make the payment itself look like it

@@ -16,7 +16,12 @@ const escapeCsvValue = (value) => {
     str = `'${str}`;
   }
 
-  if (/[",\n]/.test(str)) {
+  // \r was missing here (a review pass caught it) - the backend twin,
+  // csvService.js's escapeCsvField, already covers it. A bare carriage
+  // return in a field (e.g. a customer name pasted from somewhere with
+  // Windows-style line endings) would go out unquoted and break row
+  // alignment in any parser that treats \r as its own line terminator.
+  if (/[",\n\r]/.test(str)) {
 
     return `"${str.replace(/"/g, '""')}"`;
 

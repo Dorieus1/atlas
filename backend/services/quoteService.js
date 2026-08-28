@@ -305,6 +305,75 @@ const createQuote = async (
 
 
 
+// Atomic compare-and-swap for the one-time "mark this paid" transition -
+// added after a review pass caught that quotePaymentService.js's
+// markQuotePaid was a plain read-then-write with no lock around it: two
+// overlapping Stripe webhook deliveries for the same checkout session
+// (Stripe does retry on timeout) could both read status !== 'paid'
+// before either had committed its write, and both would then fire the
+// review-request email. A single UPDATE...WHERE is atomic on its own -
+// SQLite guarantees no other statement can observe or interleave with
+// it mid-flight - so gating on `this.changes > 0` tells the caller
+// whether ITS call was the one that actually made the transition,
+// without needing an explicit transaction at all.
+const markQuotePaidAtomic = (quote_id, business_id, paid_at) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE quotes
+      SET status = 'paid', paid_at = ?
+      WHERE id = ?
+      AND business_id = ?
+      AND status != 'paid'
+      `,
+
+      [paid_at, quote_id, business_id],
+
+      function (err) {
+        if (err) reject(err); else resolve(this.changes > 0);
+      }
+
+    );
+
+  });
+
+};
+
+
+
+// Same compare-and-swap shape as markQuotePaidAtomic above, for the
+// deposit-paid transition.
+const markQuoteDepositPaidAtomic = (quote_id, business_id, deposit_paid_at) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE quotes
+      SET deposit_paid_at = ?
+      WHERE id = ?
+      AND business_id = ?
+      AND deposit_paid_at IS NULL
+      `,
+
+      [deposit_paid_at, quote_id, business_id],
+
+      function (err) {
+        if (err) reject(err); else resolve(this.changes > 0);
+      }
+
+    );
+
+  });
+
+};
+
+
+
 const getQuoteByAppointmentId = (appointment_id, business_id) => {
 
   return getAsync(
@@ -851,7 +920,26 @@ const replaceQuoteItems = async (id, business_id, items) => {
 
 
 
+// A real bug review caught a genuine cross-tenant hole here: the three
+// child deletes below used to run unscoped by business_id, on the
+// (wrong) assumption that the final `DELETE FROM quotes ... AND
+// business_id = ?` guarded the whole operation. It didn't - anyone who
+// knew (or guessed) another business's quote id could wipe that
+// quote's line items, logged expenses, and recorded payments even
+// though the parent row survived untouched (the parent delete matches
+// 0 rows and the API correctly reports 404, giving no visible sign
+// anything happened). The ownership check now happens FIRST, exactly
+// like every other quote-child mutation in this file already does via
+// getOwnedQuote (addQuoteExpense, deleteQuoteExpense, addQuotePayment,
+// deleteQuotePayment, replaceQuoteItems) - this was the one function
+// in the file that skipped it.
 const deleteQuote = async (id, business_id) => {
+
+  const quote = await getOwnedQuote(id, business_id);
+
+  if (!quote) {
+    return false;
+  }
 
   return withTransaction(async () => {
 
@@ -908,6 +996,10 @@ module.exports = {
   assignNextQuoteNumber,
 
   getQuoteByAppointmentId,
+
+  markQuotePaidAtomic,
+
+  markQuoteDepositPaidAtomic,
 
   getQuotes,
 

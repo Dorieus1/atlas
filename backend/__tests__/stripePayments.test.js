@@ -505,6 +505,83 @@ describe("Stripe webhook", () => {
   });
 
 
+  // Regression test for a real race a review pass caught: the sequential
+  // test above (await one delivery, then the other) always passed even
+  // before the fix, because by the time the second call's read ran, the
+  // first had already committed. Stripe actually retries on timeout, so
+  // two deliveries can genuinely overlap - both reading "not paid yet"
+  // before either has written. markQuotePaid's guard is now a single
+  // atomic UPDATE...WHERE status != 'paid' rather than a separate read
+  // before the write, so only one of two truly concurrent deliveries can
+  // ever win regardless of timing.
+  test("two truly concurrent deliveries of the same completed event still send only one review request", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "WebhookConcurrent");
+
+    await request(app)
+      .put("/api/business")
+      .set("Authorization", authHeader)
+      .send({ name: "Whatever", review_link: "https://g.page/r/example/review" });
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Concurrent Customer", email: "webhookconcurrent@test.com" });
+
+    const invoiceRes = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, type: "invoice", items: [{ description: "Job", quantity: 1, unit_price: 300 }] });
+
+    const business = await request(app)
+      .get("/api/business")
+      .set("Authorization", authHeader);
+
+    const businessId = business.body[0].id;
+
+    global.__mockStripe.webhooksConstructEvent.mockReturnValue({
+
+      type: "checkout.session.completed",
+
+      data: {
+        object: {
+          metadata: { quote_id: invoiceRes.body.id, business_id: businessId }
+        }
+      }
+
+    });
+
+    await Promise.all([
+
+      request(app)
+        .post("/api/stripe/webhook")
+        .set("stripe-signature", "test_signature")
+        .send({ type: "checkout.session.completed" }),
+
+      request(app)
+        .post("/api/stripe/webhook")
+        .set("stripe-signature", "test_signature")
+        .send({ type: "checkout.session.completed" })
+
+    ]);
+
+    const reviewRequests = await request(app)
+      .get(`/api/review-requests/customer/${customerRes.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(reviewRequests.body.length).toBe(1);
+
+    const notifications = await request(app)
+      .get("/api/notifications")
+      .set("Authorization", authHeader);
+
+    const paidNotifications = notifications.body.filter((n) => n.type === "invoice_paid");
+
+    expect(paidNotifications.length).toBe(1);
+
+  });
+
+
   // markQuotePaid is shared by this webhook AND the owner manually
   // marking an invoice paid by hand (quoteController.js) - the
   // "invoice_paid" notification only makes sense for the former (the

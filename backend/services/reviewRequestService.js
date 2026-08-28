@@ -28,7 +28,7 @@ const sendReviewRequestForCustomer = async (business, customer) => {
     html: `
       <p>Hi ${escapeHtml(customer.name) || "there"},</p>
       <p>Thanks for choosing ${escapeHtml(business.name)}! If you have a minute, we'd really appreciate a quick review.</p>
-      <p><a href="${business.review_link}">Leave us a review</a></p>
+      <p><a href="${escapeHtml(business.review_link)}">Leave us a review</a></p>
       <p>Thank you for your support!</p>
     `
 

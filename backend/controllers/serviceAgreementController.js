@@ -168,9 +168,17 @@ const updateServiceAgreementStatus = async (req, res) => {
 
     }
 
-    const updated = await updateServiceAgreementStatusService(id, req.user.business_id, status);
+    const result = await updateServiceAgreementStatusService(id, req.user.business_id, status);
 
-    if (!updated) {
+    if (result.error === "cancelled_is_final") {
+
+      return res.status(400).json({
+        error: "This plan was cancelled and can't be reactivated - create a new plan instead"
+      });
+
+    }
+
+    if (result.error) {
 
       return res.status(404).json({
         error: "Service agreement not found"
@@ -213,6 +221,23 @@ const renewServiceAgreement = async (req, res) => {
     }
 
     const result = await renewServiceAgreementService(id, req.user.business_id);
+
+    // A review pass caught that this could fall through unhandled: the
+    // service re-fetches and re-checks the plan itself (see
+    // renewServiceAgreement), so a plan deleted in the narrow window
+    // between this controller's own pre-check above and that re-fetch
+    // would return here, not "not_active" - and with no branch for it,
+    // the response would have been "Added undefined more visits" with a
+    // 200. No known path can delete a service_agreements row today, but
+    // there's no reason this endpoint's correctness should depend on
+    // that staying true forever.
+    if (result.error === "not_found") {
+
+      return res.status(404).json({
+        error: "Service agreement not found"
+      });
+
+    }
 
     if (result.error === "not_active") {
 

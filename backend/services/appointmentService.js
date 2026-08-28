@@ -754,6 +754,23 @@ const countAppointmentsForServiceAgreement = (service_agreement_id, business_id)
 // whatever invoice it already produced) is a real record of work done,
 // not something a cancellation should be able to quietly erase evidence
 // of.
+//
+// A review pass caught a real bug in the comparison below: start_time
+// is stored as a JS ISO string ("2026-08-28T09:00:00.000Z"), while raw
+// SQLite `datetime('now')` returns its own native format
+// ("2026-08-28 09:00:00" - space-separated, no T, no Z). Comparing the
+// two directly as strings is wrong for any appointment on the SAME
+// calendar day as "now": the first character where they differ is 'T'
+// (0x54) vs ' ' (0x20), and since 'T' sorts higher, the ENTIRE
+// comparison reads "greater" regardless of what the actual time digits
+// say afterward - a visit from nine hours ago, today, was matching
+// "start_time > datetime('now')" every bit as much as one nine hours
+// from now. Wrapping start_time in datetime(...) too normalizes both
+// sides to the same format before comparing (SQLite's datetime()
+// happily parses ISO-8601 input), which is what actually fixes it -
+// verified directly against the bundled driver, same-day past and
+// future timestamps now compare correctly on both sides of the
+// boundary.
 const cancelFutureServiceAgreementAppointments = (service_agreement_id, business_id) => {
 
   return new Promise((resolve, reject) => {
@@ -766,7 +783,7 @@ const cancelFutureServiceAgreementAppointments = (service_agreement_id, business
       WHERE service_agreement_id = ?
       AND business_id = ?
       AND status = 'scheduled'
-      AND start_time > datetime('now')
+      AND datetime(start_time) > datetime('now')
       `,
 
       [service_agreement_id, business_id],

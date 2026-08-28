@@ -263,6 +263,16 @@ describe("Customer trash", () => {
       .set("Authorization", authHeader)
       .send({ description: "Materials", amount: 40 });
 
+    const planRes = await request(app)
+      .post("/api/service-agreements")
+      .set("Authorization", authHeader)
+      .send({
+        customer_id: customerId,
+        title: "should be purged",
+        frequency: "monthly",
+        start_date: "2026-09-01T09:00:00.000Z"
+      });
+
     // Inserted directly rather than through the real payments endpoint -
     // that requires an invoice awaiting payment, which isn't this
     // fixture's shape and isn't the point of this test either way; only
@@ -301,12 +311,25 @@ describe("Customer trash", () => {
       [quoteRes.body.id]
     );
 
+    // Regression check for a real bug a review pass caught:
+    // service_agreements was missing from this cascade entirely (added
+    // in migration 051, after the cascade was written) - the plan's
+    // appointments were being removed by the plain, unguarded
+    // `DELETE FROM appointments WHERE customer_id = ?` above, but the
+    // plan row itself survived forever, permanently orphaned with a
+    // customer_id pointing at nothing.
+    const plans = await allAsync(
+      "SELECT * FROM service_agreements WHERE id = ?",
+      [planRes.body.id]
+    );
+
     expect(notes).toHaveLength(0);
     expect(appointments).toHaveLength(0);
     expect(quotes).toHaveLength(0);
     expect(quoteItems).toHaveLength(0);
     expect(quoteExpenses).toHaveLength(0);
     expect(quotePayments).toHaveLength(0);
+    expect(plans).toHaveLength(0);
 
   });
 

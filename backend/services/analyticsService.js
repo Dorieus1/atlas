@@ -183,6 +183,15 @@ const getAnalytics = async (business_id) => {
     // cash-vs-accrual mismatch between the two figures, which is exactly
     // why they're surfaced separately instead of silently merged into
     // one number a business owner can't unpick.
+    //
+    // status != 'cancelled' was added after a review pass caught its
+    // absence: every other money figure on this endpoint is deliberately
+    // gated on a real status (revenuePaid on 'paid', expensesPaid on a
+    // paid invoice), so a clocked-in-then-called-off job silently
+    // dragging down the margin was an inconsistency, not a deliberate
+    // accrual choice - the work was never actually completed for the
+    // customer, so it shouldn't count as a cost against a job that isn't
+    // happening.
     getAsync(
 
       `
@@ -191,6 +200,7 @@ const getAnalytics = async (business_id) => {
       WHERE business_id = ?
       AND clock_in_at IS NOT NULL
       AND clock_out_at IS NOT NULL
+      AND status != 'cancelled'
       `,
 
       [business_id]
