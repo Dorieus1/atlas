@@ -16,6 +16,7 @@ import SearchPalette from "../components/SearchPalette";
 // link or a portal QR code.
 const PUBLIC_PATH_PREFIXES = [
   "/talk/",
+  "/book/",
   "/portal/",
   "/login",
   "/forgot-password",

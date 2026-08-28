@@ -34,6 +34,7 @@ const Schedule = lazy(() => import("./pages/Schedule"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const Plans = lazy(() => import("./pages/Plans"));
 const PublicChat = lazy(() => import("./pages/PublicChat"));
+const PublicBooking = lazy(() => import("./pages/PublicBooking"));
 const PortalLogin = lazy(() => import("./pages/PortalLogin"));
 const PortalDashboard = lazy(() => import("./pages/PortalDashboard"));
 const Knowledge = lazy(() => import("./pages/Knowledge"));
@@ -193,6 +194,11 @@ function App() {
           <Route
             path="/talk/:slug"
             element={<PublicChat />}
+          />
+
+          <Route
+            path="/book/:slug"
+            element={<PublicBooking />}
           />
 
           <Route

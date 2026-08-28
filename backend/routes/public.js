@@ -8,7 +8,9 @@ const {
   getBusinessBySlugHandler,
   startConversation,
   sendPublicMessage,
-  getPublicHistory
+  getPublicHistory,
+  getPublicAvailability,
+  createPublicBooking
 } = require("../controllers/publicController");
 
 
@@ -40,6 +42,22 @@ router.get(
   "/:slug/conversations/:customer_id",
   rateLimiter(60, 60 * 1000),
   getPublicHistory
+);
+
+router.get(
+  "/:slug/availability",
+  rateLimiter(60, 60 * 1000),
+  getPublicAvailability
+);
+
+// Tighter than the read side above - this one actually creates a
+// customer and an appointment, matching the same order-of-magnitude
+// limit the portal's own requestAppointment-adjacent write endpoints use
+// elsewhere in this app.
+router.post(
+  "/:slug/book",
+  rateLimiter(10, 60 * 1000),
+  createPublicBooking
 );
 
 

@@ -215,6 +215,81 @@ function checkWithinBusinessHours(businessHoursRaw, startTimeIso, timezone) {
 }
 
 
+// Full local-calendar breakdown (not just day-of-week/time like
+// getLocalDayAndTime above) - the availability engine needs the local
+// YEAR/MONTH/DAY too, to run the "guess and correct" UTC conversion
+// below.
+function getZonedParts(date, timezone) {
+
+  const zone = timezone || "UTC";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).formatToParts(date);
+
+  const lookup = {};
+
+  for (const part of parts) {
+    lookup[part.type] = part.value;
+  }
+
+  // Same ICU "24" quirk as getLocalDayAndTime above.
+  const hour = lookup.hour === "24" ? 0 : Number(lookup.hour);
+
+  return {
+    year: Number(lookup.year),
+    month: Number(lookup.month),
+    day: Number(lookup.day),
+    hour,
+    minute: Number(lookup.minute),
+    second: Number(lookup.second)
+  };
+
+}
+
+
+// Converts a LOCAL wall-clock time (a calendar date + HH:MM, in the given
+// IANA timezone) to the UTC instant it represents - the direction none of
+// this file needed before now, since checkWithinBusinessHours above only
+// ever goes UTC-instant -> local wall-clock, not the reverse. Needed by
+// availabilityService.js to turn "9:00 AM Tuesday, business's own
+// timezone" into a real, storable start_time.
+//
+// Standard "guess and correct" technique for this without a date library:
+// there's no direct JS API for local-time -> UTC in an arbitrary IANA
+// zone (only the reverse, via Intl), so first assume the wall-clock
+// numbers ARE UTC (a guess), then ask Intl what wall-clock time that
+// guess actually renders as in the target zone. The gap between "what we
+// wanted" and "what the guess produced" is exactly that zone's UTC
+// offset at that instant, which corrects the guess into the right
+// answer. One correction pass is standard practice and sufficiently
+// accurate outside the rare instant of a DST transition itself - the
+// same class of edge case already accepted elsewhere in this codebase's
+// recurrence-date math, not something new introduced here.
+function zonedTimeToUtc(year, month, day, hour, minute, timezone) {
+
+  const zone = timezone || "UTC";
+
+  const guessMs = Date.UTC(year, month - 1, day, hour, minute, 0);
+
+  const rendered = getZonedParts(new Date(guessMs), zone);
+
+  const renderedMs = Date.UTC(rendered.year, rendered.month - 1, rendered.day, rendered.hour, rendered.minute, rendered.second);
+
+  const offsetMs = renderedMs - guessMs;
+
+  return new Date(guessMs - offsetMs);
+
+}
+
+
 module.exports = {
 
   DAY_KEYS,
@@ -225,6 +300,12 @@ module.exports = {
 
   checkWithinBusinessHours,
 
-  isValidTimezone
+  isValidTimezone,
+
+  getLocalDayAndTime,
+
+  getZonedParts,
+
+  zonedTimeToUtc
 
 };

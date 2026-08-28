@@ -1380,6 +1380,32 @@ export const getPublicHistory = (slug, customerId) =>
 
 
 
+export const getPublicAvailability = (slug, startDate, days) => {
+
+  const params = new URLSearchParams();
+
+  if (startDate) params.set("start_date", startDate);
+  if (days) params.set("days", days);
+
+  const query = params.toString();
+
+  return request(`/public/${slug}/availability${query ? `?${query}` : ""}`);
+
+};
+
+
+export const createPublicBooking = (slug, payload) =>
+
+  request(`/public/${slug}/book`, {
+
+    method: "POST",
+
+    body: JSON.stringify(payload)
+
+  });
+
+
+
 /* ---------- Notifications ---------- */
 
 

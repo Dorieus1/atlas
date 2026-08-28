@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Key } from "lucide-react";
+import { Settings as SettingsIcon, Key, CalendarDays } from "lucide-react";
 import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import PublicLinkCard from "../components/PublicLinkCard";
@@ -175,6 +175,16 @@ function Settings() {
 
               <>
                 <PublicLinkCard business={business} />
+                <PublicLinkCard
+                  business={business}
+                  path="/book"
+                  title={<><CalendarDays size={20} /> Your Online Booking Page</>}
+                  description={
+                    business?.business_hours
+                      ? "Share this link so customers can book a real open slot themselves, day or night - it checks your actual hours and calendar, so nothing gets double-booked."
+                      : "Set your Business Hours below first - online booking needs real hours to know when you're open before it can offer any times."
+                  }
+                />
                 <PublicLinkCard
                   business={business}
                   path="/portal"
