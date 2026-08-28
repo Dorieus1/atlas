@@ -404,4 +404,31 @@ describe("Appointments", () => {
 
   });
 
+
+  // The Today (field view) page calls customers directly for phone/tel:
+  // and address/directions links, so the list endpoint needs to carry
+  // both alongside customer_name - this locks that contract in.
+  test("the appointment list includes the customer's phone and address for the field view's call/directions links", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ApptCustomerContact");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Contact Customer", phone: "555-0100", address: "123 Main St" });
+
+    await request(app)
+      .post("/api/appointments")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerRes.body.id, title: "Job with contact info", start_time: "2026-09-01T10:00:00.000Z" });
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    expect(list.body[0].customer_phone).toBe("555-0100");
+    expect(list.body[0].customer_address).toBe("123 Main St");
+
+  });
+
 });

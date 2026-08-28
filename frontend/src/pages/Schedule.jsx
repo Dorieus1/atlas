@@ -28,6 +28,7 @@ import {
 
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import { formatDuration } from "../utils/duration";
 
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -45,23 +46,6 @@ const RECURRENCE_LABELS = {
   monthly: "1 month",
   quarterly: "3 months",
   annually: "1 year"
-};
-
-// A plain "2h 15m" readout for a completed clock-in/out session - minutes
-// only (no seconds), since a job's actual labor cost is billed/estimated
-// in fractions of an hour, not down to the second.
-const formatDuration = (startIso, endIso) => {
-
-  const minutes = Math.max(0, Math.round((new Date(endIso) - new Date(startIso)) / 60000));
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-
-  if (hours === 0) {
-    return `${remainingMinutes}m`;
-  }
-
-  return `${hours}h ${remainingMinutes}m`;
-
 };
 
 // Kept in sync with MAX_RECURRING_OCCURRENCES in

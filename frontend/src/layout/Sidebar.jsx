@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Sun,
   Users,
   Flame,
   CalendarDays,
@@ -49,6 +50,13 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       name: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard
+    },
+
+    {
+      name: "Today",
+      path: "/today",
+      icon: Sun,
+      tourId: "nav-today"
     },
 
     {

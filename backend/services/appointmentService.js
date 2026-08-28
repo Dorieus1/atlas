@@ -817,7 +817,9 @@ const getAppointments = (business_id) => {
       `
       SELECT
         appointments.*,
-        customers.name AS customer_name
+        customers.name AS customer_name,
+        customers.phone AS customer_phone,
+        customers.address AS customer_address
       FROM appointments
       LEFT JOIN customers ON customers.id = appointments.customer_id
       WHERE appointments.business_id = ?
