@@ -260,4 +260,34 @@ if (require.main === module) {
 }
 
 
-module.exports = app;
+// Under Jest, hand tests a single long-lived server instead of the bare
+// app. `supertest(app)` builds a brand-new `http.createServer(app)` and
+// `.listen(0)` for EVERY request - the full suite makes thousands of
+// those, each alive for a millisecond. When anything else on the machine
+// is churning ephemeral ports (a second `npm test` from a sub-agent, an
+// editor's language server, another local HTTP tool), one of those
+// short-lived binds collides with a port another process owns; the
+// request is then answered by that process instead of this app, and a
+// random test fails with a spurious 401/404 that passes on a solo
+// re-run. Handing `supertest` a server that is already listening makes it
+// reuse that one - Jest gives every test file its own module registry, so
+// this is one bind per file (~66 a run) on a stable, long-lived port,
+// instead of thousands. backend/__tests__/setup/perFileCleanup.js closes
+// it in an afterAll. Nothing outside the tests imports this module for
+// anything other than `supertest(...)`, and production (JEST_WORKER_ID
+// unset) is untouched.
+if (process.env.JEST_WORKER_ID !== undefined) {
+
+  const http = require("http");
+
+  const testServer = http.createServer(app);
+
+  testServer.listen(0, "127.0.0.1");
+
+  module.exports = testServer;
+
+} else {
+
+  module.exports = app;
+
+}

@@ -29,6 +29,10 @@ module.exports = {
     "<rootDir>/backend/__tests__/setup/mockWebPush.js"
   ],
 
+  setupFilesAfterEnv: [
+    "<rootDir>/backend/__tests__/setup/perFileCleanup.js"
+  ],
+
   maxWorkers: 1,
 
   testTimeout: 10000
