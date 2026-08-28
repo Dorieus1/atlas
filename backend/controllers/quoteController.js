@@ -16,7 +16,8 @@ const {
   deleteQuoteExpense: deleteQuoteExpenseService,
   addQuotePayment: addQuotePaymentService,
   deleteQuotePayment: deleteQuotePaymentService,
-  validateSignature
+  validateSignature,
+  acceptQuoteWithSignatureAtomic
 } = require("../services/quoteService");
 
 const { getCustomerById } = require("../services/customerService");
@@ -1281,13 +1282,25 @@ const signQuoteInPerson = async (req, res) => {
 
     }
 
-    await updateQuoteFieldsService(id, business_id, {
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
+    // The pre-check above is a friendly, informative rejection for the
+    // common case; this atomic write is the real gate. If it returns
+    // false despite the pre-check passing, another request (a double-
+    // tap, most likely) won the exact same race in between - that's
+    // still "already signed" from this request's point of view, just
+    // discovered a moment later.
+    const won = await acceptQuoteWithSignatureAtomic(id, business_id, {
       accepted_by_name: name.trim(),
       signature,
       signature_method: "in_person"
     });
+
+    if (!won) {
+
+      return res.status(400).json({
+        error: "This has already been signed"
+      });
+
+    }
 
     res.json({
       message: "Signed"

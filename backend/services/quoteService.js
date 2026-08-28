@@ -402,6 +402,59 @@ const markQuoteDepositPaidAtomic = (quote_id, business_id, deposit_paid_at) => {
 
 
 
+// Same compare-and-swap shape as markQuotePaidAtomic above, for the
+// "sign/accept" transition shared by portalController.js's acceptQuote
+// (the customer's own portal, remote) and quoteController.js's
+// signQuoteInPerson (a staff member's device, on-site). A peer review
+// caught that both of those were doing the same read-check-then-write
+// this exact codebase had already fixed twice elsewhere the same day
+// (the Stripe webhook idempotency fix and the appointment-completion
+// duplicate-invoice fix, both in e297073) - fetching the quote,
+// checking status === 'sent', THEN calling the generic updateQuoteFields
+// above, whose own UPDATE has no status guard in its WHERE clause at
+// all. Two near-simultaneous signing attempts (an ordinary double-tap
+// on a slow connection, no malicious intent needed) could both pass the
+// pre-check before either write landed, and the second write would
+// silently clobber the first's signature/name/method with no error to
+// either side - exactly wrong for a feature whose entire point is being
+// a reliable "who signed and how" record. Deliberately NOT folded into
+// updateQuoteFields itself (unlike this function, that one is a
+// general-purpose multi-field updater used by callers with entirely
+// different prior-status expectations - hard-coding "WHERE status =
+// 'sent'" there would break every one of them); this is its own
+// narrowly-scoped atomic write instead, exactly like markQuotePaidAtomic.
+const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, signature, signature_method }) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.run(
+
+      `
+      UPDATE quotes
+      SET status = 'accepted',
+          accepted_at = ?,
+          accepted_by_name = ?,
+          signature = ?,
+          signature_method = ?
+      WHERE id = ?
+      AND business_id = ?
+      AND status = 'sent'
+      `,
+
+      [new Date().toISOString(), accepted_by_name, signature, signature_method, id, business_id],
+
+      function (err) {
+        if (err) reject(err); else resolve(this.changes > 0);
+      }
+
+    );
+
+  });
+
+};
+
+
+
 const getQuoteByAppointmentId = (appointment_id, business_id) => {
 
   return getAsync(
@@ -1030,6 +1083,8 @@ module.exports = {
   markQuoteDepositPaidAtomic,
 
   validateSignature,
+
+  acceptQuoteWithSignatureAtomic,
 
   getQuotes,
 

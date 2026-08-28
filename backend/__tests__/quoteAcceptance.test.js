@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const { createBusinessAndUser } = require("./setup/helpers");
+const { signCustomerToken } = require("../services/portalAuthService");
 
 
 const createCustomer = async (authHeader, name, email) => {
@@ -275,6 +276,69 @@ describe("Customer accept/decline", () => {
 
     // The first approval's name is still what's on record.
     expect(fetched.body.accepted_by_name).toBe("First Approval");
+
+  });
+
+
+  // Regression test for a real race a peer review caught: the sequential
+  // test above (await one accept, then the other) always passed even
+  // before the fix, since the second call's read ran after the first
+  // had already committed. An ordinary double-tap on a slow connection
+  // can genuinely overlap - both reading status='sent' before either
+  // write lands - so this fires them concurrently instead. Before the
+  // fix (updateQuoteFields with no status guard in its own WHERE
+  // clause), both writes could succeed and the second would silently
+  // clobber the first's signature and name.
+  test("two truly concurrent accept attempts on the same quote don't both win", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ActionConcurrentAccept");
+    const businessId = await getBusinessId(authHeader);
+    const customerId = await createCustomer(authHeader, "Concurrent Accept Customer", "concurrentaccept@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, items: ITEMS });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    // Signed directly rather than through the real magic-link login flow
+    // (loginAsCustomer) - this test's whole point is firing two requests
+    // at once, not exercising login, and the portal's own /verify
+    // endpoint is deliberately rate-limited (10/60s, shared by IP across
+    // every test in this file) to guard against real brute-force login
+    // attempts. Mirrors createBusinessAndUser's own reasoning in
+    // setup/helpers.js for signing a business JWT directly instead of
+    // hitting the real login endpoint for test fixture setup.
+    const customerAuthHeader = `Bearer ${signCustomerToken(customerId, businessId)}`;
+
+    const [first, second] = await Promise.all([
+
+      request(app)
+        .post(`/api/portal/account/quotes/${created.body.id}/accept`)
+        .set("Authorization", customerAuthHeader)
+        .send({ name: "Approver A", signature: TEST_SIGNATURE }),
+
+      request(app)
+        .post(`/api/portal/account/quotes/${created.body.id}/accept`)
+        .set("Authorization", customerAuthHeader)
+        .send({ name: "Approver B", signature: TEST_SIGNATURE })
+
+    ]);
+
+    const statuses = [first.status, second.status].sort();
+
+    expect(statuses).toEqual([200, 400]);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(fetched.body.status).toBe("accepted");
+    expect(["Approver A", "Approver B"]).toContain(fetched.body.accepted_by_name);
 
   });
 

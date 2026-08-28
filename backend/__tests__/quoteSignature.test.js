@@ -151,6 +151,53 @@ describe("Signing a quote in person (staff-side)", () => {
   });
 
 
+  // Regression test for a real race a peer review caught: the sequential
+  // test above (await one attempt, then the other) always passed even
+  // before the fix, because the second call's own read happened after
+  // the first had already committed. Two ordinary double-taps on a slow
+  // connection can genuinely overlap - both reading status='sent' before
+  // either write lands - so this fires them with Promise.all instead.
+  // Before the fix (updateQuoteFields with no status guard in its own
+  // WHERE clause), both writes could succeed and the second would
+  // silently clobber the first's signature/name.
+  test("two truly concurrent sign attempts on the same quote don't both win", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SignConcurrent");
+    const customerId = await createCustomer(authHeader, "Concurrent Customer");
+    const quoteId = await createSentQuote(authHeader, customerId);
+
+    const [first, second] = await Promise.all([
+
+      request(app)
+        .post(`/api/quotes/${quoteId}/sign`)
+        .set("Authorization", authHeader)
+        .send({ name: "Signer A", signature: TEST_SIGNATURE }),
+
+      request(app)
+        .post(`/api/quotes/${quoteId}/sign`)
+        .set("Authorization", authHeader)
+        .send({ name: "Signer B", signature: TEST_SIGNATURE })
+
+    ]);
+
+    const statuses = [first.status, second.status].sort();
+
+    // Exactly one wins (200) and exactly one loses (400) - never both
+    // succeeding (which would mean one silently clobbered the other)
+    // and never both failing (which would mean the quote never actually
+    // got signed at all).
+    expect(statuses).toEqual([200, 400]);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${quoteId}`)
+      .set("Authorization", authHeader);
+
+    expect(fetched.body.status).toBe("accepted");
+    expect(["Signer A", "Signer B"]).toContain(fetched.body.accepted_by_name);
+
+  });
+
+
   test("a nonexistent quote 404s, and a business can't sign another business's quote", async () => {
 
     const businessA = await createBusinessAndUser(app, "SignScopeA");

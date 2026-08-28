@@ -2,7 +2,7 @@ const { getBusinessBySlug, getBusinessById } = require("../services/businessServ
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail, escapeHtml } = require("../services/emailService");
-const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature, acceptQuoteWithSignatureAtomic } = require("../services/quoteService");
 const {
   getAppointmentsByCustomer,
   createAppointment,
@@ -907,13 +907,24 @@ const acceptQuote = async (req, res) => {
 
     const approvedName = name.trim();
 
-    await updateQuoteFields(id, business_id, {
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
+    // The status check above is a friendly, informative rejection for
+    // the common case; this atomic write is the real gate against two
+    // near-simultaneous accept attempts (an ordinary double-tap on a
+    // slow connection) both passing that check before either write
+    // lands - see acceptQuoteWithSignatureAtomic's own comment.
+    const won = await acceptQuoteWithSignatureAtomic(id, business_id, {
       accepted_by_name: approvedName,
       signature,
       signature_method: "portal"
     });
+
+    if (!won) {
+
+      return res.status(400).json({
+        error: "This has already been accepted"
+      });
+
+    }
 
     // Best-effort - the customer's approval is already saved above, so a
     // notification hiccup must never make that look like it failed.
