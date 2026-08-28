@@ -1,4 +1,5 @@
 const { generateAIResponse, detectKnowledgeGap, classifyLead } = require("./aiService");
+const { buildChatTools } = require("./chatTools");
 const { getCustomerMemories } = require("./memoryService");
 const { saveConversation } = require("./conversationService");
 const { getBusinessKnowledge } = require("./knowledgeService");
@@ -52,6 +53,13 @@ const processChatMessage = async (customer, business, message) => {
 
   const knowledge = await getBusinessKnowledge(business_id);
 
+  // Gives the AI a real check_availability/book_appointment ability when
+  // (and only when) the business has real hours configured - see
+  // chatTools.js and generateAIResponse's own comments for the full
+  // reasoning and the safeguards that keep this scoped to the current
+  // customer's own, still-owner-reviewable requests.
+  const tools = buildChatTools(business, customer);
+
   const reply = await generateAIResponse(
 
     message,
@@ -60,7 +68,9 @@ const processChatMessage = async (customer, business, message) => {
 
     knowledge,
 
-    business
+    business,
+
+    tools
 
   );
 
