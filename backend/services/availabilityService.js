@@ -1,5 +1,18 @@
+const db = require("../../database/db");
+const { withTransaction } = require("../../database/transactionQueue");
 const { getLocalDayAndTime, getZonedParts, zonedTimeToUtc } = require("./businessHoursService");
-const { getAppointments } = require("./appointmentService");
+const { getAppointments, createAppointment } = require("./appointmentService");
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
 
 
 // Same fallback duration every other unscheduled-duration appointment in
@@ -222,11 +235,73 @@ async function isSlotStillAvailable(business, startTimeIso, durationMinutes) {
 }
 
 
+
+// A peer review caught a real race here: isSlotStillAvailable above is a
+// pure read with no lock, and createAppointment (appointmentService.js)
+// is an unconditional INSERT with no conflict checking of its own - the
+// controller calling "check, then insert" as two separate steps left a
+// real window for two visitors clicking "Book" on the same popular slot
+// within the same second to both pass the check before either write
+// landed, producing a genuine double-booking with no error to either
+// side. This is the same bug SHAPE this codebase already fixed three
+// other times the same day (an atomic compare-and-swap UPDATE for the
+// Stripe webhook and quote-signing races, a DB-level unique index for
+// the appointment-completion duplicate-invoice race) - but neither of
+// those shapes fits here: the thing being raced isn't a single column's
+// value, it's a computed time-RANGE overlap (two different start times
+// on a 30-minute grid can still overlap if the duration spans more than
+// one grid step), which a plain unique index can't express. A real
+// BEGIN/COMMIT transaction, routed through the app's shared
+// withTransaction mutex (database/transactionQueue.js) the same way
+// quoteService.js already does for its own multi-statement writes, is
+// what actually closes this: the mutex guarantees no second call's
+// check-then-insert can even START until the first one has fully
+// committed or rolled back, so the read and the write behave as one
+// atomic unit against any other concurrent booking attempt.
+async function createAppointmentIfSlotAvailable(business, start_time, durationMinutes, appointmentArgs) {
+
+  return withTransaction(async () => {
+
+    await runAsync("BEGIN TRANSACTION");
+
+    try {
+
+      const stillAvailable = await isSlotStillAvailable(business, start_time, durationMinutes);
+
+      if (!stillAvailable) {
+
+        await runAsync("ROLLBACK");
+
+        return { error: "slot_taken" };
+
+      }
+
+      const appointmentId = await createAppointment(...appointmentArgs);
+
+      await runAsync("COMMIT");
+
+      return { appointmentId };
+
+    } catch (err) {
+
+      await runAsync("ROLLBACK").catch(() => {});
+
+      throw err;
+
+    }
+
+  });
+
+}
+
+
 module.exports = {
 
   getAvailability,
 
   isSlotStillAvailable,
+
+  createAppointmentIfSlotAvailable,
 
   DEFAULT_DURATION_MINUTES,
 

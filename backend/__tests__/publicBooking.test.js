@@ -275,21 +275,56 @@ describe("Public self-service booking", () => {
     });
 
 
-    test("double-booking the exact same slot is refused on the second attempt", async () => {
+    // Sequential double-booking (await one, then the other) is
+    // deliberately not tested as its own separate case - the truly
+    // concurrent version right below is a strict superset of it (if two
+    // requests racing at the exact same instant can only ever let one
+    // through, two requests arriving one after another can't possibly
+    // do worse), and every call to this endpoint spends real budget
+    // against its own per-IP rate limit (10/60s, shared across every
+    // test in this file) - not worth spending twice on the weaker of
+    // two versions of the same check.
+    //
+    // Regression test for a real race a peer review caught: a plain
+    // separate "check availability, then insert" (no lock between the
+    // two steps) let two visitors clicking "Book" on the same popular
+    // slot within the same second - completely ordinary, not an attack -
+    // both pass the availability check before either write had landed,
+    // producing a genuine double-booking with no error to either side.
+    // A purely sequential test (await one booking, then the other)
+    // would have passed even before the fix, since the second request's
+    // own check would run after the first had already committed - only
+    // firing both at once with Promise.all actually exercises the race.
+    test("two truly concurrent bookings for the same slot don't both win", async () => {
 
-      const { slug } = await bookableBusiness("BookDoubleBook");
+      const { authHeader, slug } = await bookableBusiness("BookConcurrent");
 
-      const first = await request(app)
-        .post(`/api/public/${slug}/book`)
-        .send({ name: "Jane Doe", start_time: "2026-09-14T10:00:00.000Z" });
+      const [first, second] = await Promise.all([
 
-      expect(first.status).toBe(201);
+        request(app)
+          .post(`/api/public/${slug}/book`)
+          .send({ name: "Visitor A", start_time: "2026-09-14T10:00:00.000Z" }),
 
-      const second = await request(app)
-        .post(`/api/public/${slug}/book`)
-        .send({ name: "John Smith", start_time: "2026-09-14T10:00:00.000Z" });
+        request(app)
+          .post(`/api/public/${slug}/book`)
+          .send({ name: "Visitor B", start_time: "2026-09-14T10:00:00.000Z" })
 
-      expect(second.status).toBe(409);
+      ]);
+
+      const statuses = [first.status, second.status].sort();
+
+      // Exactly one wins (201) and exactly one loses (409) - never both
+      // succeeding (a real double-booking) and never both failing (the
+      // slot never actually getting booked at all).
+      expect(statuses).toEqual([201, 409]);
+
+      const appts = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const atThatTime = appts.body.filter((a) => a.start_time === "2026-09-14T10:00:00.000Z");
+
+      expect(atThatTime).toHaveLength(1);
 
     });
 

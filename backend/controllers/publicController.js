@@ -3,8 +3,7 @@ const { createCustomer, getCustomerById } = require("../services/customerService
 const { getConversationHistory } = require("../services/conversationService");
 const { processChatMessage } = require("../services/chatService");
 const { createNotification } = require("../services/notificationService");
-const { createAppointment } = require("../services/appointmentService");
-const { getAvailability, isSlotStillAvailable, DEFAULT_DURATION_MINUTES } = require("../services/availabilityService");
+const { getAvailability, createAppointmentIfSlotAvailable, DEFAULT_DURATION_MINUTES } = require("../services/availabilityService");
 
 
 const MAX_NAME_LENGTH = 200;
@@ -298,13 +297,16 @@ const getPublicAvailability = async (req, res) => {
 
 
 // The self-service booking page's write side. Deliberately re-validates
-// the chosen slot from scratch (isSlotStillAvailable) rather than
-// trusting that a slot the browser fetched moments ago is still open -
-// two visitors can always be looking at the same page at once. Creates
-// a fresh customer every time, same as startConversation above already
-// does for the public chat - deduping a repeat visitor by email is what
-// the existing duplicate-detection/merge feature is for, not something
-// this endpoint should try to guess at.
+// the chosen slot from scratch (via createAppointmentIfSlotAvailable,
+// which does that check and the insert as one atomic unit - see its own
+// comment for why a plain separate check-then-insert here left a real
+// double-booking race) rather than trusting that a slot the browser
+// fetched moments ago is still open - two visitors can always be
+// looking at the same page at once. Creates a fresh customer every
+// time, same as startConversation above already does for the public
+// chat - deduping a repeat visitor by email is what the existing
+// duplicate-detection/merge feature is for, not something this endpoint
+// should try to guess at.
 const createPublicBooking = async (req, res) => {
 
   try {
@@ -369,16 +371,6 @@ const createPublicBooking = async (req, res) => {
 
     }
 
-    const stillAvailable = await isSlotStillAvailable(business, start_time, duration_minutes);
-
-    if (!stillAvailable) {
-
-      return res.status(409).json({
-        error: "That time was just booked or is no longer available. Please choose another."
-      });
-
-    }
-
     const customerId = await createCustomer(
 
       business.id,
@@ -393,23 +385,37 @@ const createPublicBooking = async (req, res) => {
 
     const appointmentTitle = title && title.trim() ? title.trim() : "Appointment request";
 
-    const appointmentId = await createAppointment(
+    // The availability re-check and the appointment insert happen as one
+    // atomic unit here (see createAppointmentIfSlotAvailable's own
+    // comment) - a plain separate "check, then insert" left a real
+    // window for two visitors booking the same popular slot at once to
+    // both pass the check before either write landed.
+    const result = await createAppointmentIfSlotAvailable(
 
-      business.id,
-
-      customerId,
-
-      appointmentTitle,
-
-      notes || null,
-
+      business,
       start_time,
-
-      null,
-
-      "requested"
+      duration_minutes,
+      [
+        business.id,
+        customerId,
+        appointmentTitle,
+        notes || null,
+        start_time,
+        null,
+        "requested"
+      ]
 
     );
+
+    if (result.error === "slot_taken") {
+
+      return res.status(409).json({
+        error: "That time was just booked or is no longer available. Please choose another."
+      });
+
+    }
+
+    const appointmentId = result.appointmentId;
 
     // Best-effort, same reasoning as every other public-facing
     // notification in this file - a stranger's booking must never fail
