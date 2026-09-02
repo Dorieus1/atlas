@@ -379,6 +379,48 @@ describe("Good/Better/Best multi-option quotes", () => {
   });
 
 
+  test("a tiers-only edit is blocked once a payment has been recorded, same as every other price edit", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "TierEditLockedAfterPayment");
+    const customerId = await createCustomer(authHeader);
+
+    // A tiered invoice, sent, with a partial payment recorded against it -
+    // exactly the state the items/discount/deposit edit-lock exists for.
+    const created = await createTieredQuote(authHeader, customerId, { type: "invoice" });
+    await sendQuoteStatus(authHeader, created.body.id);
+
+    const payment = await request(app)
+      .post(`/api/quotes/${created.body.id}/payments`)
+      .set("Authorization", authHeader)
+      .send({ amount: 50, method: "cash" });
+
+    expect(payment.status).toBe(201);
+
+    // A request that touches ONLY tiers - no items/discount/deposit/tax
+    // keys - used to skip the edit-lock entirely and let
+    // replaceQuoteTiers wipe and rebuild every option anyway.
+    const attempt = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({
+        tiers: [
+          { name: "Rewritten A", items: [{ description: "New A", quantity: 1, unit_price: 10 }] },
+          { name: "Rewritten B", is_recommended: true, items: [{ description: "New B", quantity: 1, unit_price: 20 }] }
+        ]
+      });
+
+    expect(attempt.status).toBe(400);
+
+    // The original three options are untouched.
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(fetched.body.tiers.map((t) => t.name)).toEqual(["Good", "Better", "Best"]);
+
+  });
+
+
   test("editing a tiered quote's items through the plain items field is rejected", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "TierEditViaPlainItems");

@@ -1218,7 +1218,13 @@ const updateQuote = async (req, res) => {
     // and no extra read happens.
     let existingQuote = null;
 
-    if (items !== undefined || discountFieldsProvided || depositFieldsProvided || taxRateProvided) {
+    // `isTiered` belongs in this trigger too: replacing a quote's tiers
+    // (further down) deletes and rewrites every item and option on it,
+    // so it needs the same existing-quote fetch, the same paid/deposited
+    // edit-lock, and the same re-validation of any stored discount/
+    // deposit against the new option prices. Without it, a request
+    // sending only `{tiers}` skipped all of that.
+    if (items !== undefined || isTiered || discountFieldsProvided || depositFieldsProvided || taxRateProvided) {
 
       existingQuote = await getQuoteByIdService(id, business_id);
 
