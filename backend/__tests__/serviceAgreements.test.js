@@ -28,6 +28,15 @@ const createCustomer = async (authHeader, name = "Plan Customer") => {
 };
 
 
+// The fixture start_date must stay in the future relative to whenever
+// the suite runs: visits_remaining / next_visit_at (serviceAgreementService)
+// only count occurrences still ahead of `now`, so a hardcoded date would
+// silently start dropping occurrences from the count the moment the wall
+// clock passed it. A few days out keeps all 12 quarterly occurrences
+// (and every renewed one) firmly in the future.
+const PLAN_START_DATE = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+
 const createPlan = async (authHeader, customer_id, overrides = {}) => {
 
   return request(app)
@@ -37,7 +46,7 @@ const createPlan = async (authHeader, customer_id, overrides = {}) => {
       customer_id,
       title: "Quarterly Pest Control",
       frequency: "quarterly",
-      start_date: "2026-09-01T10:00:00.000Z",
+      start_date: PLAN_START_DATE,
       price: 120,
       ...overrides
     });
