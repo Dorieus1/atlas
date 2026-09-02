@@ -23,7 +23,9 @@ const {
   updateCustomer,
   addCustomerTag,
   removeCustomerTag,
-  importCustomers
+  importCustomers,
+  getStatement,
+  downloadStatementPdf
 
 } = require("../controllers/customerController");
 
@@ -98,6 +100,22 @@ router.get(
   "/:id/timeline",
   authMiddleware,
   getCustomerTimeline
+);
+
+
+
+router.get(
+  "/:id/statement",
+  authMiddleware,
+  getStatement
+);
+
+
+
+router.get(
+  "/:id/statement/pdf",
+  authMiddleware,
+  downloadStatementPdf
 );
 
 

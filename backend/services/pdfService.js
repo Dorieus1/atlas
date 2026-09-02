@@ -517,6 +517,194 @@ function streamQuotePdf(res, quote, business) {
 }
 
 
+// A different column layout from the line-item table above (Date /
+// Invoice # / Status / Total / Paid / Balance, not description/qty/
+// price/amount) - a statement is a summary of invoices, not one
+// invoice's own line items, so it gets its own small header/row
+// drawing rather than reusing drawTableHeader/drawItemRows.
+const STATEMENT_COLUMNS = { date: 50, number: 150, status: 250, total: 340, paid: 410, balance: 480 };
+
+function drawStatementTableHeader(doc, y) {
+
+  doc
+    .rect(50, y, 495, 24)
+    .fill("#f9fafb");
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor(MUTED_COLOR)
+    .text("DATE", STATEMENT_COLUMNS.date + 10, y + 8)
+    .text("INVOICE", STATEMENT_COLUMNS.number, y + 8)
+    .text("STATUS", STATEMENT_COLUMNS.status, y + 8)
+    .text("TOTAL", STATEMENT_COLUMNS.total, y + 8, { width: 65, align: "right" })
+    .text("PAID", STATEMENT_COLUMNS.paid, y + 8, { width: 65, align: "right" })
+    .text("BALANCE", STATEMENT_COLUMNS.balance, y + 8, { width: 65, align: "right" });
+
+  return y + 24;
+
+}
+
+
+// A "statement of account" - every invoice billed to one customer, what
+// they've paid, and what's still owed on each, plus a running total.
+// The one document a business hands (or emails) to a customer who asks
+// "what do I owe you?" instead of pointing them at a pile of individual
+// invoice PDFs.
+function streamCustomerStatementPdf(res, statement, business) {
+
+  const doc = new PDFDocument({ size: "A4", margin: PAGE_MARGIN });
+
+  doc.pipe(res);
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(22)
+    .fillColor(INK_COLOR)
+    .text(business.name || "Your Business", 50, 50);
+
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(MUTED_COLOR)
+    .text([business.phone, business.email, business.address].filter(Boolean).join("  ·  "), 50, 78);
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(18)
+    .fillColor(BRAND_COLOR)
+    .text("STATEMENT OF ACCOUNT", 50, 115);
+
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor(MUTED_COLOR)
+    .text(`As of ${formatDate(new Date().toISOString())}`, 400, 68, { width: 145, align: "right" });
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .fillColor(MUTED_COLOR)
+    .text("BILL TO", 50, 150);
+
+  doc
+    .font("Helvetica")
+    .fontSize(12)
+    .fillColor(INK_COLOR)
+    .text(statement.customer.name || "Customer", 50, 166);
+
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor(MUTED_COLOR)
+    .text([statement.customer.email, statement.customer.phone].filter(Boolean).join("  ·  "), 50, 182);
+
+  const tableTop = 215;
+
+  let y = drawStatementTableHeader(doc, tableTop);
+
+  if (statement.invoices.length === 0) {
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(MUTED_COLOR)
+      .text("No invoices on file.", 60, y + 8);
+
+    y += ROW_HEIGHT;
+
+  }
+
+  statement.invoices.forEach((invoice) => {
+
+    if (y + ROW_HEIGHT > bottomOf(doc)) {
+
+      doc.addPage();
+      y = drawStatementTableHeader(doc, PAGE_MARGIN);
+
+    }
+
+    const documentNumber = formatQuoteNumber("invoice", invoice.quote_number);
+    const statusLabel = STATUS_LABELS[invoice.status] || invoice.status.toUpperCase();
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(INK_COLOR)
+      .text(formatDate(invoice.created_at), STATEMENT_COLUMNS.date + 10, y + 8, { width: 90 })
+      .text(documentNumber || "-", STATEMENT_COLUMNS.number, y + 8, { width: 90 })
+      .fillColor(invoice.status === "paid" ? "#16a34a" : MUTED_COLOR)
+      .text(statusLabel, STATEMENT_COLUMNS.status, y + 8, { width: 80 })
+      .fillColor(INK_COLOR)
+      .text(formatMoney(invoice.total), STATEMENT_COLUMNS.total, y + 8, { width: 65, align: "right" })
+      .text(formatMoney(invoice.amount_paid), STATEMENT_COLUMNS.paid, y + 8, { width: 65, align: "right" })
+      .font("Helvetica-Bold")
+      .text(formatMoney(invoice.balance_due), STATEMENT_COLUMNS.balance, y + 8, { width: 65, align: "right" });
+
+    doc
+      .strokeColor(BORDER_COLOR)
+      .lineWidth(0.5)
+      .moveTo(50, y + ROW_HEIGHT)
+      .lineTo(545, y + ROW_HEIGHT)
+      .stroke();
+
+    y += ROW_HEIGHT;
+
+  });
+
+  const totalsBlockHeight = 30 + 18 + 18;
+
+  if (y + 20 + totalsBlockHeight > bottomOf(doc)) {
+
+    doc.addPage();
+    y = PAGE_MARGIN;
+
+  } else {
+
+    y += 20;
+
+  }
+
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(MUTED_COLOR)
+    .text("Total Billed", 250, y, { width: 210, align: "right" })
+    .fillColor(INK_COLOR)
+    .text(formatMoney(statement.totals.total_billed), STATEMENT_COLUMNS.balance, y, { width: 65, align: "right" });
+
+  y += 18;
+
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(MUTED_COLOR)
+    .text("Total Paid", 250, y, { width: 210, align: "right" })
+    .fillColor(INK_COLOR)
+    .text(formatMoney(statement.totals.total_paid), STATEMENT_COLUMNS.balance, y, { width: 65, align: "right" });
+
+  y += 18;
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(12)
+    .fillColor(INK_COLOR)
+    .text("Balance Due", 250, y, { width: 210, align: "right" })
+    .fillColor(BRAND_COLOR)
+    .text(formatMoney(statement.totals.total_balance_due), STATEMENT_COLUMNS.balance, y, { width: 65, align: "right" });
+
+  doc
+    .font("Helvetica")
+    .fontSize(8)
+    .fillColor(MUTED_COLOR)
+    .text("Powered by Atlas", 50, doc.page.height - 60, { width: 495, align: "center" });
+
+  doc.end();
+
+}
+
+
 module.exports = {
-  streamQuotePdf
+  streamQuotePdf,
+  streamCustomerStatementPdf
 };

@@ -364,6 +364,14 @@ export const getCustomerTimeline = (id) =>
 
   request(`/customers/${id}/timeline`);
 
+export const getCustomerStatement = (id) =>
+
+  request(`/customers/${id}/statement`);
+
+export const downloadCustomerStatementPdf = (id) =>
+
+  downloadFile(`/customers/${id}/statement/pdf`, "token");
+
 
 
 export const deleteCustomer = (id) =>
@@ -738,6 +746,10 @@ export const getIntelligence = () =>
 export const getAnalytics = () =>
 
   request("/analytics");
+
+export const getArAging = () =>
+
+  request("/analytics/ar-aging");
 
 
 

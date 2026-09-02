@@ -749,6 +749,35 @@ const getQuoteExpensesForQuoteIds = async (quoteIds) => {
 
 
 
+// Same bulk-fetch shape as getQuoteExpensesForQuoteIds above, for manual
+// payments (cash/check/etc.) - powers AR aging's own amount_paid math,
+// which needs every outstanding invoice's payments at once rather than
+// one query per invoice.
+const getQuotePaymentsForQuoteIds = async (quoteIds) => {
+
+  if (quoteIds.length === 0) {
+    return [];
+  }
+
+  const placeholders = quoteIds.map(() => "?").join(", ");
+
+  return allAsync(
+
+    `
+    SELECT *
+    FROM quote_payments
+    WHERE quote_id IN (${placeholders})
+    ORDER BY created_at ASC
+    `,
+
+    quoteIds
+
+  );
+
+};
+
+
+
 const getQuotesByCustomer = async (customer_id, business_id) => {
 
   const rows = await allAsync(
@@ -1365,6 +1394,8 @@ module.exports = {
   getQuoteItemsForQuoteIds,
 
   getQuoteExpensesForQuoteIds,
+
+  getQuotePaymentsForQuoteIds,
 
   getQuotesByCustomer,
 

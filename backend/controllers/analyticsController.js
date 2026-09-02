@@ -2,6 +2,10 @@ const {
   getAnalytics
 } = require("../services/analyticsService");
 
+const {
+  getArAging
+} = require("../services/arAgingService");
+
 
 
 const analytics = async (req,res)=>{
@@ -39,8 +43,32 @@ const analytics = async (req,res)=>{
 
 
 
+const arAging = async (req, res) => {
+
+  try {
+
+    const data = await getArAging(req.user.business_id);
+
+    res.json(data);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 module.exports = {
 
-  analytics
+  analytics,
+
+  arAging
 
 };

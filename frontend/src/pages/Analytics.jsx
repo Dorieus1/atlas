@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { BarChart3, DollarSign, Hourglass, PiggyBank, Repeat, Award, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BarChart3, DollarSign, Hourglass, PiggyBank, Repeat, Award, Wallet, Receipt } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -13,7 +14,7 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-import { getAnalytics } from "../api/atlasApi";
+import { getAnalytics, getArAging } from "../api/atlasApi";
 import StatCard from "../components/dashboard/StatCard";
 import { useTheme } from "../context/ThemeContext";
 
@@ -109,6 +110,9 @@ function Analytics() {
 
   const [loadError, setLoadError] = useState("");
 
+  const [arAging, setArAging] = useState({ totals: { total_outstanding: 0, buckets: {} }, bucket_labels: {}, customers: [] });
+  const [arAgingError, setArAgingError] = useState("");
+
   useEffect(() => {
 
     getAnalytics()
@@ -119,6 +123,16 @@ function Analytics() {
       .catch((error) => {
         console.error(error);
         setLoadError("Couldn't load your analytics. Please refresh to try again.");
+      });
+
+    getArAging()
+      .then((data) => {
+        setArAging(data);
+        setArAgingError("");
+      })
+      .catch((error) => {
+        console.error(error);
+        setArAgingError("Couldn't load your accounts receivable. Please refresh to try again.");
       });
 
   }, []);
@@ -383,6 +397,85 @@ function Analytics() {
           )}
 
         </div>
+
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
+
+        <h2 className="flex items-center gap-2 text-xl font-bold">
+          <Receipt size={20} />
+          Accounts Receivable
+        </h2>
+
+        <p className="mt-1 text-sm text-fg-faint">
+          Who owes you money, and how overdue it is.
+        </p>
+
+        {arAgingError && (
+          <p className="mt-4 text-sm text-danger">
+            {arAgingError}
+          </p>
+        )}
+
+        {!arAgingError && arAging.customers.length === 0 ? (
+
+          <p className="mt-4 text-fg-muted">
+            Nothing outstanding — every sent invoice is either paid or hasn't been sent yet.
+          </p>
+
+        ) : !arAgingError && (
+
+          <>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+
+              {Object.entries(arAging.bucket_labels).map(([key, label]) => (
+
+                <div key={key} className="rounded-xl border border-border bg-surface-muted p-3">
+                  <p className="text-xs text-fg-faint">{label}</p>
+                  <p className="mt-1 text-lg font-bold">{formatMoney(arAging.totals.buckets[key] || 0)}</p>
+                </div>
+
+              ))}
+
+            </div>
+
+            <div className="mt-5 flex flex-col divide-y divide-border rounded-xl border border-border">
+
+              {arAging.customers.map((customer) => (
+
+                <Link
+                  key={customer.customer_id}
+                  to={`/customers/${customer.customer_id}`}
+                  className="flex items-center justify-between gap-3 p-3 transition hover:bg-surface-muted"
+                >
+
+                  <div className="min-w-0">
+
+                    <p className="truncate text-sm font-medium">{customer.customer_name}</p>
+
+                    <p className="mt-0.5 text-xs text-fg-faint">
+                      {customer.invoices.length} unpaid invoice{customer.invoices.length === 1 ? "" : "s"}
+                      {customer.buckets.days_90_plus > 0 && (
+                        <span className="ml-1.5 text-danger">· {formatMoney(customer.buckets.days_90_plus)} over 90 days</span>
+                      )}
+                    </p>
+
+                  </div>
+
+                  <span className="shrink-0 font-display text-lg font-bold">
+                    {formatMoney(customer.total_outstanding)}
+                  </span>
+
+                </Link>
+
+              ))}
+
+            </div>
+
+          </>
+
+        )}
 
       </div>
 

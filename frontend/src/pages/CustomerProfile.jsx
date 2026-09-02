@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, DollarSign, MapPin } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, DollarSign, MapPin, FileText } from "lucide-react";
 
 import {
   getCustomer,
@@ -15,7 +15,8 @@ import {
   createTag,
   addCustomerTag,
   removeCustomerTag,
-  getCustomerQuotes
+  getCustomerQuotes,
+  downloadCustomerStatementPdf
 } from "../api/atlasApi";
 
 import ChatWindow from "../components/ChatWindow";
@@ -47,6 +48,8 @@ function CustomerProfile() {
   const [leadError, setLeadError] = useState("");
   const [quoteStats, setQuoteStats] = useState(null);
   const [quoteStatsError, setQuoteStatsError] = useState("");
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
+  const [statementError, setStatementError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [editingCustomer, setEditingCustomer] = useState(false);
@@ -247,6 +250,29 @@ function CustomerProfile() {
 
       console.error("QUOTE STATS LOAD ERROR:", err);
       setQuoteStatsError("Couldn't load this customer's job history. Please refresh to try again.");
+
+    }
+
+  };
+
+
+  const handleDownloadStatement = async () => {
+
+    setDownloadingStatement(true);
+    setStatementError("");
+
+    try {
+
+      await downloadCustomerStatementPdf(id);
+
+    } catch (err) {
+
+      console.error("DOWNLOAD STATEMENT ERROR:", err);
+      setStatementError("Couldn't download the statement. Please try again.");
+
+    } finally {
+
+      setDownloadingStatement(false);
 
     }
 
@@ -906,10 +932,27 @@ function CustomerProfile() {
           p-6
         ">
 
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <DollarSign size={20} />
-            Customer Value
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <DollarSign size={20} />
+              Customer Value
+            </h2>
+
+            <button
+              onClick={handleDownloadStatement}
+              disabled={downloadingStatement}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-muted hover:text-fg disabled:opacity-50"
+            >
+              <FileText size={13} />
+              {downloadingStatement ? "Downloading..." : "Download Statement"}
+            </button>
+
+          </div>
+
+          {statementError && (
+            <p className="mt-2 text-xs text-danger">{statementError}</p>
+          )}
 
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
 

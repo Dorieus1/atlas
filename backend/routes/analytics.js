@@ -5,7 +5,8 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
 const {
-  analytics
+  analytics,
+  arAging
 } = require("../controllers/analyticsController");
 
 
@@ -14,6 +15,12 @@ router.get(
   "/",
   authMiddleware,
   analytics
+);
+
+router.get(
+  "/ar-aging",
+  authMiddleware,
+  arAging
 );
 
 

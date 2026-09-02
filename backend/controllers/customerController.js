@@ -24,6 +24,10 @@ const {
   getTagById: getTagByIdService
 } = require("../services/tagService");
 
+const { getCustomerStatement: getCustomerStatementService } = require("../services/customerStatementService");
+const { getBusinessById } = require("../services/businessService");
+const { streamCustomerStatementPdf } = require("../services/pdfService");
+
 
 // memoryStorage, not diskStorage like photoController - an import only
 // needs the file's contents once to parse it; nothing needs to persist to
@@ -279,6 +283,83 @@ const getCustomerTimeline = async (req, res) => {
     const timeline = await getCustomerTimelineService(customer, req.user.business_id);
 
     res.json(timeline);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const getStatement = async (req, res) => {
+
+  try {
+
+    const statement = await getCustomerStatementService(req.params.id, req.user.business_id);
+
+    if (!statement) {
+
+      return res.status(404).json({
+        error: "Customer not found"
+      });
+
+    }
+
+    res.json(statement);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const downloadStatementPdf = async (req, res) => {
+
+  try {
+
+    const business_id = req.user.business_id;
+
+    const [statement, business] = await Promise.all([
+      getCustomerStatementService(req.params.id, business_id),
+      getBusinessById(business_id)
+    ]);
+
+    if (!statement) {
+
+      return res.status(404).json({
+        error: "Customer not found"
+      });
+
+    }
+
+    // Slugged rather than used raw - a customer's name is free-form text
+    // (quotes, slashes, anything) that would otherwise break the
+    // Content-Disposition header's own quoting, same reasoning as
+    // quoteController.js's exportQuotesCsv business-name slug.
+    const customerSlug = (statement.customer.name || "customer")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "customer";
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="statement-${customerSlug}.pdf"`);
+
+    streamCustomerStatementPdf(res, statement, business || {});
 
   } catch (error) {
 
@@ -848,7 +929,11 @@ module.exports = {
 
   removeCustomerTag,
 
-  importCustomers
+  importCustomers,
+
+  getStatement,
+
+  downloadStatementPdf
 
 
 };
