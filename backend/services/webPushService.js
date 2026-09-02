@@ -82,7 +82,7 @@ const sendPushToBusiness = async (business_id, payload) => {
         // alone to retry on the next real notification.
         if (err.statusCode === 404 || err.statusCode === 410) {
 
-          deleteSubscription(sub.endpoint).catch(() => {});
+          deleteSubscription(sub.endpoint, sub.business_id).catch(() => {});
 
         } else {
 

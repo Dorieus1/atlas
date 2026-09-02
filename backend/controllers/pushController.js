@@ -70,7 +70,7 @@ const unsubscribe = async (req, res) => {
 
     }
 
-    await deleteSubscription(endpoint);
+    await deleteSubscription(endpoint, req.user.business_id);
 
     res.json({ message: "Unsubscribed" });
 

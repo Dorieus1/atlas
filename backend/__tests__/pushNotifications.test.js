@@ -138,6 +138,50 @@ describe("Push notifications", () => {
   });
 
 
+  // Regression test for a real cross-tenant IDOR a peer review caught:
+  // endpoint is globally unique, but it's also a value the CALLER
+  // supplies in the request body, not something looked up from an
+  // already-authenticated row first. Without scoping the delete to the
+  // caller's own business_id, any authenticated user from ANY business
+  // could silently delete another business's subscription just by
+  // sending that endpoint string - a 200 with no error and no trace of
+  // whose row it actually was.
+  test("a business can't unsubscribe another business's device by guessing its endpoint", async () => {
+
+    const bizA = await createBusinessAndUser(app, "PushCrossTenantA");
+    const bizB = await createBusinessAndUser(app, "PushCrossTenantB");
+
+    const endpoint = "https://push.example/cross-tenant-device";
+
+    await request(app)
+      .post("/api/push/subscribe")
+      .set("Authorization", bizA.authHeader)
+      .send({ subscription: fakeSubscription(endpoint) });
+
+    expect(await subscriptionCount(endpoint)).toBe(1);
+
+    const crossTenantAttempt = await request(app)
+      .post("/api/push/unsubscribe")
+      .set("Authorization", bizB.authHeader)
+      .send({ endpoint });
+
+    // Same "quietly did nothing" response as any other not-mine delete
+    // in this codebase - no error, but the row must still be there.
+    expect(crossTenantAttempt.status).toBe(200);
+    expect(await subscriptionCount(endpoint)).toBe(1);
+
+    // And the rightful owner can still remove their own subscription.
+    const ownAttempt = await request(app)
+      .post("/api/push/unsubscribe")
+      .set("Authorization", bizA.authHeader)
+      .send({ endpoint });
+
+    expect(ownAttempt.status).toBe(200);
+    expect(await subscriptionCount(endpoint)).toBe(0);
+
+  });
+
+
   test("a new notification pushes to every device subscribed for that business", async () => {
 
     const { authHeader, business_id } = await createBusinessAndUser(app, "PushFanOut");

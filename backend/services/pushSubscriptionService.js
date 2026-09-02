@@ -67,9 +67,20 @@ const saveSubscription = async (business_id, user_id, subscription) => {
 };
 
 
-const deleteSubscription = (endpoint) => {
+// Scoped to business_id, not just endpoint, even though endpoint alone
+// is already globally unique (migration 055's unique index) - endpoint
+// is a value the CALLER supplies in the request body, not something
+// looked up from an already-authenticated row first. Without this scope,
+// any authenticated user from any business could delete another
+// business's subscription just by sending that endpoint string, the
+// same class of cross-tenant IDOR already fixed elsewhere in this
+// codebase (see the quote-child delete fix from the 2026-08-27/28 audit).
+const deleteSubscription = (endpoint, business_id) => {
 
-  return runAsync(`DELETE FROM push_subscriptions WHERE endpoint = ?`, [endpoint]).then((result) => result.changes > 0);
+  return runAsync(
+    `DELETE FROM push_subscriptions WHERE endpoint = ? AND business_id = ?`,
+    [endpoint, business_id]
+  ).then((result) => result.changes > 0);
 
 };
 
