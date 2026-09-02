@@ -28,6 +28,19 @@ const createCustomer = async (authHeader, name = "Plan Customer") => {
 };
 
 
+// Roughly a month out from whenever the test actually runs. Every
+// visits_remaining / next-visit / cancellation check in this file keys
+// off `start_time > datetime('now')`, so the plan's first occurrence
+// has to be genuinely in the future - a hardcoded date silently rots
+// into an off-by-one (then off-by-more) the moment real time passes it.
+const planStartDate = () => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 30);
+  d.setUTCHours(10, 0, 0, 0);
+  return d.toISOString();
+};
+
+
 const createPlan = async (authHeader, customer_id, overrides = {}) => {
 
   return request(app)
@@ -37,7 +50,7 @@ const createPlan = async (authHeader, customer_id, overrides = {}) => {
       customer_id,
       title: "Quarterly Pest Control",
       frequency: "quarterly",
-      start_date: "2026-09-01T10:00:00.000Z",
+      start_date: planStartDate(),
       price: 120,
       ...overrides
     });
