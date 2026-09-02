@@ -67,9 +67,20 @@ const saveSubscription = async (business_id, user_id, subscription) => {
 };
 
 
-const deleteSubscription = (endpoint) => {
+// Always scoped to a business - the endpoint alone is a globally unique
+// key, so deleting by endpoint with no ownership check would let any
+// logged-in user unsubscribe another business's device. Callers that
+// legitimately delete someone's row (the dead-subscription cleanup in
+// webPushService) already know which business it belongs to.
+const deleteSubscription = (endpoint, business_id) => {
 
-  return runAsync(`DELETE FROM push_subscriptions WHERE endpoint = ?`, [endpoint]).then((result) => result.changes > 0);
+  return runAsync(
+
+    `DELETE FROM push_subscriptions WHERE endpoint = ? AND business_id = ?`,
+
+    [endpoint, business_id]
+
+  ).then((result) => result.changes > 0);
 
 };
 

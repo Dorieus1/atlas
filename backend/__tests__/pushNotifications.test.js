@@ -124,6 +124,43 @@ describe("Push notifications", () => {
   });
 
 
+  test("one business cannot unsubscribe another business's device", async () => {
+
+    const bizA = await createBusinessAndUser(app, "PushCrossUnsubA");
+    const bizB = await createBusinessAndUser(app, "PushCrossUnsubB");
+
+    const endpoint = "https://push.example/cross-tenant-device";
+
+    // bizA's device is subscribed.
+    await request(app)
+      .post("/api/push/subscribe")
+      .set("Authorization", bizA.authHeader)
+      .send({ subscription: fakeSubscription(endpoint) });
+
+    expect(await subscriptionCount(endpoint)).toBe(1);
+
+    // bizB knows the endpoint string and tries to kill it. The endpoint
+    // is a globally unique key, so without an ownership check this would
+    // silently delete bizA's row.
+    const res = await request(app)
+      .post("/api/push/unsubscribe")
+      .set("Authorization", bizB.authHeader)
+      .send({ endpoint });
+
+    expect(res.status).toBe(200);
+    expect(await subscriptionCount(endpoint)).toBe(1);
+
+    // bizA can still unsubscribe its own device.
+    await request(app)
+      .post("/api/push/unsubscribe")
+      .set("Authorization", bizA.authHeader)
+      .send({ endpoint });
+
+    expect(await subscriptionCount(endpoint)).toBe(0);
+
+  });
+
+
   test("unsubscribing an endpoint that was never subscribed doesn't error", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "PushUnknownUnsub");
