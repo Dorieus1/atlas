@@ -86,8 +86,10 @@ const knowledgeGapRoutes = require("./routes/knowledgeGaps");
 const savedLineItemRoutes = require("./routes/savedLineItems");
 const tagRoutes = require("./routes/tags");
 const assistantRoutes = require("./routes/assistant");
+const pushRoutes = require("./routes/push");
 
 app.use("/api/business", businessRoutes);
+app.use("/api/push", pushRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/analytics", analyticsRoutes);

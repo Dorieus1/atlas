@@ -373,6 +373,18 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE push_subscriptions (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          endpoint TEXT NOT NULL,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
         CREATE TABLE users (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

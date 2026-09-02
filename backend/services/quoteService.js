@@ -460,7 +460,7 @@ const getQuoteByAppointmentId = (appointment_id, business_id) => {
   return getAsync(
 
     `
-    SELECT id
+    SELECT id, status, type
     FROM quotes
     WHERE appointment_id = ?
     AND business_id = ?

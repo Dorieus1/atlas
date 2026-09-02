@@ -18,7 +18,8 @@ const {
   updateQuote,
   deleteQuote,
   downloadQuotePdf,
-  signQuoteInPerson
+  signQuoteInPerson,
+  getQuoteByAppointment
 } = require("../controllers/quoteController");
 
 
@@ -47,6 +48,15 @@ router.get(
   "/customer/:customer_id",
   authMiddleware,
   getCustomerQuotes
+);
+
+// Must also be registered before /:id for the same reason as
+// /export.csv above - "by-appointment" would otherwise be read as a
+// quote id.
+router.get(
+  "/by-appointment/:appointmentId",
+  authMiddleware,
+  getQuoteByAppointment
 );
 
 router.get(

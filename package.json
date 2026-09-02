@@ -10,7 +10,7 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "migrate": "node database/migrate.js",
-    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups UPLOAD_DIR=./backend/__tests__/test-uploads JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 STRIPE_SECRET_KEY=test_stripe_secret_key STRIPE_CONNECT_WEBHOOK_SECRET=test_stripe_webhook_secret GOOGLE_CLIENT_ID=test_google_client_id GOOGLE_CLIENT_SECRET=test_google_client_secret GOOGLE_REDIRECT_URI=http://localhost:4000/api/calendar/google/callback jest"
+    "test": "DB_PATH=./backend/__tests__/test.db BACKUP_DIR=./backend/__tests__/test-backups UPLOAD_DIR=./backend/__tests__/test-uploads JWT_SECRET=test_jwt_secret_for_atlas_tests RESEND_API_KEY=test_resend_key FRONTEND_URL=http://localhost:5173 STRIPE_SECRET_KEY=test_stripe_secret_key STRIPE_CONNECT_WEBHOOK_SECRET=test_stripe_webhook_secret GOOGLE_CLIENT_ID=test_google_client_id GOOGLE_CLIENT_SECRET=test_google_client_secret GOOGLE_REDIRECT_URI=http://localhost:4000/api/calendar/google/callback VAPID_PUBLIC_KEY=test_vapid_public_key VAPID_PRIVATE_KEY=test_vapid_private_key VAPID_SUBJECT=mailto:test@atlas.app jest"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +30,8 @@
     "pdfkit": "^0.20.1",
     "sqlite3": "^6.0.1",
     "stripe": "^22.5.0",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "jest": "^30.4.2",

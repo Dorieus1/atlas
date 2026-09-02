@@ -1222,6 +1222,13 @@ export const signQuoteInPerson = (id, name, signature) =>
 
   });
 
+// Powers Today.jsx's "Sign On-Site" button - is there a quote linked to
+// this specific job, and if so, is it actually ready to sign? Resolves
+// to null (not an error) when the job has no linked quote at all.
+export const getQuoteByAppointment = (appointmentId) =>
+
+  request(`/quotes/by-appointment/${appointmentId}`);
+
 
 
 export const downloadQuotePdf = (id) =>
@@ -1752,4 +1759,24 @@ export const addCustomerTag = (customerId, tagId) =>
 export const removeCustomerTag = (customerId, tagId) =>
   request(`/customers/${customerId}/tags/${tagId}`, {
     method: "DELETE"
+  });
+
+
+
+/* ---------- Push notifications ---------- */
+
+
+export const getPushPublicKey = () =>
+  request("/push/public-key");
+
+export const subscribeToPush = (subscription) =>
+  request("/push/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ subscription })
+  });
+
+export const unsubscribeFromPush = (endpoint) =>
+  request("/push/unsubscribe", {
+    method: "POST",
+    body: JSON.stringify({ endpoint })
   });

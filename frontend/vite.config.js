@@ -21,19 +21,21 @@ export default defineConfig({
       // current is the safer default over prompting the user to update.
       registerType: "autoUpdate",
 
-      // Only the built app shell (hashed JS/CSS, index.html, icons) is
-      // precached via Workbox's generateSW - the default strategy. No
-      // runtimeCaching entries are added, so this service worker never
-      // intercepts or caches anything under /api/: those requests always
-      // go straight to the network. That's deliberate - CRM data (leads,
-      // appointments, customers) changes constantly and must never be served
-      // stale from a cache.
-      workbox: {
+      // Switched from generateSW (Workbox auto-generates the whole worker)
+      // to injectManifest: push notifications need a `push` and
+      // `notificationclick` listener, which generateSW's declarative
+      // config has no way to express. injectManifest instead takes OUR
+      // service worker source file (src/sw.js) and only injects the
+      // precache manifest into it at build time - everything else about
+      // the worker's behavior is hand-written there.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
+
+      injectManifest: {
+        // Same file types the old generateSW globPatterns precached -
+        // the built app shell (hashed JS/CSS, index.html, icons).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
-        // Belt-and-suspenders: even the SPA navigation fallback (used for
-        // client-side routing when offline/on a fresh load) must never
-        // swallow an /api/ request.
-        navigateFallbackDenylist: [/^\/api\//],
       },
 
       includeAssets: ["favicon.svg", "icons.svg"],
@@ -49,7 +51,12 @@ export default defineConfig({
         background_color: "#08090d",
         theme_color: "#ea580c",
         display: "standalone",
-        start_url: "/",
+        // Opening to the marketing landing page defeats the point of
+        // installing the app - /today is the mobile field view (today's
+        // jobs, one tap to call/navigate/sign), the actual reason someone
+        // installs Atlas on their phone. A logged-out user still gets
+        // redirected to /login from there like any other protected route.
+        start_url: "/today",
         icons: [
           {
             src: "/pwa-192x192.png",

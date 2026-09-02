@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Sun,
@@ -8,7 +8,9 @@ import {
   MapPin,
   User,
   AlertTriangle,
-  CalendarDays
+  CalendarDays,
+  PenLine,
+  X
 } from "lucide-react";
 
 import {
@@ -16,11 +18,14 @@ import {
   getTeammates,
   clockInAppointment,
   clockOutAppointment,
-  updateAppointmentStatus
+  updateAppointmentStatus,
+  getQuoteByAppointment,
+  signQuoteInPerson
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
+import SignaturePad from "../components/SignaturePad";
 import { formatDuration } from "../utils/duration";
 
 
@@ -82,6 +87,18 @@ function Today() {
   const [clockingId, setClockingId] = useState(null);
   const [completingId, setCompletingId] = useState(null);
 
+  // appointment_id -> quote row, but only ever populated for quotes
+  // that are actually status "sent" - the one state a quote can be
+  // signed from. Anything else (draft, already accepted, paid) just
+  // never gets a key here, so "is this job signable right now" is a
+  // single, cheap `signableQuotes[appt.id]` lookup at render time.
+  const [signableQuotes, setSignableQuotes] = useState({});
+  const [signingAppt, setSigningAppt] = useState(null);
+  const [signName, setSignName] = useState("");
+  const [signError, setSignError] = useState("");
+  const [signSubmitting, setSignSubmitting] = useState(false);
+  const signaturePadRef = useRef(null);
+
   // "mine" once teammates load and the signed-in user turns out to be
   // staff - a crew member's own phone should open straight to their own
   // jobs, not the whole team's, the same default Schedule.jsx already
@@ -140,6 +157,121 @@ function Today() {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teammates]);
+
+  // Checks each of today's jobs for a linked quote that's ready to sign
+  // right now. Bounded to a single day's jobs (never the whole
+  // appointment history), so this stays a handful of parallel requests,
+  // not an N+1 scan of everything - and re-runs whenever the appointment
+  // list itself changes (a job getting added/completed can change what
+  // "today" contains).
+  useEffect(() => {
+
+    const todayJobIds = appointments
+      .filter((appt) => toDateKey(new Date(appt.start_time)) === toDateKey(new Date()))
+      .filter((appt) => appt.status === "scheduled" || appt.status === "completed")
+      .map((appt) => appt.id);
+
+    if (todayJobIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    Promise.all(
+
+      todayJobIds.map((id) =>
+        getQuoteByAppointment(id)
+          .then((quote) => [id, quote])
+          .catch(() => [id, null])
+      )
+
+    ).then((results) => {
+
+      if (cancelled) {
+        return;
+      }
+
+      const next = {};
+
+      for (const [id, quote] of results) {
+
+        if (quote && quote.status === "sent") {
+          next[id] = quote;
+        }
+
+      }
+
+      setSignableQuotes(next);
+
+    });
+
+    return () => {
+      cancelled = true;
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointments]);
+
+  const openSignOnSite = (appt) => {
+
+    setSignError("");
+    setSignName(appt.customer_name || "");
+    setSigningAppt(appt);
+
+    // The pad isn't mounted on this same render (it's gated on
+    // signingAppt), same reasoning as Quotes.jsx's own on-site modal.
+    requestAnimationFrame(() => signaturePadRef.current?.clear());
+
+  };
+
+  const handleSignOnSite = async () => {
+
+    if (!signingAppt) return;
+
+    const quote = signableQuotes[signingAppt.id];
+
+    if (!quote) return;
+
+    if (!signName.trim()) {
+      setSignError("The customer's name is required.");
+      return;
+    }
+
+    const signature = signaturePadRef.current?.getSignature();
+
+    if (!signature) {
+      setSignError("Have the customer sign above first.");
+      return;
+    }
+
+    setSignSubmitting(true);
+    setSignError("");
+
+    try {
+
+      await signQuoteInPerson(quote.id, signName.trim(), signature);
+
+      setSigningAppt(null);
+      setActionNote("Signed and marked accepted.");
+
+      setSignableQuotes((prev) => {
+        const next = { ...prev };
+        delete next[signingAppt.id];
+        return next;
+      });
+
+    } catch (err) {
+
+      console.error("TODAY SIGN ON-SITE ERROR:", err);
+      setSignError(err.message || "Couldn't save that signature. Please try again.");
+
+    } finally {
+
+      setSignSubmitting(false);
+
+    }
+
+  };
 
   const todayKey = toDateKey(new Date());
 
@@ -416,6 +548,18 @@ function Today() {
 
                   )}
 
+                  {signableQuotes[appt.id] && (
+
+                    <button
+                      onClick={() => openSignOnSite(appt)}
+                      className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+                    >
+                      <PenLine size={14} />
+                      Sign On-Site
+                    </button>
+
+                  )}
+
                   {!isDone && (
 
                     <button
@@ -436,6 +580,72 @@ function Today() {
             );
 
           })}
+
+        </div>
+
+      )}
+
+      {signingAppt && (
+
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setSigningAppt(null)}
+        >
+
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <h3 className="font-display text-lg font-bold">
+                Sign On-Site
+              </h3>
+
+              <button
+                onClick={() => setSigningAppt(null)}
+                className="rounded-lg p-1 text-fg-muted hover:bg-surface-muted hover:text-fg"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <p className="mt-1 text-sm text-fg-faint">
+              Hand your device to the customer to sign. This marks the quote accepted immediately.
+            </p>
+
+            {signError && (
+              <p className="mt-3 text-sm text-danger">
+                {signError}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3">
+
+              <input
+                placeholder="Customer's full name"
+                value={signName}
+                onChange={(e) => setSignName(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+              />
+
+              <SignaturePad ref={signaturePadRef} />
+
+              <button
+                onClick={handleSignOnSite}
+                disabled={signSubmitting}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+              >
+                <PenLine size={16} />
+                {signSubmitting ? "Saving..." : "Save Signature"}
+              </button>
+
+            </div>
+
+          </div>
 
         </div>
 

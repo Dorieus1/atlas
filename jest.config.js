@@ -25,7 +25,8 @@ module.exports = {
     "<rootDir>/backend/__tests__/setup/mockEmail.js",
     "<rootDir>/backend/__tests__/setup/mockStripe.js",
     "<rootDir>/backend/__tests__/setup/mockGoogleCalendar.js",
-    "<rootDir>/backend/__tests__/setup/mockAppleCalendar.js"
+    "<rootDir>/backend/__tests__/setup/mockAppleCalendar.js",
+    "<rootDir>/backend/__tests__/setup/mockWebPush.js"
   ],
 
   maxWorkers: 1,

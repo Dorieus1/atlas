@@ -8,6 +8,7 @@ const {
   getQuoteItemsForQuoteIds: getQuoteItemsForQuoteIdsService,
   getQuoteExpensesForQuoteIds: getQuoteExpensesForQuoteIdsService,
   getQuotesByCustomer: getQuotesByCustomerService,
+  getQuoteByAppointmentId: getQuoteByAppointmentIdService,
   getQuoteById: getQuoteByIdService,
   updateQuoteFields: updateQuoteFieldsService,
   replaceQuoteItems: replaceQuoteItemsService,
@@ -537,6 +538,36 @@ const getCustomerQuotes = async (req, res) => {
     const quotes = await getQuotesByCustomerService(customer_id, business_id);
 
     res.json(withFormattedNumber(quotes));
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+// Powers the "Sign On-Site" button on the mobile Today view - given
+// today's appointment, is there a quote linked to it that's actually
+// ready to be signed right now? Returns null (not a 404) when there's no
+// linked quote at all, since "no quote for this job" is a completely
+// normal, unremarkable case here, not an error.
+const getQuoteByAppointment = async (req, res) => {
+
+  try {
+
+    const { appointmentId } = req.params;
+    const business_id = req.user.business_id;
+
+    const quote = await getQuoteByAppointmentIdService(appointmentId, business_id);
+
+    res.json(quote || null);
 
   } catch (error) {
 
@@ -1392,6 +1423,8 @@ module.exports = {
 
   downloadQuotePdf,
 
-  signQuoteInPerson
+  signQuoteInPerson,
+
+  getQuoteByAppointment
 
 };

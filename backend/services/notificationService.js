@@ -1,5 +1,6 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const { sendPushToBusiness } = require("./webPushService");
 
 
 
@@ -23,9 +24,16 @@ const createNotification = (business_id, type, title, body, link) => {
 
         if (err) {
           reject(err);
-        } else {
-          resolve(id);
+          return;
         }
+
+        // Best-effort: every notification that already goes to the
+        // in-app bell also fans out to any subscribed devices. Never
+        // let a push failure affect whether creating the notification
+        // itself succeeds.
+        sendPushToBusiness(business_id, { title, body: body || "", link: link || "/" }).catch(() => {});
+
+        resolve(id);
 
       }
 

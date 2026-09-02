@@ -14,6 +14,7 @@ import TagManagerPanel from "../components/TagManagerPanel";
 import Skeleton from "../components/Skeleton";
 import SettingsCardSkeleton from "../components/SettingsCardSkeleton";
 import ThemeTogglePanel from "../components/ThemeTogglePanel";
+import PushNotificationsCard from "../components/PushNotificationsCard";
 
 // Settings grew, one feature at a time, into nine stacked cards on a
 // single flat page - functional, but not the kind of first impression
@@ -203,6 +204,7 @@ function Settings() {
 
               <>
                 <ThemeTogglePanel />
+                <PushNotificationsCard />
                 <SavedServicesPanel />
                 <TagManagerPanel />
               </>
