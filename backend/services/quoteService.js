@@ -259,18 +259,20 @@ const createQuote = async (
 
   const id = uuidv4();
 
-  // Assigned before the insert transaction below. It's already safe on
-  // its own (see assignNextQuoteNumber) without needing the transaction
-  // mutex - it doesn't matter if two concurrent creates interleave their
-  // number assignment relative to their inserts, only that each gets a
-  // unique number and neither insert is lost.
-  const quote_number = await assignNextQuoteNumber(business_id);
-
   return withTransaction(async () => {
 
     await runAsync("BEGIN TRANSACTION");
 
     try {
+
+      // Assigned inside the same serialized transaction as the inserts,
+      // not before it. assignNextQuoteNumber's UPDATE ... RETURNING is
+      // atomic on its own, but as a bare statement outside the mutex it
+      // could land between another concurrent create's BEGIN and COMMIT
+      // on the shared connection - and SQLite then fails that COMMIT with
+      // "cannot commit transaction - SQL statements in progress". Running
+      // it here keeps every quote create's statements strictly ordered.
+      const quote_number = await assignNextQuoteNumber(business_id);
 
       await runAsync(
 
