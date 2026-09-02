@@ -1218,7 +1218,14 @@ const updateQuote = async (req, res) => {
     // and no extra read happens.
     let existingQuote = null;
 
-    if (items !== undefined || discountFieldsProvided || depositFieldsProvided || taxRateProvided) {
+    // isTiered belongs in this trigger too: replacing a quote's tiers is
+    // itself a money-affecting change (it deletes and rewrites every
+    // item/tier row), so it must go through the exact same "is this
+    // already paid for" gate as items/discount/deposit/tax below - a
+    // real gap a peer review caught, where a `{tiers: [...]}`-only
+    // request skipped this whole block (and therefore the edit-lock
+    // check inside it) entirely, even against an already-paid quote.
+    if (items !== undefined || isTiered || discountFieldsProvided || depositFieldsProvided || taxRateProvided) {
 
       existingQuote = await getQuoteByIdService(id, business_id);
 
@@ -1266,9 +1273,14 @@ const updateQuote = async (req, res) => {
 
       }
 
+      // When tiers are being replaced but `items` (the shared items) is
+      // omitted from this request, the existing shared items carry
+      // forward unchanged - both for this validation, and for the
+      // actual write below. Only an explicit `items` (including `[]`,
+      // a deliberate "clear the shared items") overrides them.
       const normalizedItemsForValidation = items !== undefined
         ? normalizeItems(items)
-        : (isTiered ? [] : (existingQuote.shared_items || existingQuote.items));
+        : (isTiered ? (existingQuote.shared_items || []) : (existingQuote.shared_items || existingQuote.items));
 
       const subtotal = isTiered
         ? Math.min(...normalizedTiers.map((tier) =>
@@ -1375,7 +1387,13 @@ const updateQuote = async (req, res) => {
 
     if (isTiered) {
 
-      const replaced = await replaceQuoteTiersService(id, business_id, normalizeItems(Array.isArray(items) ? items : []), normalizedTiers);
+      // `existingQuote` is guaranteed loaded here (isTiered is now part
+      // of the trigger above) - falls back to the shared items already
+      // on the quote when this request didn't touch them, rather than
+      // silently wiping them out just because `items` wasn't resent.
+      const sharedItemsForReplace = items !== undefined ? normalizeItems(items) : (existingQuote.shared_items || []);
+
+      const replaced = await replaceQuoteTiersService(id, business_id, sharedItemsForReplace, normalizedTiers);
 
       if (!replaced) {
 

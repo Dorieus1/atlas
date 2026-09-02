@@ -379,6 +379,84 @@ describe("Good/Better/Best multi-option quotes", () => {
   });
 
 
+  // Regression test for a real edit-lock bypass a peer review caught:
+  // the paid/deposited guard only ran when items/discount/deposit/tax
+  // were part of the request, so a `{tiers: [...]}`-only PATCH skipped
+  // it entirely and could rewrite every item on an already-paid-for
+  // quote with no re-validation at all.
+  test("a tiered quote with a payment already recorded can't have its tiers replaced", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "TierEditLockPayment");
+    const customerId = await createCustomer(authHeader);
+
+    // Recording a manual payment only works on a "sent"/"accepted"
+    // invoice (see addQuotePayment) - a "quote" needs converting first.
+    const created = await createTieredQuote(authHeader, customerId, { type: "invoice" });
+    await sendQuoteStatus(authHeader, created.body.id);
+
+    const payment = await request(app)
+      .post(`/api/quotes/${created.body.id}/payments`)
+      .set("Authorization", authHeader)
+      .send({ amount: 50, method: "cash" });
+
+    expect(payment.status).toBe(201);
+
+    const attempt = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({
+        tiers: [
+          { name: "Sneaky", items: [{ description: "Replaced", quantity: 1, unit_price: 9999 }] },
+          { name: "Also Sneaky", items: [{ description: "Replaced too", quantity: 1, unit_price: 1 }] }
+        ]
+      });
+
+    expect(attempt.status).toBe(400);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    // Untouched - still the original 3 options, not the sneaky 2.
+    expect(fetched.body.tiers).toHaveLength(3);
+    expect(fetched.body.tiers.map((t) => t.name)).toEqual(["Good", "Better", "Best"]);
+
+  });
+
+
+  test("replacing tiers without resending shared items keeps the existing shared items, rather than deleting them", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "TierEditKeepsSharedItems");
+    const customerId = await createCustomer(authHeader);
+
+    const created = await createTieredQuote(authHeader, customerId);
+
+    // No `items` key at all in this request - only `tiers`.
+    const edited = await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({
+        tiers: [
+          { name: "Standard", items: [{ description: "Standard job", quantity: 1, unit_price: 150 }] },
+          { name: "Premium", items: [{ description: "Premium job", quantity: 1, unit_price: 500 }] }
+        ]
+      });
+
+    expect(edited.status).toBe(200);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    // The original "Site visit fee" shared item (see GOOD_BETTER_BEST)
+    // is still there, folded into both options' totals.
+    expect(fetched.body.shared_items).toHaveLength(1);
+    expect(fetched.body.shared_items[0].description).toBe("Site visit fee");
+    expect(fetched.body.tiers.find((t) => t.name === "Standard").total).toBeCloseTo(175);
+
+  });
+
+
   test("editing a tiered quote's items through the plain items field is rejected", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "TierEditViaPlainItems");
