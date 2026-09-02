@@ -15,6 +15,7 @@ const {
   cancelMyAppointment,
   rescheduleMyAppointment,
   getMyQuotes,
+  getMyQuote,
   downloadMyQuotePdf,
   createInvoiceCheckout,
   acceptQuote,
@@ -64,6 +65,12 @@ router.get(
   "/account/quotes",
   customerAuthMiddleware,
   getMyQuotes
+);
+
+router.get(
+  "/account/quotes/:id",
+  customerAuthMiddleware,
+  getMyQuote
 );
 
 router.get(

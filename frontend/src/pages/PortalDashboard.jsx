@@ -9,6 +9,7 @@ import {
   cancelPortalAppointment,
   reschedulePortalAppointment,
   getPortalQuotes,
+  getPortalQuote,
   createInvoiceCheckout,
   acceptPortalQuote,
   declinePortalQuote,
@@ -151,6 +152,8 @@ function PortalDashboard() {
   const [decisionError, setDecisionError] = useState("");
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
   const [decliningId, setDecliningId] = useState(null);
+  const [acceptTierId, setAcceptTierId] = useState("");
+  const [loadingAcceptDetail, setLoadingAcceptDetail] = useState(false);
   const signaturePadRef = useRef(null);
 
 
@@ -373,16 +376,45 @@ function PortalDashboard() {
   };
 
 
-  const openAcceptConfirm = (quote) => {
+  const openAcceptConfirm = async (quote) => {
 
     setDecisionError("");
     setApprovalName("");
+    setAcceptTierId("");
+    // The list row (`quote`) only ever has one headline total, not a
+    // "Good/Better/Best" quote's full per-option breakdown - fetch the
+    // real detail before showing the picker, so there's something to
+    // actually pick from.
     setAcceptingQuote(quote);
+    setLoadingAcceptDetail(true);
 
     // The pad itself isn't mounted yet on this same render (the modal
     // JSX is gated on acceptingQuote), so clearing next tick avoids
     // reaching for a ref that doesn't exist yet.
     requestAnimationFrame(() => signaturePadRef.current?.clear());
+
+    try {
+
+      const full = await getPortalQuote(quote.id);
+
+      setAcceptingQuote(full);
+
+      if (Array.isArray(full.tiers) && full.tiers.length > 0) {
+
+        setAcceptTierId((full.tiers.find((tier) => tier.is_recommended) || full.tiers[0]).id);
+
+      }
+
+    } catch (error) {
+
+      console.error("LOAD QUOTE DETAIL ERROR:", error);
+      setDecisionError("Couldn't load this quote's details. Please try again.");
+
+    } finally {
+
+      setLoadingAcceptDetail(false);
+
+    }
 
   };
 
@@ -393,6 +425,11 @@ function PortalDashboard() {
 
     if (!approvalName.trim()) {
       setDecisionError("Type your name to approve this.");
+      return;
+    }
+
+    if (Array.isArray(acceptingQuote.tiers) && acceptingQuote.tiers.length > 0 && !acceptTierId) {
+      setDecisionError("Choose which option you'd like.");
       return;
     }
 
@@ -408,7 +445,7 @@ function PortalDashboard() {
 
     try {
 
-      await acceptPortalQuote(acceptingQuote.id, approvalName.trim(), signature);
+      await acceptPortalQuote(acceptingQuote.id, approvalName.trim(), signature, acceptTierId || undefined);
 
       setAcceptingQuote(null);
 
@@ -1160,11 +1197,55 @@ function PortalDashboard() {
                 className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
 
+              {loadingAcceptDetail && (
+                <p className="text-sm text-fg-faint">Loading the options...</p>
+              )}
+
+              {Array.isArray(acceptingQuote.tiers) && acceptingQuote.tiers.length > 0 && (
+
+                <div className="flex flex-col gap-1.5">
+
+                  <p className="text-xs font-medium uppercase tracking-wide text-fg-faint">
+                    Choose an option
+                  </p>
+
+                  {acceptingQuote.tiers.map((tier) => (
+
+                    <label
+                      key={tier.id}
+                      className={`flex cursor-pointer items-start justify-between gap-2 rounded-lg border p-3 text-sm ${acceptTierId === tier.id ? "border-brand-500 bg-brand-600/10" : "border-border"}`}
+                    >
+                      <span className="flex items-start gap-2">
+                        <input
+                          type="radio"
+                          name="accept-quote-tier"
+                          checked={acceptTierId === tier.id}
+                          onChange={() => setAcceptTierId(tier.id)}
+                          className="mt-0.5 h-4 w-4 accent-brand-600"
+                        />
+                        <span>
+                          <span className="font-medium">{tier.name}</span>
+                          {tier.is_recommended && (
+                            <span className="ml-2 rounded-full bg-brand-600/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-text">
+                              Recommended
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                      <span className="shrink-0 font-semibold">{formatMoney(tier.total)}</span>
+                    </label>
+
+                  ))}
+
+                </div>
+
+              )}
+
               <SignaturePad ref={signaturePadRef} />
 
               <button
                 onClick={handleConfirmAccept}
-                disabled={decisionSubmitting}
+                disabled={decisionSubmitting || loadingAcceptDetail}
                 className="mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-500 disabled:opacity-50"
               >
                 <Check size={16} />

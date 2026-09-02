@@ -69,6 +69,15 @@ function isOverdueInvoice(quote) {
 
 const emptyItem = () => ({ description: "", quantity: 1, unit_price: 0 });
 
+// The classic 3-option starting point for a "Good/Better/Best" quote -
+// still just a starting point, every name/item/recommendation is freely
+// editable before saving, and a tier can be added or removed too.
+const defaultTiers = () => ([
+  { name: "Good", is_recommended: false, items: [emptyItem()] },
+  { name: "Better", is_recommended: true, items: [emptyItem()] },
+  { name: "Best", is_recommended: false, items: [emptyItem()] }
+]);
+
 function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount || 0);
 }
@@ -145,6 +154,11 @@ function Quotes() {
   const [formCustomerId, setFormCustomerId] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formItems, setFormItems] = useState([emptyItem()]);
+  // "Good/Better/Best": when on, formItems above becomes just the items
+  // shared across every option, and formTiers holds each option's own
+  // name/recommendation/items.
+  const [isMultiOption, setIsMultiOption] = useState(false);
+  const [formTiers, setFormTiers] = useState(defaultTiers());
   const [formDiscountType, setFormDiscountType] = useState("");
   const [formDiscountValue, setFormDiscountValue] = useState("");
   const [formTaxRate, setFormTaxRate] = useState("");
@@ -181,6 +195,7 @@ function Quotes() {
   const [signName, setSignName] = useState("");
   const [signError, setSignError] = useState("");
   const [signSubmitting, setSignSubmitting] = useState(false);
+  const [signTierId, setSignTierId] = useState("");
   const signaturePadRef = useRef(null);
 
 
@@ -264,6 +279,8 @@ function Quotes() {
     setFormCustomerId("");
     setFormNotes("");
     setFormItems([emptyItem()]);
+    setIsMultiOption(false);
+    setFormTiers(defaultTiers());
     setFormDiscountType("");
     setFormDiscountValue("");
     // Pre-filled from the business's own default so the owner doesn't
@@ -289,13 +306,33 @@ function Quotes() {
     setEditingQuoteId(quote.id);
     setFormCustomerId(quote.customer_id || "");
     setFormNotes(quote.notes || "");
+
+    const hasTiers = Array.isArray(quote.tiers) && quote.tiers.length > 0;
+
+    setIsMultiOption(hasTiers);
+
     setFormItems(
-      (quote.items || []).map((item) => ({
+      (hasTiers ? (quote.shared_items || []) : (quote.items || [])).map((item) => ({
         description: item.description,
         quantity: item.quantity,
         unit_price: item.unit_price
       }))
     );
+
+    setFormTiers(
+      hasTiers
+        ? quote.tiers.map((tier) => ({
+            name: tier.name,
+            is_recommended: !!tier.is_recommended,
+            items: (tier.items.length > 0 ? tier.items : [emptyItem()]).map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unit_price
+            }))
+          }))
+        : defaultTiers()
+    );
+
     setFormDiscountType(quote.discount_type || "");
     setFormDiscountValue(quote.discount_type ? String(quote.discount_value) : "");
     setFormTaxRate(quote.tax_rate === null || quote.tax_rate === undefined ? "" : String(quote.tax_rate));
@@ -319,6 +356,85 @@ function Quotes() {
 
   const addFormItem = () => {
     setFormItems((previous) => [...previous, emptyItem()]);
+  };
+
+
+  const updateTierField = (tierIndex, field, value) => {
+
+    setFormTiers((previous) =>
+      previous.map((tier, i) => (i === tierIndex ? { ...tier, [field]: value } : tier))
+    );
+
+  };
+
+
+  // Only one option can be "recommended" at a time - matches the
+  // backend's own single-badge model (see quote_tiers.is_recommended).
+  const setRecommendedTier = (tierIndex) => {
+
+    setFormTiers((previous) =>
+      previous.map((tier, i) => ({ ...tier, is_recommended: i === tierIndex }))
+    );
+
+  };
+
+
+  const updateTierItem = (tierIndex, itemIndex, field, value) => {
+
+    setFormTiers((previous) =>
+      previous.map((tier, i) => (
+        i === tierIndex
+          ? { ...tier, items: tier.items.map((item, j) => (j === itemIndex ? { ...item, [field]: value } : item)) }
+          : tier
+      ))
+    );
+
+  };
+
+
+  const addTierItem = (tierIndex) => {
+
+    setFormTiers((previous) =>
+      previous.map((tier, i) => (i === tierIndex ? { ...tier, items: [...tier.items, emptyItem()] } : tier))
+    );
+
+  };
+
+
+  const removeTierItem = (tierIndex, itemIndex) => {
+
+    setFormTiers((previous) =>
+      previous.map((tier, i) => (
+        i === tierIndex
+          ? { ...tier, items: tier.items.length === 1 ? tier.items : tier.items.filter((_, j) => j !== itemIndex) }
+          : tier
+      ))
+    );
+
+  };
+
+
+  const addTier = () => {
+
+    setFormTiers((previous) => {
+
+      if (previous.length >= 5) {
+        return previous;
+      }
+
+      return [...previous, { name: "", is_recommended: false, items: [emptyItem()] }];
+
+    });
+
+  };
+
+
+  const removeTier = (tierIndex) => {
+
+    setFormTiers((previous) =>
+      previous.length <= 2 ? previous : previous.filter((_, i) => i !== tierIndex)
+    );
+
   };
 
 
@@ -369,14 +485,8 @@ function Quotes() {
   const formTotals = calculateTotals(formItems, formDiscountType, formDiscountValue, formTaxRate, formDepositType, formDepositValue);
 
 
-  const handleSaveQuote = async () => {
-
-    if (!formCustomerId) {
-      setFormError("Choose a customer.");
-      return;
-    }
-
-    const cleanItems = formItems
+  const cleanItemList = (items) =>
+    items
       .map((item) => ({
         description: item.description.trim(),
         quantity: Number(item.quantity),
@@ -384,9 +494,58 @@ function Quotes() {
       }))
       .filter((item) => item.description);
 
-    if (cleanItems.length === 0) {
+
+  const handleSaveQuote = async () => {
+
+    if (!formCustomerId) {
+      setFormError("Choose a customer.");
+      return;
+    }
+
+    const cleanItems = cleanItemList(formItems);
+
+    let cleanTiers = null;
+
+    if (isMultiOption) {
+
+      cleanTiers = formTiers.map((tier) => ({
+        name: tier.name.trim(),
+        is_recommended: !!tier.is_recommended,
+        items: cleanItemList(tier.items)
+      }));
+
+      if (cleanTiers.length < 2) {
+        setFormError("At least 2 options are needed for a multi-option quote.");
+        return;
+      }
+
+      if (cleanTiers.some((tier) => !tier.name)) {
+        setFormError("Every option needs a name.");
+        return;
+      }
+
+      const lowerNames = cleanTiers.map((tier) => tier.name.toLowerCase());
+
+      if (new Set(lowerNames).size !== lowerNames.length) {
+        setFormError("Each option needs a unique name.");
+        return;
+      }
+
+      if (cleanTiers.some((tier) => tier.items.length === 0 && cleanItems.length === 0)) {
+        setFormError("Every option needs at least one line item.");
+        return;
+      }
+
+      if (cleanTiers.some((tier) => tier.items.some((item) => !(item.quantity > 0) || !(item.unit_price >= 0)))) {
+        setFormError("Every line item needs a positive quantity and a valid price.");
+        return;
+      }
+
+    } else if (cleanItems.length === 0) {
+
       setFormError("Add at least one line item with a description.");
       return;
+
     }
 
     if (cleanItems.some((item) => !(item.quantity > 0) || !(item.unit_price >= 0))) {
@@ -394,7 +553,16 @@ function Quotes() {
       return;
     }
 
-    const cleanSubtotal = cleanItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    // For a multi-option quote, a fixed discount/deposit has to make
+    // sense for every option, not just one - so it's checked against the
+    // CHEAPEST option (shared items + that option's own items), the same
+    // conservative bound quoteController.js's own validation uses. If
+    // it's safe there, it's safe for every pricier option too.
+    const cleanSubtotal = isMultiOption
+      ? Math.min(...cleanTiers.map((tier) =>
+          [...cleanItems, ...tier.items].reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+        ))
+      : cleanItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
 
     if (formDiscountType) {
 
@@ -474,6 +642,7 @@ function Quotes() {
         await updateQuote(editingQuoteId, {
           notes: formNotes.trim() || null,
           items: cleanItems,
+          ...(isMultiOption ? { tiers: cleanTiers } : {}),
           discount_type: formDiscountType || null,
           discount_value: formDiscountType ? Number(formDiscountValue) : null,
           tax_rate: formTaxRate === "" ? null : Number(formTaxRate),
@@ -496,7 +665,8 @@ function Quotes() {
           formDiscountType ? Number(formDiscountValue) : null,
           formDepositType || null,
           formDepositType ? Number(formDepositValue) : null,
-          formTaxRate === "" ? null : Number(formTaxRate)
+          formTaxRate === "" ? null : Number(formTaxRate),
+          isMultiOption ? cleanTiers : undefined
         );
 
         setShowForm(false);
@@ -657,6 +827,15 @@ function Quotes() {
 
     setSignError("");
     setSignName(activeQuote?.customer_name || "");
+    // Pre-select the recommended option (or the first, if none is
+    // marked) - the customer can still change their mind before signing,
+    // this just saves a tap in the common case where they're going with
+    // what was suggested.
+    setSignTierId(
+      Array.isArray(activeQuote?.tiers) && activeQuote.tiers.length > 0
+        ? (activeQuote.tiers.find((tier) => tier.is_recommended) || activeQuote.tiers[0]).id
+        : ""
+    );
     setSigningOnSite(true);
 
     // The pad isn't mounted on this same render (it's gated on
@@ -675,6 +854,11 @@ function Quotes() {
       return;
     }
 
+    if (Array.isArray(activeQuote.tiers) && activeQuote.tiers.length > 0 && !signTierId) {
+      setSignError("Choose which option the customer picked.");
+      return;
+    }
+
     const signature = signaturePadRef.current?.getSignature();
 
     if (!signature) {
@@ -687,7 +871,7 @@ function Quotes() {
 
     try {
 
-      await signQuoteInPerson(activeQuote.id, signName.trim(), signature);
+      await signQuoteInPerson(activeQuote.id, signName.trim(), signature, signTierId || undefined);
 
       setSigningOnSite(false);
       setDetailSuccess("Signed and marked accepted.");
@@ -1103,10 +1287,16 @@ function Quotes() {
               <div className="flex flex-col gap-2">
 
                 <div className="flex items-center gap-2 px-0.5 text-xs font-medium uppercase tracking-wide text-fg-faint">
-                  <span className="min-w-0 flex-1">Description</span>
-                  <span className="w-16">Qty</span>
-                  <span className="w-24">Price</span>
-                  <span className="w-[27px] shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    {isMultiOption ? "Shared items (optional)" : "Description"}
+                  </span>
+                  {!isMultiOption && (
+                    <>
+                      <span className="w-16">Qty</span>
+                      <span className="w-24">Price</span>
+                      <span className="w-[27px] shrink-0" aria-hidden="true" />
+                    </>
+                  )}
                 </div>
 
                 {formItems.map((item, index) => (
@@ -1156,10 +1346,138 @@ function Quotes() {
                   className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-brand-400 transition hover:bg-brand-600/10"
                 >
                   <Plus size={15} />
-                  Add line item
+                  {isMultiOption ? "Add shared item" : "Add line item"}
                 </button>
 
               </div>
+
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2.5 text-sm">
+
+                <input
+                  type="checkbox"
+                  checked={isMultiOption}
+                  onChange={(e) => setIsMultiOption(e.target.checked)}
+                  className="h-4 w-4 accent-brand-600"
+                />
+
+                <span className="font-medium">Give the customer options</span>
+                <span className="text-fg-faint">— Good / Better / Best pricing tiers</span>
+
+              </label>
+
+              {isMultiOption && (
+
+                <div className="flex flex-col gap-3">
+
+                  {formTiers.map((tier, tierIndex) => (
+
+                    <div key={tierIndex} className="rounded-lg border border-border p-3">
+
+                      <div className="flex items-center gap-2">
+
+                        <input
+                          placeholder="Option name (e.g. Good)"
+                          value={tier.name}
+                          onChange={(e) => updateTierField(tierIndex, "name", e.target.value)}
+                          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted p-2.5 text-sm font-semibold text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                        />
+
+                        <label className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-fg-muted">
+                          <input
+                            type="radio"
+                            name="recommended-tier"
+                            checked={tier.is_recommended}
+                            onChange={() => setRecommendedTier(tierIndex)}
+                            className="h-3.5 w-3.5 accent-brand-600"
+                          />
+                          Recommended
+                        </label>
+
+                        {formTiers.length > 2 && (
+                          <button
+                            onClick={() => removeTier(tierIndex)}
+                            className="shrink-0 rounded-lg p-2 text-fg-faint transition hover:bg-danger/10 hover:text-danger"
+                            aria-label={`Remove ${tier.name || "this"} option`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+
+                      </div>
+
+                      <div className="mt-2 flex flex-col gap-2">
+
+                        {tier.items.map((item, itemIndex) => (
+
+                          <div key={itemIndex} className="flex items-center gap-2">
+
+                            <input
+                              placeholder="Description"
+                              value={item.description}
+                              onChange={(e) => updateTierItem(tierIndex, itemIndex, "description", e.target.value)}
+                              className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                            />
+
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="Qty"
+                              value={item.quantity}
+                              onChange={(e) => updateTierItem(tierIndex, itemIndex, "quantity", e.target.value)}
+                              className="w-14 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
+                            />
+
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Price"
+                              value={item.unit_price}
+                              onChange={(e) => updateTierItem(tierIndex, itemIndex, "unit_price", e.target.value)}
+                              className="w-20 rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
+                            />
+
+                            <button
+                              onClick={() => removeTierItem(tierIndex, itemIndex)}
+                              className="shrink-0 rounded-lg p-1.5 text-fg-faint transition hover:bg-danger/10 hover:text-danger"
+                              aria-label="Remove line item"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+
+                          </div>
+
+                        ))}
+
+                        <button
+                          onClick={() => addTierItem(tierIndex)}
+                          className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1 text-xs font-medium text-brand-400 transition hover:bg-brand-600/10"
+                        >
+                          <Plus size={13} />
+                          Add item
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                  {formTiers.length < 5 && (
+
+                    <button
+                      onClick={addTier}
+                      className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-brand-400 transition hover:bg-brand-600/10"
+                    >
+                      <Plus size={15} />
+                      Add another option
+                    </button>
+
+                  )}
+
+                </div>
+
+              )}
 
               <textarea
                 placeholder="Notes (optional)"
@@ -1249,59 +1567,101 @@ function Quotes() {
 
               </div>
 
-              <div className="flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
+              {isMultiOption ? (
 
-                {(formDiscountType || formTotals.tax_amount > 0) && (
+                // No single subtotal makes sense for a not-yet-decided
+                // multi-option quote - each option gets its own final
+                // total instead (shared items + that option's own,
+                // discount/tax already folded in), same as the backend's
+                // own per-tier breakdown.
+                <div className="flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
 
-                  <div className="flex items-center justify-between text-sm text-fg-muted">
-                    <span>Subtotal</span>
-                    <span>{formatMoney(formTotals.subtotal)}</span>
-                  </div>
+                  {formTiers.map((tier, tierIndex) => {
 
-                )}
+                    const tierTotals = calculateTotals(
+                      [...formItems, ...tier.items],
+                      formDiscountType,
+                      formDiscountValue,
+                      formTaxRate,
+                      formDepositType,
+                      formDepositValue
+                    );
 
-                {formDiscountType && (
+                    return (
 
-                  <div className="flex items-center justify-between text-sm text-fg-muted">
-                    <span>
-                      Discount
-                      {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
-                    </span>
-                    <span>-{formatMoney(formTotals.discount_amount)}</span>
-                  </div>
+                      <div key={tierIndex} className="flex items-center justify-between">
+                        <span className="text-sm text-fg-muted">
+                          {tier.name || `Option ${tierIndex + 1}`}
+                          {tier.is_recommended ? " ⭐" : ""}
+                        </span>
+                        <span className="font-display text-lg font-bold">
+                          {formatMoney(tierTotals.total)}
+                        </span>
+                      </div>
 
-                )}
+                    );
 
-                {formTotals.tax_amount > 0 && (
+                  })}
 
-                  <div className="flex items-center justify-between text-sm text-fg-muted">
-                    <span>
-                      Tax
-                      {formTaxRate ? ` (${formTaxRate}%)` : ""}
-                    </span>
-                    <span>{formatMoney(formTotals.tax_amount)}</span>
-                  </div>
-
-                )}
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-fg-muted">Total</span>
-                  <span className="font-display text-xl font-bold">
-                    {formatMoney(formTotals.total)}
-                  </span>
                 </div>
 
-                {formDepositType && (
-                  <div className="flex items-center justify-between text-sm text-fg-muted">
-                    <span>
-                      Deposit due on approval
-                      {formDepositType === "percent" && formDepositValue ? ` (${formDepositValue}%)` : ""}
-                    </span>
-                    <span>{formatMoney(formTotals.deposit_amount)}</span>
-                  </div>
-                )}
+              ) : (
 
-              </div>
+                <div className="flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
+
+                  {(formDiscountType || formTotals.tax_amount > 0) && (
+
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
+                      <span>Subtotal</span>
+                      <span>{formatMoney(formTotals.subtotal)}</span>
+                    </div>
+
+                  )}
+
+                  {formDiscountType && (
+
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
+                      <span>
+                        Discount
+                        {formDiscountType === "percent" && formDiscountValue ? ` (${formDiscountValue}%)` : ""}
+                      </span>
+                      <span>-{formatMoney(formTotals.discount_amount)}</span>
+                    </div>
+
+                  )}
+
+                  {formTotals.tax_amount > 0 && (
+
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
+                      <span>
+                        Tax
+                        {formTaxRate ? ` (${formTaxRate}%)` : ""}
+                      </span>
+                      <span>{formatMoney(formTotals.tax_amount)}</span>
+                    </div>
+
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-fg-muted">Total</span>
+                    <span className="font-display text-xl font-bold">
+                      {formatMoney(formTotals.total)}
+                    </span>
+                  </div>
+
+                  {formDepositType && (
+                    <div className="flex items-center justify-between text-sm text-fg-muted">
+                      <span>
+                        Deposit due on approval
+                        {formDepositType === "percent" && formDepositValue ? ` (${formDepositValue}%)` : ""}
+                      </span>
+                      <span>{formatMoney(formTotals.deposit_amount)}</span>
+                    </div>
+                  )}
+
+                </div>
+
+              )}
 
               <button
                 onClick={handleSaveQuote}
@@ -1421,34 +1781,120 @@ function Quotes() {
 
                 </div>
 
-                <div className="mt-4 flex flex-col divide-y divide-border rounded-xl border border-border">
+                {Array.isArray(activeQuote.tiers) && activeQuote.tiers.length > 0 && !activeQuote.accepted_tier_id ? (
 
-                  {(activeQuote.items || []).map((item) => (
+                  // Nobody's decided yet - show every option side by side
+                  // instead of one flat item list, same reasoning as the
+                  // PDF's own drawTierSection.
+                  <div className="mt-4 flex flex-col gap-3">
 
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3">
+                    {(activeQuote.shared_items || []).length > 0 && (
 
-                      <div className="min-w-0">
-                        <p className="truncate text-sm">{item.description}</p>
-                        <p className="text-xs text-fg-faint">
-                          {item.quantity} &times; {formatMoney(item.unit_price)}
+                      <div className="rounded-xl border border-border">
+
+                        <p className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-fg-faint">
+                          Included with every option
                         </p>
+
+                        {activeQuote.shared_items.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border p-3 last:border-b-0">
+                            <p className="truncate text-sm">{item.description}</p>
+                            <span className="shrink-0 text-sm font-semibold">{formatMoney(item.quantity * item.unit_price)}</span>
+                          </div>
+                        ))}
+
                       </div>
 
-                      <span className="shrink-0 text-sm font-semibold">
-                        {formatMoney(item.quantity * item.unit_price)}
-                      </span>
+                    )}
 
-                    </div>
+                    {activeQuote.tiers.map((tier) => (
 
-                  ))}
+                      <div key={tier.id} className={`rounded-xl border p-3 ${tier.is_recommended ? "border-brand-500 bg-brand-600/5" : "border-border"}`}>
 
-                </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-display text-lg font-bold">
+                            {tier.name}
+                            {tier.is_recommended && (
+                              <span className="ml-2 rounded-full bg-brand-600/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-text">
+                                Recommended
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-display text-lg font-bold text-accent-text">
+                            {formatMoney(tier.total)}
+                          </span>
+                        </div>
+
+                        {tier.items.length > 0 && (
+
+                          <div className="mt-2 flex flex-col gap-1">
+                            {tier.items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-sm text-fg-muted">
+                                <span className="truncate">{item.description}</span>
+                                <span className="shrink-0">{formatMoney(item.quantity * item.unit_price)}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                        )}
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                ) : (
+
+                  <div className="mt-4 flex flex-col divide-y divide-border rounded-xl border border-border">
+
+                    {(Array.isArray(activeQuote.tiers) && activeQuote.tiers.length > 0
+                      ? [
+                          ...(activeQuote.shared_items || []),
+                          ...((activeQuote.tiers.find((tier) => tier.id === activeQuote.accepted_tier_id) || activeQuote.tiers[0]).items)
+                        ]
+                      : (activeQuote.items || [])
+                    ).map((item) => (
+
+                      <div key={item.id} className="flex items-center justify-between gap-3 p-3">
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm">{item.description}</p>
+                          <p className="text-xs text-fg-faint">
+                            {item.quantity} &times; {formatMoney(item.unit_price)}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 text-sm font-semibold">
+                          {formatMoney(item.quantity * item.unit_price)}
+                        </span>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                )}
+
+                {Array.isArray(activeQuote.tiers) && activeQuote.tiers.length > 0 && activeQuote.accepted_tier_id && (
+
+                  <p className="mt-3 flex items-center gap-1.5 text-sm text-fg-muted">
+                    <span className="font-medium text-accent-text">
+                      {(activeQuote.tiers.find((tier) => tier.id === activeQuote.accepted_tier_id) || {}).name}
+                    </span>
+                    was the option chosen.
+                  </p>
+
+                )}
 
                 {activeQuote.notes && (
                   <p className="mt-3 text-sm text-fg-muted">
                     {activeQuote.notes}
                   </p>
                 )}
+
+                {(!Array.isArray(activeQuote.tiers) || activeQuote.tiers.length === 0 || activeQuote.accepted_tier_id) && (
 
                 <div className="mt-4 flex flex-col gap-1 rounded-lg bg-surface-muted px-4 py-3">
 
@@ -1528,6 +1974,8 @@ function Quotes() {
                   )}
 
                 </div>
+
+                )}
 
                 <div className="mt-4 rounded-lg border border-border p-4">
 
@@ -1873,6 +2321,39 @@ function Quotes() {
                 onChange={(e) => setSignName(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
               />
+
+              {Array.isArray(activeQuote.tiers) && activeQuote.tiers.length > 0 && (
+
+                <div className="flex flex-col gap-1.5">
+
+                  <p className="text-xs font-medium uppercase tracking-wide text-fg-faint">
+                    Which option did they choose?
+                  </p>
+
+                  {activeQuote.tiers.map((tier) => (
+
+                    <label
+                      key={tier.id}
+                      className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg border p-2.5 text-sm ${signTierId === tier.id ? "border-brand-500 bg-brand-600/10" : "border-border"}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="sign-on-site-tier"
+                          checked={signTierId === tier.id}
+                          onChange={() => setSignTierId(tier.id)}
+                          className="h-4 w-4 accent-brand-600"
+                        />
+                        {tier.name}
+                      </span>
+                      <span className="font-semibold">{formatMoney(tier.total)}</span>
+                    </label>
+
+                  ))}
+
+                </div>
+
+              )}
 
               <SignaturePad ref={signaturePadRef} />
 

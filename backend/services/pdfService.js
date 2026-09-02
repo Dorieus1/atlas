@@ -69,6 +69,86 @@ function drawTableHeader(doc, y) {
 }
 
 
+// Draws one item's row (description/qty/unit price/amount) plus its
+// bottom border, handling its own page-break if it would run off the
+// page. Factored out of the old single inline loop so a tiered quote's
+// PDF (see drawTierSection below) can draw more than one such table on
+// the same page without duplicating this row-drawing logic.
+function drawItemRows(doc, startY, items) {
+
+  let y = startY;
+
+  (items || []).forEach((item) => {
+
+    if (y + ROW_HEIGHT > bottomOf(doc)) {
+
+      doc.addPage();
+      y = drawTableHeader(doc, PAGE_MARGIN);
+
+    }
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor(INK_COLOR)
+      .text(item.description, COLUMNS.description + 10, y + 8, { width: 260 })
+      .text(String(item.quantity), COLUMNS.quantity, y + 8, { width: 50, align: "right" })
+      .text(formatMoney(item.unit_price), COLUMNS.unitPrice, y + 8, { width: 70, align: "right" })
+      .text(formatMoney(item.quantity * item.unit_price), COLUMNS.amount, y + 8, { width: 65, align: "right" });
+
+    doc
+      .strokeColor(BORDER_COLOR)
+      .lineWidth(0.5)
+      .moveTo(50, y + ROW_HEIGHT)
+      .lineTo(545, y + ROW_HEIGHT)
+      .stroke();
+
+    y += ROW_HEIGHT;
+
+  });
+
+  return y;
+
+}
+
+
+// A "Good/Better/Best" quote nobody has decided on yet gets each option
+// laid out as its own labeled, stacked section (shared items + that
+// option's own items, then that option's own bottom-line total) rather
+// than one flat item list - there's no single "the" subtotal to show
+// until a choice is made, so each option shows its own instead. Once
+// accepted, this is never called - streamQuotePdf renders the chosen
+// tier's items as an ordinary single list, same as a plain quote always
+// has, with the usual Subtotal/Discount/Tax/Total breakdown underneath.
+function drawTierSection(doc, startY, tier, sharedItems) {
+
+  let y = startY;
+
+  const headerHeight = 26;
+
+  if (y + headerHeight > bottomOf(doc)) {
+    doc.addPage();
+    y = PAGE_MARGIN;
+  }
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .fillColor(INK_COLOR)
+    .text(tier.is_recommended ? `${tier.name}  (Recommended)` : tier.name, 50, y, { width: 350 })
+    .fillColor(BRAND_COLOR)
+    .text(formatMoney(tier.total), COLUMNS.amount, y, { width: 65, align: "right" });
+
+  y += headerHeight;
+
+  y = drawTableHeader(doc, y);
+  y = drawItemRows(doc, y, [...sharedItems, ...tier.items]);
+
+  return y + 20;
+
+}
+
+
 // The usable content bottom before a new page is needed - PDFKit doesn't
 // auto-paginate absolute-positioned .text() calls, so every block drawn
 // below this function has to check its own remaining space and call
@@ -218,167 +298,173 @@ function streamQuotePdf(res, quote, business) {
 
   const tableTop = 210;
 
-  let y = drawTableHeader(doc, tableTop);
+  let y;
 
-  (quote.items || []).forEach((item) => {
+  // A "Good/Better/Best" quote nobody has decided on yet has no single
+  // item list or subtotal to show - see drawTierSection's own comment.
+  // Once accepted (or for the overwhelming common case: a plain quote
+  // that never had tiers at all), this is always false, and everything
+  // below behaves exactly as it always has.
+  const isUndecidedTiers = Array.isArray(quote.tiers) && quote.tiers.length > 0 && !quote.accepted_tier_id;
 
-    if (y + ROW_HEIGHT > bottomOf(doc)) {
+  if (isUndecidedTiers) {
+
+    y = tableTop;
+
+    quote.tiers.forEach((tier) => {
+      y = drawTierSection(doc, y, tier, quote.shared_items || []);
+    });
+
+  } else {
+
+    // An accepted "Good/Better/Best" quote only ever shows the ONE
+    // package the customer actually agreed to - not quote.items, which
+    // (for a tiered quote) is every option's items combined. A plain
+    // quote has no tiers at all, so this is just quote.items, unchanged.
+    const wasTiered = Array.isArray(quote.tiers) && quote.tiers.length > 0;
+
+    const itemsToRender = wasTiered
+      ? [
+          ...(quote.shared_items || []),
+          ...((quote.tiers.find((tier) => tier.id === quote.accepted_tier_id) || quote.tiers[0]).items)
+        ]
+      : quote.items;
+
+    y = drawTableHeader(doc, tableTop);
+    y = drawItemRows(doc, y, itemsToRender);
+
+    // Only quotes with an actual discount or tax get the Subtotal/
+    // Discount/Tax/Total breakdown - one with neither keeps the exact
+    // single "Total" line this PDF has always shown, so existing quotes'
+    // PDFs don't suddenly grow lines that were never there.
+    const hasDiscount = !!quote.discount_type;
+    const hasTax = Number(quote.tax_amount) > 0;
+    const hasBreakdown = hasDiscount || hasTax;
+    const hasDeposit = !!quote.deposit_type;
+    const depositPaid = hasDeposit && !!quote.deposit_paid_at;
+
+    const DISCOUNT_LABEL_X = 250;
+    const DISCOUNT_LABEL_WIDTH = 210;
+    const BREAKDOWN_LINE_HEIGHT = 18;
+
+    // The "30" here is the same rough single-line height the page-break
+    // math always used for the Total line - extra lines are added on top
+    // of it for each optional block (subtotal, discount, tax, deposit, and,
+    // once a deposit has actually been paid, the remaining balance still
+    // owed) that also needs to be drawn.
+    let totalsBlockHeight = 30;
+
+    if (hasBreakdown) {
+      totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
+    }
+
+    if (hasDiscount) {
+      totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
+    }
+
+    if (hasTax) {
+      totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
+    }
+
+    if (hasDeposit) {
+      totalsBlockHeight += BREAKDOWN_LINE_HEIGHT * (depositPaid ? 2 : 1);
+    }
+
+    if (y + 20 + totalsBlockHeight > bottomOf(doc)) {
 
       doc.addPage();
-      y = drawTableHeader(doc, PAGE_MARGIN);
+      y = PAGE_MARGIN;
+
+    } else {
+
+      y += 20;
+
+    }
+
+    if (hasBreakdown) {
+
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(MUTED_COLOR)
+        .text("Subtotal", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+        .fillColor(INK_COLOR)
+        .text(formatMoney(quote.subtotal), COLUMNS.amount, y, { width: 65, align: "right" });
+
+      y += BREAKDOWN_LINE_HEIGHT;
+
+    }
+
+    if (hasDiscount) {
+
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(MUTED_COLOR)
+        .text(formatDiscountLabel(quote), DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+        .fillColor(INK_COLOR)
+        .text(`-${formatMoney(quote.discount_amount)}`, COLUMNS.amount, y, { width: 65, align: "right" });
+
+      y += BREAKDOWN_LINE_HEIGHT;
+
+    }
+
+    if (hasTax) {
+
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(MUTED_COLOR)
+        .text(`Tax (${quote.tax_rate}%)`, DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+        .fillColor(INK_COLOR)
+        .text(formatMoney(quote.tax_amount), COLUMNS.amount, y, { width: 65, align: "right" });
+
+      y += BREAKDOWN_LINE_HEIGHT;
 
     }
 
     doc
-      .font("Helvetica")
-      .fontSize(10)
+      .font("Helvetica-Bold")
+      .fontSize(12)
       .fillColor(INK_COLOR)
-      .text(item.description, COLUMNS.description + 10, y + 8, { width: 260 })
-      .text(String(item.quantity), COLUMNS.quantity, y + 8, { width: 50, align: "right" })
-      .text(formatMoney(item.unit_price), COLUMNS.unitPrice, y + 8, { width: 70, align: "right" })
-      .text(formatMoney(item.quantity * item.unit_price), COLUMNS.amount, y + 8, { width: 65, align: "right" });
+      .text("Total", COLUMNS.unitPrice, y, { width: 70, align: "right" })
+      .fillColor(BRAND_COLOR)
+      .text(formatMoney(quote.total), COLUMNS.amount, y, { width: 65, align: "right" });
 
-    doc
-      .strokeColor(BORDER_COLOR)
-      .lineWidth(0.5)
-      .moveTo(50, y + ROW_HEIGHT)
-      .lineTo(545, y + ROW_HEIGHT)
-      .stroke();
+    if (hasDeposit) {
 
-    y += ROW_HEIGHT;
-
-  });
-
-  // Only quotes with an actual discount or tax get the Subtotal/
-  // Discount/Tax/Total breakdown - one with neither keeps the exact
-  // single "Total" line this PDF has always shown, so existing quotes'
-  // PDFs don't suddenly grow lines that were never there.
-  const hasDiscount = !!quote.discount_type;
-  const hasTax = Number(quote.tax_amount) > 0;
-  const hasBreakdown = hasDiscount || hasTax;
-  const hasDeposit = !!quote.deposit_type;
-  const depositPaid = hasDeposit && !!quote.deposit_paid_at;
-
-  const DISCOUNT_LABEL_X = 250;
-  const DISCOUNT_LABEL_WIDTH = 210;
-  const BREAKDOWN_LINE_HEIGHT = 18;
-
-  // The "30" here is the same rough single-line height the page-break
-  // math always used for the Total line - extra lines are added on top
-  // of it for each optional block (subtotal, discount, tax, deposit, and,
-  // once a deposit has actually been paid, the remaining balance still
-  // owed) that also needs to be drawn.
-  let totalsBlockHeight = 30;
-
-  if (hasBreakdown) {
-    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
-  }
-
-  if (hasDiscount) {
-    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
-  }
-
-  if (hasTax) {
-    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT;
-  }
-
-  if (hasDeposit) {
-    totalsBlockHeight += BREAKDOWN_LINE_HEIGHT * (depositPaid ? 2 : 1);
-  }
-
-  if (y + 20 + totalsBlockHeight > bottomOf(doc)) {
-
-    doc.addPage();
-    y = PAGE_MARGIN;
-
-  } else {
-
-    y += 20;
-
-  }
-
-  if (hasBreakdown) {
-
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor(MUTED_COLOR)
-      .text("Subtotal", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
-      .fillColor(INK_COLOR)
-      .text(formatMoney(quote.subtotal), COLUMNS.amount, y, { width: 65, align: "right" });
-
-    y += BREAKDOWN_LINE_HEIGHT;
-
-  }
-
-  if (hasDiscount) {
-
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor(MUTED_COLOR)
-      .text(formatDiscountLabel(quote), DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
-      .fillColor(INK_COLOR)
-      .text(`-${formatMoney(quote.discount_amount)}`, COLUMNS.amount, y, { width: 65, align: "right" });
-
-    y += BREAKDOWN_LINE_HEIGHT;
-
-  }
-
-  if (hasTax) {
-
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor(MUTED_COLOR)
-      .text(`Tax (${quote.tax_rate}%)`, DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
-      .fillColor(INK_COLOR)
-      .text(formatMoney(quote.tax_amount), COLUMNS.amount, y, { width: 65, align: "right" });
-
-    y += BREAKDOWN_LINE_HEIGHT;
-
-  }
-
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .fillColor(INK_COLOR)
-    .text("Total", COLUMNS.unitPrice, y, { width: 70, align: "right" })
-    .fillColor(BRAND_COLOR)
-    .text(formatMoney(quote.total), COLUMNS.amount, y, { width: 65, align: "right" });
-
-  if (hasDeposit) {
-
-    y += BREAKDOWN_LINE_HEIGHT + 6;
-
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor(MUTED_COLOR)
-      // The "(paid)" note lives on the label side, which has 210px to
-      // work with - cramming it into the narrow 65px amount column
-      // alongside the dollar figure wrapped onto a second line and
-      // visually collided with the Remaining Balance line right below it.
-      .text(
-        `${formatDepositLabel(quote)}${depositPaid ? " (paid)" : ""}`,
-        DISCOUNT_LABEL_X,
-        y,
-        { width: DISCOUNT_LABEL_WIDTH, align: "right" }
-      )
-      .fillColor(depositPaid ? "#16a34a" : INK_COLOR)
-      .text(formatMoney(quote.deposit_amount), COLUMNS.amount, y, { width: 65, align: "right" });
-
-    if (depositPaid) {
-
-      y += BREAKDOWN_LINE_HEIGHT;
+      y += BREAKDOWN_LINE_HEIGHT + 6;
 
       doc
-        .font("Helvetica-Bold")
+        .font("Helvetica")
         .fontSize(10)
         .fillColor(MUTED_COLOR)
-        .text("Remaining Balance", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
-        .fillColor(INK_COLOR)
-        .text(formatMoney(Math.max(quote.total - quote.deposit_amount, 0)), COLUMNS.amount, y, { width: 65, align: "right" });
+        // The "(paid)" note lives on the label side, which has 210px to
+        // work with - cramming it into the narrow 65px amount column
+        // alongside the dollar figure wrapped onto a second line and
+        // visually collided with the Remaining Balance line right below it.
+        .text(
+          `${formatDepositLabel(quote)}${depositPaid ? " (paid)" : ""}`,
+          DISCOUNT_LABEL_X,
+          y,
+          { width: DISCOUNT_LABEL_WIDTH, align: "right" }
+        )
+        .fillColor(depositPaid ? "#16a34a" : INK_COLOR)
+        .text(formatMoney(quote.deposit_amount), COLUMNS.amount, y, { width: 65, align: "right" });
+
+      if (depositPaid) {
+
+        y += BREAKDOWN_LINE_HEIGHT;
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(MUTED_COLOR)
+          .text("Remaining Balance", DISCOUNT_LABEL_X, y, { width: DISCOUNT_LABEL_WIDTH, align: "right" })
+          .fillColor(INK_COLOR)
+          .text(formatMoney(Math.max(quote.total - quote.deposit_amount, 0)), COLUMNS.amount, y, { width: 65, align: "right" });
+
+      }
 
     }
 

@@ -94,6 +94,11 @@ describe("GET /api/quotes/by-appointment/:appointmentId", () => {
     expect(afterSend.body.status).toBe("sent");
     expect(afterSend.body.type).toBe("invoice");
 
+    // Auto-drafted invoices are never "Good/Better/Best" quotes -
+    // Today.jsx's Sign On-Site button relies on this to know a plain
+    // signature flow (not a tier picker) is all that's needed here.
+    expect(!!afterSend.body.has_tiers).toBe(false);
+
   });
 
 

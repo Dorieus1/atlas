@@ -286,7 +286,8 @@ module.exports = async () => {
           deposit_paid_at DATETIME,
           tax_rate REAL,
           signature TEXT,
-          signature_method TEXT
+          signature_method TEXT,
+          accepted_tier_id TEXT
         )
       `);
 
@@ -309,8 +310,26 @@ module.exports = async () => {
           description TEXT NOT NULL,
           quantity REAL NOT NULL DEFAULT 1,
           unit_price REAL NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          tier_id TEXT
+        )
+      `);
+
+      // Mirrors migration 056 - "Good/Better/Best" multi-option quotes.
+      db.run(`
+        CREATE TABLE quote_tiers (
+          id TEXT PRIMARY KEY,
+          quote_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_recommended INTEGER NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+
+      db.run(`
+        CREATE INDEX idx_quote_tiers_quote_id
+        ON quote_tiers(quote_id)
       `);
 
       db.run(`

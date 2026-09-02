@@ -1096,7 +1096,11 @@ export const createQuote = (
   discount_value = null,
   deposit_type = null,
   deposit_value = null,
-  tax_rate = undefined
+  tax_rate = undefined,
+  // "Good/Better/Best": [{name, is_recommended, items}]. `items` above
+  // becomes just the items shared across every option when this is set -
+  // see quoteController.js's createQuote for the full contract.
+  tiers = undefined
 ) =>
 
   request("/quotes", {
@@ -1120,6 +1124,8 @@ export const createQuote = (
       deposit_type,
 
       deposit_value,
+
+      ...(tiers === undefined ? {} : { tiers }),
 
       // undefined (not null) when omitted, and JSON.stringify drops an
       // undefined property entirely - the backend's own default (undefined
@@ -1212,13 +1218,13 @@ export const deleteQuote = (id) =>
 // session, capturing a signature the customer draws standing right
 // there, as opposed to acceptPortalQuote above (the customer's own
 // portal login, used remotely).
-export const signQuoteInPerson = (id, name, signature) =>
+export const signQuoteInPerson = (id, name, signature, tier_id = undefined) =>
 
   request(`/quotes/${id}/sign`, {
 
     method: "POST",
 
-    body: JSON.stringify({ name, signature })
+    body: JSON.stringify({ name, signature, ...(tier_id === undefined ? {} : { tier_id }) })
 
   });
 
@@ -1591,15 +1597,21 @@ export const reschedulePortalAppointment = (id, start_time) =>
 export const getPortalQuotes = () =>
   portalRequest("/portal/account/quotes");
 
+// The full single-quote breakdown - needed before accepting a "Good/
+// Better/Best" quote, since the list above only has one headline total
+// per row, not each option's own.
+export const getPortalQuote = (quoteId) =>
+  portalRequest(`/portal/account/quotes/${quoteId}`);
+
 export const createInvoiceCheckout = (quoteId) =>
   portalRequest(`/portal/account/quotes/${quoteId}/checkout`, {
     method:"POST"
   });
 
-export const acceptPortalQuote = (quoteId, name, signature) =>
+export const acceptPortalQuote = (quoteId, name, signature, tier_id = undefined) =>
   portalRequest(`/portal/account/quotes/${quoteId}/accept`, {
     method:"POST",
-    body: JSON.stringify({ name, signature })
+    body: JSON.stringify({ name, signature, ...(tier_id === undefined ? {} : { tier_id }) })
   });
 
 export const declinePortalQuote = (quoteId) =>

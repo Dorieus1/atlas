@@ -2,7 +2,7 @@ const { getBusinessBySlug, getBusinessById } = require("../services/businessServ
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
 const { sendEmail, escapeHtml } = require("../services/emailService");
-const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature, acceptQuoteWithSignatureAtomic } = require("../services/quoteService");
+const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature, validateTierSelection, acceptQuoteWithSignatureAtomic } = require("../services/quoteService");
 const {
   getAppointmentsByCustomer,
   createAppointment,
@@ -637,6 +637,48 @@ const getMyQuotes = async (req, res) => {
 
 
 
+// The list endpoint above is deliberately lightweight (one headline
+// total per row, no per-tier breakdown - see getQuotesByCustomer) since
+// it has to render a whole list at once. A "Good/Better/Best" quote's
+// accept flow needs the FULL breakdown (every option, its own items and
+// total) to let the customer actually pick one, which only getQuoteById
+// provides - hence this separate single-quote detail endpoint.
+const getMyQuote = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const business_id = req.customer.business_id;
+
+    const quote = await getQuoteById(id, business_id);
+
+    if (!quote || quote.customer_id !== req.customer.customer_id) {
+
+      return res.status(404).json({
+        error: "Not found"
+      });
+
+    }
+
+    res.json({
+      ...quote,
+      quote_number_formatted: formatQuoteNumber(quote.type, quote.quote_number)
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const downloadMyQuotePdf = async (req, res) => {
 
   try {
@@ -854,7 +896,7 @@ const acceptQuote = async (req, res) => {
   try {
 
     const { id } = req.params;
-    const { name, signature } = req.body;
+    const { name, signature, tier_id } = req.body;
     const business_id = req.customer.business_id;
 
     if (!name || !name.trim()) {
@@ -905,6 +947,19 @@ const acceptQuote = async (req, res) => {
 
     }
 
+    // A "Good/Better/Best" quote can't be approved without saying which
+    // package the customer actually picked - a plain quote (the common
+    // case) has no tiers, so this is always a no-op for it.
+    const tierError = validateTierSelection(quote, tier_id);
+
+    if (tierError) {
+
+      return res.status(400).json({
+        error: tierError
+      });
+
+    }
+
     const approvedName = name.trim();
 
     // The status check above is a friendly, informative rejection for
@@ -915,7 +970,8 @@ const acceptQuote = async (req, res) => {
     const won = await acceptQuoteWithSignatureAtomic(id, business_id, {
       accepted_by_name: approvedName,
       signature,
-      signature_method: "portal"
+      signature_method: "portal",
+      accepted_tier_id: tier_id || null
     });
 
     if (!won) {
@@ -1199,6 +1255,7 @@ module.exports = {
   rescheduleMyAppointment,
 
   getMyQuotes,
+  getMyQuote,
 
   downloadMyQuotePdf,
 

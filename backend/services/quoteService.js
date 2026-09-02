@@ -31,6 +31,36 @@ function validateSignature(signature) {
 }
 
 
+// Shared by both accept paths (portal + on-site), same reasoning as
+// validateSignature above: a "Good/Better/Best" quote can't be accepted
+// without saying which package was actually chosen, and a plain quote
+// has no tier to choose at all - accepting one of THOSE with an
+// (unnecessary) tier_id would be silently ignored rather than rejected,
+// since there's nothing wrong with a client that always sends the field.
+// `quote` here is expected to already be the result of getQuoteById,
+// whose `tiers` array (only ever populated when the quote actually has
+// tiers) is exactly what this checks tier_id against.
+function validateTierSelection(quote, tier_id) {
+
+  const hasTiers = Array.isArray(quote.tiers) && quote.tiers.length > 0;
+
+  if (!hasTiers) {
+    return null;
+  }
+
+  if (!tier_id) {
+    return "Please choose one of the options before signing";
+  }
+
+  if (!quote.tiers.some((tier) => tier.id === tier_id)) {
+    return "That option isn't valid for this quote";
+  }
+
+  return null;
+
+}
+
+
 const runAsync = (sql, params = []) => {
 
   return new Promise((resolve, reject) => {
@@ -239,6 +269,57 @@ const assignNextQuoteNumber = async (business_id) => {
 
 
 
+// Inserts one quote_items row, optionally tagged to a tier - shared by
+// createQuote and replaceQuoteTiers below so the two never drift on the
+// actual INSERT shape.
+const insertQuoteItem = (quote_id, item, tier_id = null) => {
+
+  return runAsync(
+
+    `
+    INSERT INTO quote_items
+    (id, quote_id, description, quantity, unit_price, tier_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+    `,
+
+    [uuidv4(), quote_id, item.description, item.quantity, item.unit_price, tier_id]
+
+  );
+
+};
+
+
+// Inserts a quote's tiers (each with its own items) inside an already-
+// open transaction - shared by createQuote and replaceQuoteTiers.
+const insertQuoteTiers = async (quote_id, tiers) => {
+
+  for (let i = 0; i < tiers.length; i++) {
+
+    const tier = tiers[i];
+    const tier_id = uuidv4();
+
+    await runAsync(
+
+      `
+      INSERT INTO quote_tiers
+      (id, quote_id, name, sort_order, is_recommended)
+      VALUES (?, ?, ?, ?, ?)
+      `,
+
+      [tier_id, quote_id, tier.name, i, tier.is_recommended ? 1 : 0]
+
+    );
+
+    for (const item of tier.items) {
+      await insertQuoteItem(quote_id, item, tier_id);
+    }
+
+  }
+
+};
+
+
+
 const createQuote = async (
 
   business_id,
@@ -253,7 +334,14 @@ const createQuote = async (
   discount_value = null,
   deposit_type = null,
   deposit_value = null,
-  tax_rate = null
+  tax_rate = null,
+  // "Good/Better/Best" multi-option quotes: an array of
+  // {name, is_recommended, items}. When present, `items` above means
+  // ONLY the items shared across every tier (a common inspection fee,
+  // say) - each tier's own items live in tier.items instead. A plain
+  // quote (the overwhelming common case) never sets this, and nothing
+  // about that path changes.
+  tiers = null
 
 ) => {
 
@@ -302,19 +390,11 @@ const createQuote = async (
       );
 
       for (const item of items) {
+        await insertQuoteItem(id, item, null);
+      }
 
-        await runAsync(
-
-          `
-          INSERT INTO quote_items
-          (id, quote_id, description, quantity, unit_price)
-          VALUES (?, ?, ?, ?, ?)
-          `,
-
-          [uuidv4(), id, item.description, item.quantity, item.unit_price]
-
-        );
-
+      if (tiers && tiers.length > 0) {
+        await insertQuoteTiers(id, tiers);
       }
 
       await runAsync("COMMIT");
@@ -425,7 +505,11 @@ const markQuoteDepositPaidAtomic = (quote_id, business_id, deposit_paid_at) => {
 // different prior-status expectations - hard-coding "WHERE status =
 // 'sent'" there would break every one of them); this is its own
 // narrowly-scoped atomic write instead, exactly like markQuotePaidAtomic.
-const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, signature, signature_method }) => {
+// accepted_tier_id is null for a plain (non-tiered) quote, exactly as
+// before this feature existed - only a "Good/Better/Best" quote's accept
+// flow ever passes a real one, and the controller validates it actually
+// belongs to this quote's own tiers before this atomic write ever runs.
+const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, signature, signature_method, accepted_tier_id = null }) => {
 
   return new Promise((resolve, reject) => {
 
@@ -437,13 +521,14 @@ const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, sig
           accepted_at = ?,
           accepted_by_name = ?,
           signature = ?,
-          signature_method = ?
+          signature_method = ?,
+          accepted_tier_id = ?
       WHERE id = ?
       AND business_id = ?
       AND status = 'sent'
       `,
 
-      [new Date().toISOString(), accepted_by_name, signature, signature_method, id, business_id],
+      [new Date().toISOString(), accepted_by_name, signature, signature_method, accepted_tier_id, id, business_id],
 
       function (err) {
         if (err) reject(err); else resolve(this.changes > 0);
@@ -457,12 +542,33 @@ const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, sig
 
 
 
+// Powers the accept flow's own validation: is this tier_id actually one
+// of THIS quote's tiers, not some other quote's (or made up)? Kept
+// separate from getQuoteById's full breakdown since the accept
+// controllers only need this one cheap check, not every tier's totals.
+const getQuoteTierIds = async (quote_id) => {
+
+  const rows = await allAsync(
+
+    `SELECT id FROM quote_tiers WHERE quote_id = ?`,
+
+    [quote_id]
+
+  );
+
+  return rows.map((row) => row.id);
+
+};
+
+
+
 const getQuoteByAppointmentId = (appointment_id, business_id) => {
 
   return getAsync(
 
     `
-    SELECT id, status, type
+    SELECT id, status, type,
+      EXISTS(SELECT 1 FROM quote_tiers WHERE quote_tiers.quote_id = quotes.id) AS has_tiers
     FROM quotes
     WHERE appointment_id = ?
     AND business_id = ?
@@ -476,6 +582,35 @@ const getQuoteByAppointmentId = (appointment_id, business_id) => {
 
 
 
+// A tiered quote's "headline" subtotal - the ONE number every list view,
+// the CSV export, and analytics need, exactly like a plain quote's
+// subtotal always was. Shared items (tier_id IS NULL) always count.
+// Tier-specific items only count for the "resolved" tier: whichever tier
+// was actually accepted, or - before acceptance - whichever tier the
+// owner marked recommended, or the first tier if none is, matching the
+// same resolution getQuoteById below uses to pick a headline total.
+// A quote with zero tiers has every item's tier_id NULL, so this
+// collapses back to exactly the old "sum every item" behavior - nothing
+// changes for the overwhelming common case.
+const RESOLVED_TIER_ID_SQL = `(
+  SELECT quote_tiers.id FROM quote_tiers
+  WHERE quote_tiers.quote_id = quotes.id
+  ORDER BY quote_tiers.is_recommended DESC, quote_tiers.sort_order ASC
+  LIMIT 1
+)`;
+
+const EFFECTIVE_SUBTOTAL_SQL = `
+  COALESCE(SUM(
+    CASE
+      WHEN quote_items.tier_id IS NULL THEN quote_items.quantity * quote_items.unit_price
+      WHEN quote_items.tier_id = COALESCE(quotes.accepted_tier_id, ${RESOLVED_TIER_ID_SQL}) THEN quote_items.quantity * quote_items.unit_price
+      ELSE 0
+    END
+  ), 0)
+`;
+
+
+
 const getQuotes = async (business_id) => {
 
   const rows = await allAsync(
@@ -484,7 +619,7 @@ const getQuotes = async (business_id) => {
     SELECT
       quotes.*,
       customers.name AS customer_name,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
+      ${EFFECTIVE_SUBTOTAL_SQL} AS subtotal
     FROM quotes
     LEFT JOIN customers ON customers.id = quotes.customer_id
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
@@ -537,7 +672,7 @@ const getQuotesForExport = async (business_id, { type, status } = {}) => {
       quotes.*,
       customers.name AS customer_name,
       customers.email AS customer_email,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
+      ${EFFECTIVE_SUBTOTAL_SQL} AS subtotal
     FROM quotes
     LEFT JOIN customers ON customers.id = quotes.customer_id
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
@@ -621,7 +756,7 @@ const getQuotesByCustomer = async (customer_id, business_id) => {
     `
     SELECT
       quotes.*,
-      COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) AS subtotal
+      ${EFFECTIVE_SUBTOTAL_SQL} AS subtotal
     FROM quotes
     LEFT JOIN quote_items ON quote_items.quote_id = quotes.id
     WHERE quotes.customer_id = ?
@@ -683,9 +818,83 @@ const getQuoteById = async (id, business_id) => {
 
   );
 
+  const tierRows = await allAsync(
+
+    `
+    SELECT *
+    FROM quote_tiers
+    WHERE quote_id = ?
+    ORDER BY sort_order ASC
+    `,
+
+    [id]
+
+  );
+
+  // Every existing consumer of quote.items (the flat item list, the
+  // owner's quote builder reconstructing what's stored, etc.) still gets
+  // ALL items exactly as before - tier-tagged or not. Tier-aware
+  // consumers use quote.tiers/quote.shared_items instead.
   quote.items = items;
 
-  const totals = calculateQuoteTotals(items, quote.discount_type, quote.discount_value, quote.tax_rate);
+  const sharedItems = items.filter((item) => !item.tier_id);
+
+  // Which items actually determine the ONE headline subtotal/total this
+  // function has always returned (used by the PDF total, Stripe
+  // Checkout, analytics, the list views' own SQL equivalent above,
+  // etc.): the accepted tier's items once a customer has picked one,
+  // otherwise the tier the owner marked recommended, otherwise simply
+  // the first tier - resolved the same way EFFECTIVE_SUBTOTAL_SQL
+  // resolves it for the list endpoints, so a single quote's GET and its
+  // row in the list always agree. A quote with no tiers at all has
+  // every item already in sharedItems, so effectiveItems is just "every
+  // item" - identical to this function's behavior before tiers existed.
+  let effectiveItems = items;
+
+  if (tierRows.length > 0) {
+
+    const resolvedTier =
+      tierRows.find((tier) => tier.id === quote.accepted_tier_id) ||
+      tierRows.find((tier) => tier.is_recommended) ||
+      tierRows[0];
+
+    quote.resolved_tier_id = resolvedTier.id;
+
+    effectiveItems = [...sharedItems, ...items.filter((item) => item.tier_id === resolvedTier.id)];
+
+    quote.shared_items = sharedItems;
+
+    // The full side-by-side comparison the customer (or the owner,
+    // previewing) actually sees before a decision is made - each tier
+    // with only ITS OWN items plus its own computed totals (shared
+    // items' cost is folded into every tier's total below, but not
+    // repeated in tier.items, since the UI renders the shared list once
+    // and each tier's own list separately).
+    quote.tiers = tierRows.map((tier) => {
+
+      const tierItems = items.filter((item) => item.tier_id === tier.id);
+      const combinedItems = [...sharedItems, ...tierItems];
+
+      const tierTotals = calculateQuoteTotals(combinedItems, quote.discount_type, quote.discount_value, quote.tax_rate);
+
+      return {
+        id: tier.id,
+        name: tier.name,
+        sort_order: tier.sort_order,
+        is_recommended: !!tier.is_recommended,
+        items: tierItems,
+        subtotal: tierTotals.subtotal,
+        discount_amount: tierTotals.discount_amount,
+        tax_amount: tierTotals.tax_amount,
+        total: tierTotals.total,
+        deposit_amount: calculateDeposit(tierTotals.total, quote.deposit_type, quote.deposit_value)
+      };
+
+    });
+
+  }
+
+  const totals = calculateQuoteTotals(effectiveItems, quote.discount_type, quote.discount_value, quote.tax_rate);
 
   quote.subtotal = totals.subtotal;
   quote.discount_amount = totals.discount_amount;
@@ -947,6 +1156,65 @@ const updateQuoteFields = async (id, business_id, fields) => {
 
 
 
+// Like replaceQuoteItems below, but for a "Good/Better/Best" quote: full
+// replace of both the shared items AND every tier (and each tier's own
+// items) in one go, exactly like a form re-save. Only ever called by the
+// controller when the request actually includes a `tiers` array - a
+// plain quote's edit flow keeps using replaceQuoteItems untouched, so
+// this never runs for the overwhelming common case. accepted_tier_id is
+// reset to NULL here: once the tiers themselves are being redefined, an
+// old acceptance's tier choice may no longer even exist, and re-deciding
+// what "the accepted tier" means for an already-signed quote is a
+// judgment call for a human, not something to guess at silently.
+const replaceQuoteTiers = async (id, business_id, sharedItems, tiers) => {
+
+  const existing = await getAsync(
+
+    `SELECT id FROM quotes WHERE id = ? AND business_id = ?`,
+
+    [id, business_id]
+
+  );
+
+  if (!existing) {
+    return false;
+  }
+
+  return withTransaction(async () => {
+
+    await runAsync("BEGIN TRANSACTION");
+
+    try {
+
+      await runAsync(`DELETE FROM quote_items WHERE quote_id = ?`, [id]);
+      await runAsync(`DELETE FROM quote_tiers WHERE quote_id = ?`, [id]);
+
+      await runAsync(`UPDATE quotes SET accepted_tier_id = NULL WHERE id = ?`, [id]);
+
+      for (const item of sharedItems) {
+        await insertQuoteItem(id, item, null);
+      }
+
+      await insertQuoteTiers(id, tiers);
+
+      await runAsync("COMMIT");
+
+      return true;
+
+    } catch (err) {
+
+      await runAsync("ROLLBACK").catch(() => {});
+
+      throw err;
+
+    }
+
+  });
+
+};
+
+
+
 const replaceQuoteItems = async (id, business_id, items) => {
 
   const existing = await getAsync(
@@ -1086,6 +1354,8 @@ module.exports = {
 
   validateSignature,
 
+  validateTierSelection,
+
   acceptQuoteWithSignatureAtomic,
 
   getQuotes,
@@ -1103,6 +1373,10 @@ module.exports = {
   updateQuoteFields,
 
   replaceQuoteItems,
+
+  replaceQuoteTiers,
+
+  getQuoteTierIds,
 
   deleteQuote,
 

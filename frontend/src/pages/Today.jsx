@@ -548,7 +548,7 @@ function Today() {
 
                   )}
 
-                  {signableQuotes[appt.id] && (
+                  {signableQuotes[appt.id] && !signableQuotes[appt.id].has_tiers && (
 
                     <button
                       onClick={() => openSignOnSite(appt)}
@@ -557,6 +557,23 @@ function Today() {
                       <PenLine size={14} />
                       Sign On-Site
                     </button>
+
+                  )}
+
+                  {signableQuotes[appt.id]?.has_tiers && (
+
+                    // A "Good/Better/Best" quote needs its own option
+                    // picker before signing - this quick view doesn't
+                    // have room to build that out, so it points to the
+                    // one place that does rather than offering a Sign
+                    // On-Site button that would just fail.
+                    <Link
+                      to={`/quotes?open=${signableQuotes[appt.id].id}`}
+                      className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium text-fg-muted transition hover:bg-border-strong"
+                    >
+                      <PenLine size={14} />
+                      Sign from Quotes
+                    </Link>
 
                   )}
 

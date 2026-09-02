@@ -12,12 +12,14 @@ const {
   getQuoteById: getQuoteByIdService,
   updateQuoteFields: updateQuoteFieldsService,
   replaceQuoteItems: replaceQuoteItemsService,
+  replaceQuoteTiers: replaceQuoteTiersService,
   deleteQuote: deleteQuoteService,
   addQuoteExpense: addQuoteExpenseService,
   deleteQuoteExpense: deleteQuoteExpenseService,
   addQuotePayment: addQuotePaymentService,
   deleteQuotePayment: deleteQuotePaymentService,
   validateSignature,
+  validateTierSelection,
   acceptQuoteWithSignatureAtomic
 } = require("../services/quoteService");
 
@@ -109,6 +111,90 @@ function normalizeItems(items) {
     description: String(item.description).trim(),
     quantity: Number(item.quantity),
     unit_price: Number(item.unit_price)
+  }));
+
+}
+
+
+const MAX_TIER_NAME_LENGTH = 60;
+
+// "Good/Better/Best" is the classic 3, but this doesn't hard-code that -
+// 2 is the minimum a "choice" even means, and 5 is a generous ceiling
+// against an accidental (or abusive) huge request rather than a real
+// product limit anyone is likely to hit.
+const MIN_TIERS = 2;
+const MAX_TIERS = 5;
+
+// Validates the tiers array itself (name, count, at-least-one-item-total
+// per tier once shared items are folded in) - each tier's OWN items are
+// validated with the exact same validateItems() used for a plain quote,
+// so a tier's line items are held to the same standard as any other.
+// sharedItemCount is how many shared items the request also included -
+// a tier with zero items of its own is still fine as long as at least
+// one shared item exists to give it a non-empty package.
+function validateTiers(tiers, sharedItemCount) {
+
+  if (!Array.isArray(tiers)) {
+    return "tiers must be an array";
+  }
+
+  if (tiers.length < MIN_TIERS) {
+    return `At least ${MIN_TIERS} options are needed for a multi-option quote`;
+  }
+
+  if (tiers.length > MAX_TIERS) {
+    return `No more than ${MAX_TIERS} options are allowed`;
+  }
+
+  const seenNames = new Set();
+
+  for (const tier of tiers) {
+
+    if (!tier.name || !String(tier.name).trim()) {
+      return "Every option needs a name";
+    }
+
+    if (String(tier.name).trim().length > MAX_TIER_NAME_LENGTH) {
+      return "An option's name is too long";
+    }
+
+    const normalizedName = String(tier.name).trim().toLowerCase();
+
+    if (seenNames.has(normalizedName)) {
+      return "Each option needs a unique name";
+    }
+
+    seenNames.add(normalizedName);
+
+    const tierItems = Array.isArray(tier.items) ? tier.items : [];
+
+    if (tierItems.length === 0 && sharedItemCount === 0) {
+      return `"${tier.name}" needs at least one line item`;
+    }
+
+    if (tierItems.length > 0) {
+
+      const itemsError = validateItems(tierItems);
+
+      if (itemsError) {
+        return `"${tier.name}": ${itemsError}`;
+      }
+
+    }
+
+  }
+
+  return null;
+
+}
+
+
+function normalizeTiers(tiers) {
+
+  return tiers.map((tier) => ({
+    name: String(tier.name).trim(),
+    is_recommended: !!tier.is_recommended,
+    items: normalizeItems(Array.isArray(tier.items) ? tier.items : [])
   }));
 
 }
@@ -260,6 +346,7 @@ const createQuote = async (req, res) => {
       type,
       notes,
       items,
+      tiers,
       discount_type,
       discount_value,
       deposit_type,
@@ -287,21 +374,71 @@ const createQuote = async (req, res) => {
 
     }
 
-    const itemsError = validateItems(items);
+    // "Good/Better/Best": when `tiers` is present, `items` means only the
+    // items shared across every option, which is allowed to be empty (a
+    // tier that defines its whole package itself needs no shared item) -
+    // validateItems' normal "at least one" rule would wrongly reject
+    // that, so it's skipped here and handled per-tier inside
+    // validateTiers instead. Without `tiers`, nothing about this
+    // function's validation changes from before.
+    const isTiered = Array.isArray(tiers) && tiers.length > 0;
 
-    if (itemsError) {
+    if (!isTiered) {
+
+      const itemsError = validateItems(items);
+
+      if (itemsError) {
+
+        return res.status(400).json({
+          error: itemsError
+        });
+
+      }
+
+    } else if (items !== undefined && !Array.isArray(items)) {
 
       return res.status(400).json({
-        error: itemsError
+        error: "items must be an array"
       });
 
     }
 
-    const normalizedItems = normalizeItems(items);
+    const sharedItems = Array.isArray(items) ? items : [];
+
+    if (isTiered) {
+
+      const tiersError = validateTiers(tiers, sharedItems.length);
+
+      if (tiersError) {
+
+        return res.status(400).json({
+          error: tiersError
+        });
+
+      }
+
+    }
+
+    const normalizedItems = normalizeItems(sharedItems);
+    const normalizedTiers = isTiered ? normalizeTiers(tiers) : null;
 
     const { subtotal } = calculateQuoteTotals(normalizedItems, null, null);
 
-    const discountError = validateDiscount(discount_type, discount_value, subtotal);
+    // A fixed discount/deposit has to be safe for EVERY option, not just
+    // whichever one a discount-unaware form happened to compute against -
+    // so it's validated against the CHEAPEST option's subtotal when
+    // tiered (shared items + that tier's own items): if it's valid there,
+    // it's guaranteed valid for every pricier option too. A percent
+    // discount/deposit has no such issue (it scales with whatever total
+    // it's applied to), so this only actually constrains the fixed case.
+    // Without tiers, this is just `subtotal` exactly as before.
+    const subtotalForMoneyValidation = isTiered
+      ? Math.min(...normalizedTiers.map((tier) =>
+          calculateQuoteTotals([...normalizedItems, ...tier.items], null, null).subtotal
+        ))
+      : subtotal;
+
+    const discountError = validateDiscount(discount_type, discount_value, subtotalForMoneyValidation);
 
     if (discountError) {
 
@@ -346,9 +483,9 @@ const createQuote = async (req, res) => {
     // The deposit is checked against the total, which needs the discount
     // and tax factored in first - applyDiscount() rather than a second
     // call to calculateQuoteTotals() since the items are already summed
-    // above.
+    // above. Same cheapest-option reasoning as the discount check above.
     const { total } = applyDiscount(
-      subtotal,
+      subtotalForMoneyValidation,
       discount_type || null,
       discount_value === undefined ? null : discount_value,
       effectiveTaxRate
@@ -382,7 +519,8 @@ const createQuote = async (req, res) => {
       discount_value === undefined ? null : discount_value,
       deposit_type || null,
       deposit_value === undefined ? null : deposit_value,
-      effectiveTaxRate
+      effectiveTaxRate,
+      normalizedTiers
     );
 
     res.status(201).json({
@@ -965,7 +1103,7 @@ const updateQuote = async (req, res) => {
 
     const { id } = req.params;
     const business_id = req.user.business_id;
-    const { status, notes, type, items, discount_type, discount_value, deposit_type, deposit_value, tax_rate } = req.body;
+    const { status, notes, type, items, tiers, discount_type, discount_value, deposit_type, deposit_value, tax_rate } = req.body;
 
     if (status !== undefined && !VALID_STATUSES.includes(status)) {
 
@@ -983,19 +1121,67 @@ const updateQuote = async (req, res) => {
 
     }
 
+    // Editing a "Good/Better/Best" quote's package structure (renaming an
+    // option, changing which items belong to it, adding/removing an
+    // option) goes through `tiers`, not the plain `items` field - see
+    // validateTiers/replaceQuoteTiersService. This intentionally has no
+    // path back to a plain single-price quote once tiered: that's a rare
+    // enough correction that deleting and recreating the quote is fine,
+    // and supporting it here would mean silently guessing what to do
+    // with each tier's now-orphaned items.
+    const isTiered = Array.isArray(tiers) && tiers.length > 0;
+
+    if (tiers !== undefined && !isTiered) {
+
+      return res.status(400).json({
+        error: `At least ${MIN_TIERS} options are needed for a multi-option quote`
+      });
+
+    }
+
     if (items !== undefined) {
 
-      const itemsError = validateItems(items);
+      if (isTiered) {
 
-      if (itemsError) {
+        if (!Array.isArray(items)) {
+
+          return res.status(400).json({
+            error: "items must be an array"
+          });
+
+        }
+
+      } else {
+
+        const itemsError = validateItems(items);
+
+        if (itemsError) {
+
+          return res.status(400).json({
+            error: itemsError
+          });
+
+        }
+
+      }
+
+    }
+
+    if (isTiered) {
+
+      const tiersError = validateTiers(tiers, Array.isArray(items) ? items.length : 0);
+
+      if (tiersError) {
 
         return res.status(400).json({
-          error: itemsError
+          error: tiersError
         });
 
       }
 
     }
+
+    const normalizedTiers = isTiered ? normalizeTiers(tiers) : null;
 
     // Whether discount_type/discount_value, or deposit_type/deposit_value,
     // are being changed in this request at all - if a pair is absent, the
@@ -1066,9 +1252,31 @@ const updateQuote = async (req, res) => {
 
       }
 
-      const subtotal = items !== undefined
-        ? calculateQuoteTotals(normalizeItems(items), null, null).subtotal
-        : existingQuote.subtotal;
+      // A quote that already has multiple options can only have its
+      // items changed through `tiers` - editing them via the plain
+      // `items` field would silently wipe out every option's own items
+      // (replaceQuoteItemsService has no idea tiers exist) while leaving
+      // the now-empty option rows behind, a confusing half-broken state
+      // nobody actually asked for.
+      if (items !== undefined && !isTiered && Array.isArray(existingQuote.tiers) && existingQuote.tiers.length > 0) {
+
+        return res.status(400).json({
+          error: "This quote has multiple options - edit them together using tiers"
+        });
+
+      }
+
+      const normalizedItemsForValidation = items !== undefined
+        ? normalizeItems(items)
+        : (isTiered ? [] : (existingQuote.shared_items || existingQuote.items));
+
+      const subtotal = isTiered
+        ? Math.min(...normalizedTiers.map((tier) =>
+            calculateQuoteTotals([...normalizedItemsForValidation, ...tier.items], null, null).subtotal
+          ))
+        : (items !== undefined
+            ? calculateQuoteTotals(normalizedItemsForValidation, null, null).subtotal
+            : existingQuote.subtotal);
 
       const effectiveDiscountType = discountFieldsProvided ? (discount_type || null) : existingQuote.discount_type;
       const effectiveDiscountValue = discountFieldsProvided
@@ -1165,7 +1373,19 @@ const updateQuote = async (req, res) => {
 
     }
 
-    if (items !== undefined) {
+    if (isTiered) {
+
+      const replaced = await replaceQuoteTiersService(id, business_id, normalizeItems(Array.isArray(items) ? items : []), normalizedTiers);
+
+      if (!replaced) {
+
+        return res.status(404).json({
+          error: "Not found"
+        });
+
+      }
+
+    } else if (items !== undefined) {
 
       const replaced = await replaceQuoteItemsService(id, business_id, normalizeItems(items));
 
@@ -1264,7 +1484,7 @@ const signQuoteInPerson = async (req, res) => {
   try {
 
     const { id } = req.params;
-    const { name, signature } = req.body;
+    const { name, signature, tier_id } = req.body;
     const business_id = req.user.business_id;
 
     if (!name || !name.trim()) {
@@ -1313,6 +1533,20 @@ const signQuoteInPerson = async (req, res) => {
 
     }
 
+    // A "Good/Better/Best" quote can't be signed without saying which
+    // package the customer actually picked - see validateTierSelection's
+    // own comment. A plain quote (the common case) has no tiers, so this
+    // is always a no-op for it.
+    const tierError = validateTierSelection(quote, tier_id);
+
+    if (tierError) {
+
+      return res.status(400).json({
+        error: tierError
+      });
+
+    }
+
     // The pre-check above is a friendly, informative rejection for the
     // common case; this atomic write is the real gate. If it returns
     // false despite the pre-check passing, another request (a double-
@@ -1322,7 +1556,8 @@ const signQuoteInPerson = async (req, res) => {
     const won = await acceptQuoteWithSignatureAtomic(id, business_id, {
       accepted_by_name: name.trim(),
       signature,
-      signature_method: "in_person"
+      signature_method: "in_person",
+      accepted_tier_id: tier_id || null
     });
 
     if (!won) {
