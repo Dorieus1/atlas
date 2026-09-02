@@ -28,6 +28,12 @@ const createCustomer = async (authHeader, name = "Plan Customer") => {
 };
 
 
+// Keep the plan's first visit safely in the future relative to the real
+// wall clock, so every generated occurrence still counts as "remaining".
+// Hardcoding an absolute date rots the moment real time catches up to it.
+const futureStartDate = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+
 const createPlan = async (authHeader, customer_id, overrides = {}) => {
 
   return request(app)
@@ -37,7 +43,7 @@ const createPlan = async (authHeader, customer_id, overrides = {}) => {
       customer_id,
       title: "Quarterly Pest Control",
       frequency: "quarterly",
-      start_date: "2026-09-01T10:00:00.000Z",
+      start_date: futureStartDate(),
       price: 120,
       ...overrides
     });
