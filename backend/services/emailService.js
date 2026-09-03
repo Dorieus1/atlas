@@ -36,7 +36,14 @@ const sendEmail = async ({ to, subject, html }) => {
     },
 
     body: JSON.stringify({
-      from: "Atlas <onboarding@resend.dev>",
+      // Resend's own shared "onboarding@resend.dev" sandbox address can
+      // only deliver to the Resend ACCOUNT's own verified email - fine
+      // for development, but it means every business's real customers
+      // silently never receive a thing until a real domain is verified
+      // (see docs/EMAIL_SETUP.md). RESEND_FROM_EMAIL lets that switch
+      // happen with a one-line .env change once a domain is ready,
+      // instead of a code change.
+      from: process.env.RESEND_FROM_EMAIL || "Atlas <onboarding@resend.dev>",
       to: [to],
       subject,
       html

@@ -4,6 +4,7 @@ import { getBusinesses } from "../api/atlasApi";
 import BusinessProfile from "../components/BusinessProfile";
 import PublicLinkCard from "../components/PublicLinkCard";
 import StripeConnectCard from "../components/StripeConnectCard";
+import EmailStatusCard from "../components/EmailStatusCard";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import AppleCalendarCard from "../components/AppleCalendarCard";
 import CalendarFeedCard from "../components/CalendarFeedCard";
@@ -175,6 +176,7 @@ function Settings() {
             {activeTab === "integrations" && (
 
               <>
+                <EmailStatusCard />
                 <PublicLinkCard business={business} />
                 <PublicLinkCard
                   business={business}

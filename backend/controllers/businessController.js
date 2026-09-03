@@ -375,6 +375,22 @@ const deleteIncompleteBusiness = (req, res) => {
 
 
 
+// Server-wide (not per-business), read from an env var rather than the
+// database - lets Settings warn the owner honestly that emails to their
+// OWN real customers won't be delivered yet, instead of a silent,
+// invisible failure the first time an invoice/reminder/review-request
+// email goes out to someone who isn't the Atlas account's own inbox.
+// See docs/EMAIL_SETUP.md for how to turn this on for real.
+const getEmailStatus = (req, res) => {
+
+  res.json({
+    real_sending_enabled: !!process.env.RESEND_FROM_EMAIL
+  });
+
+};
+
+
+
 module.exports = {
 
   createBusiness,
@@ -383,6 +399,8 @@ module.exports = {
 
   updateBusiness,
 
-  deleteIncompleteBusiness
+  deleteIncompleteBusiness,
+
+  getEmailStatus
 
 };

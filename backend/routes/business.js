@@ -10,7 +10,8 @@ const {
   createBusiness,
   getBusinesses,
   updateBusiness,
-  deleteIncompleteBusiness
+  deleteIncompleteBusiness,
+  getEmailStatus
 } = require("../controllers/businessController");
 
 
@@ -19,6 +20,9 @@ router.post("/", createBusiness);
 
 
 router.get("/", authMiddleware, getBusinesses);
+
+
+router.get("/email-status", authMiddleware, getEmailStatus);
 
 
 router.put("/", authMiddleware, requireOwner, updateBusiness);

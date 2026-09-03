@@ -309,6 +309,10 @@ export const getBusinesses = () =>
 
   request("/business");
 
+export const getEmailStatus = () =>
+
+  request("/business/email-status");
+
 
 
 
