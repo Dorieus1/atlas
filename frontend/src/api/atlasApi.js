@@ -1039,13 +1039,13 @@ export const deleteAppointment = (id, scope) =>
 /* ---------- Service Agreements ---------- */
 
 
-export const createServiceAgreement = (customer_id, title, notes, price, frequency, start_date) =>
+export const createServiceAgreement = (customer_id, title, notes, price, frequency, start_date, duration_minutes = null, assigned_user_id = null) =>
 
   request("/service-agreements", {
 
     method: "POST",
 
-    body: JSON.stringify({ customer_id, title, notes, price, frequency, start_date })
+    body: JSON.stringify({ customer_id, title, notes, price, frequency, start_date, duration_minutes, assigned_user_id })
 
   });
 
@@ -1077,6 +1077,20 @@ export const renewServiceAgreement = (id) =>
   request(`/service-agreements/${id}/renew`, {
 
     method: "POST"
+
+  });
+
+
+// fields: any of {title, notes, price, duration_minutes, assigned_user_id} -
+// only whichever keys are included get changed. Frequency/start_date
+// aren't editable here (see the backend's own comment on why).
+export const updateServiceAgreementDetails = (id, fields) =>
+
+  request(`/service-agreements/${id}`, {
+
+    method: "PATCH",
+
+    body: JSON.stringify(fields)
 
   });
 

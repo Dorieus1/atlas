@@ -9,6 +9,7 @@ const {
   getCustomerServiceAgreements,
   getAllServiceAgreements,
   updateServiceAgreementStatus,
+  updateServiceAgreementDetails,
   renewServiceAgreement
 } = require("../controllers/serviceAgreementController");
 
@@ -35,6 +36,12 @@ router.patch(
   "/:id/status",
   authMiddleware,
   updateServiceAgreementStatus
+);
+
+router.patch(
+  "/:id",
+  authMiddleware,
+  updateServiceAgreementDetails
 );
 
 router.post(

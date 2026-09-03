@@ -5,7 +5,8 @@ const { withTransaction } = require("../../database/transactionQueue");
 const {
   createRecurringAppointments,
   countAppointmentsForServiceAgreement,
-  cancelFutureServiceAgreementAppointments
+  cancelFutureServiceAgreementAppointments,
+  updateFutureServiceAgreementAppointments
 } = require("./appointmentService");
 
 
@@ -62,6 +63,23 @@ const runAsync = (sql, params = []) => {
 // "this and future" operation could never span again. Wrapping the
 // whole thing in one transaction makes the "never without each other"
 // promise actually true: either all of it lands, or none of it does.
+// A plan-wide duration, given as its first occurrence's end_time -
+// createRecurringAppointments derives the actual per-occurrence
+// duration from (end_time - start_time) on the FIRST occurrence and
+// re-applies that same length to every later one, so this is the only
+// place that math needs to happen at all.
+const endTimeFromDuration = (start_date, duration_minutes) => {
+
+  if (!duration_minutes) {
+    return null;
+  }
+
+  return new Date(new Date(start_date).getTime() + duration_minutes * 60000).toISOString();
+
+};
+
+
+
 const createServiceAgreement = async (
 
   business_id,
@@ -72,7 +90,9 @@ const createServiceAgreement = async (
   frequency,
   start_date,
   created_by_user_id,
-  created_by_name
+  created_by_name,
+  duration_minutes = null,
+  assigned_user_id = null
 
 ) => {
 
@@ -88,11 +108,11 @@ const createServiceAgreement = async (
 
         `
         INSERT INTO service_agreements
-        (id, business_id, customer_id, title, notes, price, frequency, status, start_date, created_by_user_id, created_by_name)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+        (id, business_id, customer_id, title, notes, price, frequency, status, start_date, created_by_user_id, created_by_name, duration_minutes, assigned_user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
         `,
 
-        [id, business_id, customer_id, title, notes || null, price ?? null, frequency, start_date, created_by_user_id || null, created_by_name || null]
+        [id, business_id, customer_id, title, notes || null, price ?? null, frequency, start_date, created_by_user_id || null, created_by_name || null, duration_minutes || null, assigned_user_id || null]
 
       );
 
@@ -103,13 +123,13 @@ const createServiceAgreement = async (
         title,
         notes,
         start_date,
-        null,
+        endTimeFromDuration(start_date, duration_minutes),
         "scheduled",
         frequency,
         INITIAL_OCCURRENCES,
         created_by_user_id,
         created_by_name,
-        null,
+        assigned_user_id,
         id
 
       );
@@ -273,6 +293,63 @@ const updateServiceAgreementStatus = async (id, business_id, status) => {
 
 
 
+// Edits a plan's own details (name, notes, price, per-visit duration,
+// assigned crew member) and cascades the ones that describe a real,
+// upcoming job (title/notes/duration/crew - NOT price, which
+// appointmentController already reads live off the agreement at
+// completion time rather than snapshotting it, so there's nothing to
+// cascade there) onto whichever visits haven't happened yet. Frequency
+// and start_date are deliberately NOT editable here - changing either
+// would mean regenerating the whole series against a different
+// cadence, a much bigger operation than "edit this plan's details";
+// cancel and recreate the plan for that instead.
+const updateServiceAgreementDetails = async (id, business_id, fields) => {
+
+  const current = await getServiceAgreementById(id, business_id);
+
+  if (!current) {
+    return { error: "not_found" };
+  }
+
+  const setClauses = [];
+  const values = [];
+
+  for (const [key, value] of Object.entries(fields)) {
+    setClauses.push(`${key} = ?`);
+    values.push(value);
+  }
+
+  if (setClauses.length > 0) {
+
+    values.push(id, business_id);
+
+    await runAsync(
+
+      `UPDATE service_agreements SET ${setClauses.join(", ")} WHERE id = ? AND business_id = ?`,
+
+      values
+
+    );
+
+  }
+
+  const cascadeFields = {};
+
+  if (fields.title !== undefined) cascadeFields.title = fields.title;
+  if (fields.notes !== undefined) cascadeFields.notes = fields.notes;
+  if (fields.assigned_user_id !== undefined) cascadeFields.assigned_user_id = fields.assigned_user_id;
+  if (fields.duration_minutes !== undefined) cascadeFields.duration_minutes = fields.duration_minutes;
+
+  if (Object.keys(cascadeFields).length > 0) {
+    await updateFutureServiceAgreementAppointments(id, business_id, cascadeFields);
+  }
+
+  return { success: true };
+
+};
+
+
+
 // Appends another batch of occurrences to an active plan's existing
 // series. Refuses on a paused/cancelled plan - renewing a plan the
 // business has deliberately stopped would silently put it back on the
@@ -298,13 +375,13 @@ const renewServiceAgreement = async (id, business_id) => {
     agreement.title,
     agreement.notes,
     agreement.start_date,
-    null,
+    endTimeFromDuration(agreement.start_date, agreement.duration_minutes),
     "scheduled",
     agreement.frequency,
     RENEWAL_OCCURRENCES,
     agreement.created_by_user_id,
     agreement.created_by_name,
-    null,
+    agreement.assigned_user_id,
     id,
     startIndex,
     agreement.recurrence_id
@@ -328,6 +405,8 @@ module.exports = {
   getServiceAgreementsByBusiness,
 
   updateServiceAgreementStatus,
+
+  updateServiceAgreementDetails,
 
   renewServiceAgreement,
 

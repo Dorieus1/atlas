@@ -4,6 +4,7 @@ const {
   getServiceAgreementsByCustomer,
   getServiceAgreementsByBusiness,
   updateServiceAgreementStatus: updateServiceAgreementStatusService,
+  updateServiceAgreementDetails: updateServiceAgreementDetailsService,
   renewServiceAgreement: renewServiceAgreementService,
   STATUSES
 } = require("../services/serviceAgreementService");
@@ -13,11 +14,34 @@ const { getCustomerById } = require("../services/customerService");
 const { getUserById } = require("../services/authService");
 
 
+const MIN_DURATION_MINUTES = 15;
+const MAX_DURATION_MINUTES = 24 * 60;
+
+// Shared by create and the details-edit endpoint below, matching the
+// "unset is fine, but if it's set it has to make sense" treatment
+// every other optional numeric field in this app already gets.
+function validateDuration(duration_minutes) {
+
+  if (duration_minutes === undefined || duration_minutes === null || duration_minutes === "") {
+    return null;
+  }
+
+  const value = Number(duration_minutes);
+
+  if (!Number.isInteger(value) || value < MIN_DURATION_MINUTES || value > MAX_DURATION_MINUTES) {
+    return `duration_minutes must be a whole number between ${MIN_DURATION_MINUTES} and ${MAX_DURATION_MINUTES}`;
+  }
+
+  return null;
+
+}
+
+
 const createServiceAgreement = async (req, res) => {
 
   try {
 
-    const { customer_id, title, notes, price, frequency, start_date } = req.body;
+    const { customer_id, title, notes, price, frequency, start_date, duration_minutes, assigned_user_id } = req.body;
 
     if (!customer_id) {
 
@@ -75,6 +99,37 @@ const createServiceAgreement = async (req, res) => {
 
     }
 
+    const durationError = validateDuration(duration_minutes);
+
+    if (durationError) {
+
+      return res.status(400).json({
+        error: durationError
+      });
+
+    }
+
+    const normalizedDuration = duration_minutes === undefined || duration_minutes === null || duration_minutes === ""
+      ? null
+      : Number(duration_minutes);
+
+    // Same pattern as appointmentController's own assigned_user_id check
+    // - assignment isn't gated by role, so any user belonging to the
+    // business (owner or staff) is a valid assignee.
+    if (assigned_user_id) {
+
+      const assignee = await getUserById(assigned_user_id, req.user.business_id);
+
+      if (!assignee) {
+
+        return res.status(400).json({
+          error: "Assignee not found"
+        });
+
+      }
+
+    }
+
     const actingUser = await getUserById(req.user.id, req.user.business_id);
 
     const id = await createServiceAgreementService(
@@ -87,7 +142,9 @@ const createServiceAgreement = async (req, res) => {
       frequency,
       new Date(start_date).toISOString(),
       req.user.id,
-      actingUser ? actingUser.name : null
+      actingUser ? actingUser.name : null,
+      normalizedDuration,
+      assigned_user_id || null
 
     );
 
@@ -204,6 +261,129 @@ const updateServiceAgreementStatus = async (req, res) => {
 
 
 
+// Edits a plan's own details - name, notes, price per visit, per-visit
+// duration, and which crew member normally covers it. Deliberately
+// excludes frequency and start_date (see updateServiceAgreementDetails'
+// own comment for why) - those would need regenerating the whole
+// series, a bigger operation than an in-place edit.
+const updateServiceAgreementDetails = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+    const { title, notes, price, duration_minutes, assigned_user_id } = req.body;
+
+    const existing = await getServiceAgreementById(id, req.user.business_id);
+
+    if (!existing) {
+
+      return res.status(404).json({
+        error: "Service agreement not found"
+      });
+
+    }
+
+    const fields = {};
+
+    if (title !== undefined) {
+
+      if (!title.trim()) {
+
+        return res.status(400).json({
+          error: "Title is required"
+        });
+
+      }
+
+      fields.title = title.trim();
+
+    }
+
+    if (notes !== undefined) {
+      fields.notes = notes || null;
+    }
+
+    if (price !== undefined) {
+
+      const hasPrice = price !== null && price !== "";
+      const normalizedPrice = hasPrice ? Number(price) : null;
+
+      if (hasPrice && (!Number.isFinite(normalizedPrice) || normalizedPrice < 0)) {
+
+        return res.status(400).json({
+          error: "price must be a non-negative number"
+        });
+
+      }
+
+      fields.price = normalizedPrice;
+
+    }
+
+    if (duration_minutes !== undefined) {
+
+      const durationError = validateDuration(duration_minutes);
+
+      if (durationError) {
+
+        return res.status(400).json({
+          error: durationError
+        });
+
+      }
+
+      fields.duration_minutes = duration_minutes === null || duration_minutes === "" ? null : Number(duration_minutes);
+
+    }
+
+    if (assigned_user_id !== undefined) {
+
+      if (assigned_user_id) {
+
+        const assignee = await getUserById(assigned_user_id, req.user.business_id);
+
+        if (!assignee) {
+
+          return res.status(400).json({
+            error: "Assignee not found"
+          });
+
+        }
+
+      }
+
+      fields.assigned_user_id = assigned_user_id || null;
+
+    }
+
+    const result = await updateServiceAgreementDetailsService(id, req.user.business_id, fields);
+
+    if (result.error) {
+
+      return res.status(404).json({
+        error: "Service agreement not found"
+      });
+
+    }
+
+    res.json({
+      message: "Service agreement updated"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
 const renewServiceAgreement = async (req, res) => {
 
   try {
@@ -275,6 +455,8 @@ module.exports = {
   getAllServiceAgreements,
 
   updateServiceAgreementStatus,
+
+  updateServiceAgreementDetails,
 
   renewServiceAgreement
 

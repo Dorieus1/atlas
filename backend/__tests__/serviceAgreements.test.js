@@ -612,3 +612,241 @@ describe("Service agreements", () => {
   });
 
 });
+
+
+const inviteTeammate = async (authHeader, prefix) => {
+
+  const res = await request(app)
+    .post("/api/auth/teammates")
+    .set("Authorization", authHeader)
+    .send({
+      name: `${prefix} Teammate`,
+      email: `${prefix.toLowerCase()}@test.com`,
+      password: "testpass123",
+      role: "staff"
+    });
+
+  return res.body.id;
+
+};
+
+
+describe("Service agreement depth: per-visit duration, crew assignment, and editing", () => {
+
+  test("a plan's duration and assigned crew member carry through to every generated visit", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanDepthCreate");
+    const customerId = await createCustomer(authHeader);
+    const teammateId = await inviteTeammate(authHeader, "PlanDepthCreateCrew");
+
+    const created = await createPlan(authHeader, customerId, {
+      duration_minutes: 90,
+      assigned_user_id: teammateId
+    });
+
+    expect(created.status).toBe(201);
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    expect(generated).toHaveLength(INITIAL_OCCURRENCES);
+    expect(generated.every((a) => a.assigned_user_id === teammateId)).toBe(true);
+
+    for (const appt of generated) {
+
+      const minutes = (new Date(appt.end_time).getTime() - new Date(appt.start_time).getTime()) / 60000;
+      expect(minutes).toBeCloseTo(90);
+
+    }
+
+  });
+
+
+  test("duration_minutes out of range and an unknown assignee are both rejected", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanDepthValidation");
+    const customerId = await createCustomer(authHeader);
+
+    const tooShort = await createPlan(authHeader, customerId, { duration_minutes: 5 });
+    expect(tooShort.status).toBe(400);
+
+    const tooLong = await createPlan(authHeader, customerId, { duration_minutes: 60 * 25 });
+    expect(tooLong.status).toBe(400);
+
+    const notWhole = await createPlan(authHeader, customerId, { duration_minutes: 45.5 });
+    expect(notWhole.status).toBe(400);
+
+    const badAssignee = await createPlan(authHeader, customerId, { assigned_user_id: "not-a-real-user" });
+    expect(badAssignee.status).toBe(400);
+
+  });
+
+
+  test("renewing a plan carries its duration and assigned crew member into the new visits too", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanDepthRenew");
+    const customerId = await createCustomer(authHeader);
+    const teammateId = await inviteTeammate(authHeader, "PlanDepthRenewCrew");
+
+    const created = await createPlan(authHeader, customerId, {
+      duration_minutes: 45,
+      assigned_user_id: teammateId
+    });
+
+    await request(app)
+      .post(`/api/service-agreements/${created.body.id}/renew`)
+      .set("Authorization", authHeader);
+
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const generated = list.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    expect(generated).toHaveLength(INITIAL_OCCURRENCES + RENEWAL_OCCURRENCES);
+    expect(generated.every((a) => a.assigned_user_id === teammateId)).toBe(true);
+    expect(generated.every((a) => {
+      const minutes = (new Date(a.end_time).getTime() - new Date(a.start_time).getTime()) / 60000;
+      return Math.abs(minutes - 45) < 0.01;
+    })).toBe(true);
+
+  });
+
+
+  test("editing a plan's title, duration, and crew cascades onto its future scheduled visits, but not completed or cancelled ones", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanDepthEditCascade");
+    const customerId = await createCustomer(authHeader);
+    const teammateA = await inviteTeammate(authHeader, "PlanDepthEditCascadeA");
+    const teammateB = await inviteTeammate(authHeader, "PlanDepthEditCascadeB");
+
+    const created = await createPlan(authHeader, customerId, {
+      duration_minutes: 60,
+      assigned_user_id: teammateA
+    });
+
+    const beforeEdit = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const generated = beforeEdit.body.filter((a) => a.service_agreement_id === created.body.id);
+
+    // Simulate one visit already completed and one already cancelled -
+    // an edit shouldn't touch either's history.
+    await runAsync(`UPDATE appointments SET status = 'completed' WHERE id = ?`, [generated[0].id]);
+    await runAsync(`UPDATE appointments SET status = 'cancelled' WHERE id = ?`, [generated[1].id]);
+
+    const edited = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({
+        title: "Quarterly Pest Control (Updated)",
+        duration_minutes: 120,
+        assigned_user_id: teammateB
+      });
+
+    expect(edited.status).toBe(200);
+
+    const afterEdit = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const byId = Object.fromEntries(afterEdit.body.map((a) => [a.id, a]));
+
+    // The completed one: untouched.
+    expect(byId[generated[0].id].title).toBe("Quarterly Pest Control");
+    expect(byId[generated[0].id].assigned_user_id).toBe(teammateA);
+
+    // The cancelled one: untouched.
+    expect(byId[generated[1].id].assigned_user_id).toBe(teammateA);
+
+    // Every other (still-scheduled, still-future) visit: updated.
+    for (const original of generated.slice(2)) {
+
+      const updated = byId[original.id];
+
+      expect(updated.title).toBe("Quarterly Pest Control (Updated)");
+      expect(updated.assigned_user_id).toBe(teammateB);
+
+      const minutes = (new Date(updated.end_time).getTime() - new Date(updated.start_time).getTime()) / 60000;
+      expect(minutes).toBeCloseTo(120);
+
+    }
+
+    const planAfter = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(planAfter.body[0].title).toBe("Quarterly Pest Control (Updated)");
+    expect(planAfter.body[0].duration_minutes).toBe(120);
+    expect(planAfter.body[0].assigned_user_id).toBe(teammateB);
+
+  });
+
+
+  test("editing price alone doesn't touch appointments, and a nonexistent plan 404s", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "PlanDepthEditPrice");
+    const customerId = await createCustomer(authHeader);
+
+    const created = await createPlan(authHeader, customerId, { price: 100 });
+
+    const beforeEdit = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const before = beforeEdit.body.find((a) => a.service_agreement_id === created.body.id);
+
+    const edited = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ price: 150 });
+
+    expect(edited.status).toBe(200);
+
+    const afterEdit = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const after = afterEdit.body.find((a) => a.id === before.id);
+
+    // Nothing about the underlying appointment changed.
+    expect(after).toEqual(before);
+
+    const planList = await request(app)
+      .get(`/api/service-agreements/customer/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(planList.body[0].price).toBe(150);
+
+    const missing = await request(app)
+      .patch("/api/service-agreements/does-not-exist")
+      .set("Authorization", authHeader)
+      .send({ price: 200 });
+
+    expect(missing.status).toBe(404);
+
+  });
+
+
+  test("a business can't edit another business's plan", async () => {
+
+    const businessA = await createBusinessAndUser(app, "PlanDepthScopeA");
+    const businessB = await createBusinessAndUser(app, "PlanDepthScopeB");
+
+    const customerId = await createCustomer(businessA.authHeader);
+    const created = await createPlan(businessA.authHeader, customerId);
+
+    const crossBusiness = await request(app)
+      .patch(`/api/service-agreements/${created.body.id}`)
+      .set("Authorization", businessB.authHeader)
+      .send({ title: "Sneaky Rename" });
+
+    expect(crossBusiness.status).toBe(404);
+
+  });
+
+});

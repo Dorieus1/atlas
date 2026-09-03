@@ -806,6 +806,104 @@ const cancelFutureServiceAgreementAppointments = (service_agreement_id, business
 
 
 
+// Applies an edited plan's title/notes/crew/duration to the visits that
+// haven't happened yet - a plan edit is meant to change the real,
+// upcoming jobs it's describing, not just future renewals someone might
+// click "Add More Visits" on someday. Already-completed or already-
+// cancelled visits are left alone (history shouldn't retroactively
+// change), and so is anything already in progress or past
+// (datetime(start_time) > datetime('now'), same boundary
+// cancelFutureServiceAgreementAppointments already uses).
+//
+// duration_minutes is applied per-row from THAT row's own start_time,
+// not copied from a single computed end_time the way a brand-new
+// plan's first occurrence is - each future visit already has its own
+// (possibly different, e.g. across a DST boundary) start_time, and this
+// has to respect that rather than assume they're all identical spacing
+// apart.
+const updateFutureServiceAgreementAppointments = async (service_agreement_id, business_id, { title, notes, assigned_user_id, duration_minutes }) => {
+
+  const rows = await new Promise((resolve, reject) => {
+
+    db.all(
+
+      `
+      SELECT id, start_time
+      FROM appointments
+      WHERE service_agreement_id = ?
+      AND business_id = ?
+      AND status = 'scheduled'
+      AND datetime(start_time) > datetime('now')
+      `,
+
+      [service_agreement_id, business_id],
+
+      (err, rows) => (err ? reject(err) : resolve(rows))
+
+    );
+
+  });
+
+  for (const row of rows) {
+
+    const setClauses = [];
+    const values = [];
+
+    if (title !== undefined) {
+      setClauses.push("title = ?");
+      values.push(title);
+    }
+
+    if (notes !== undefined) {
+      setClauses.push("notes = ?");
+      values.push(notes);
+    }
+
+    if (assigned_user_id !== undefined) {
+      setClauses.push("assigned_user_id = ?");
+      values.push(assigned_user_id);
+    }
+
+    if (duration_minutes !== undefined) {
+
+      setClauses.push("end_time = ?");
+
+      values.push(
+        duration_minutes
+          ? new Date(new Date(row.start_time).getTime() + duration_minutes * 60000).toISOString()
+          : null
+      );
+
+    }
+
+    if (setClauses.length === 0) {
+      continue;
+    }
+
+    values.push(row.id);
+
+    await new Promise((resolve, reject) => {
+
+      db.run(
+
+        `UPDATE appointments SET ${setClauses.join(", ")} WHERE id = ?`,
+
+        values,
+
+        (err) => (err ? reject(err) : resolve())
+
+      );
+
+    });
+
+  }
+
+  return rows.length;
+
+};
+
+
+
 const getAppointments = (business_id) => {
 
 
@@ -1425,6 +1523,8 @@ module.exports = {
   countAppointmentsForServiceAgreement,
 
   cancelFutureServiceAgreementAppointments,
+
+  updateFutureServiceAgreementAppointments,
 
   getAppointmentById,
 

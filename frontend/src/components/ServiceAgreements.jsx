@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Repeat, Plus, Pause, Play, X, RotateCw, AlertTriangle } from "lucide-react";
+import { Repeat, Plus, Pause, Play, X, RotateCw, AlertTriangle, Pencil } from "lucide-react";
 
 import {
   getCustomerServiceAgreements,
   createServiceAgreement,
   updateServiceAgreementStatus,
-  renewServiceAgreement
+  updateServiceAgreementDetails,
+  renewServiceAgreement,
+  getTeammates
 } from "../api/atlasApi";
 
 import {
@@ -38,12 +40,16 @@ function ServiceAgreements({ customerId }) {
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [teammates, setTeammates] = useState([]);
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [frequency, setFrequency] = useState("monthly");
   const [startDate, setStartDate] = useState(todayLocal());
+  const [startTime, setStartTime] = useState("09:00");
+  const [durationMinutes, setDurationMinutes] = useState("");
+  const [assignedUserId, setAssignedUserId] = useState("");
   const [formError, setFormError] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -51,6 +57,14 @@ function ServiceAgreements({ customerId }) {
   const [actioningId, setActioningId] = useState(null);
   const [actionError, setActionError] = useState("");
   const [actionNote, setActionNote] = useState("");
+
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDuration, setEditDuration] = useState("");
+  const [editAssignedUserId, setEditAssignedUserId] = useState("");
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
 
 
   const load = async () => {
@@ -87,13 +101,74 @@ function ServiceAgreements({ customerId }) {
   }, [customerId]);
 
 
+  useEffect(() => {
+
+    getTeammates()
+      .then(setTeammates)
+      .catch((err) => console.error("TEAMMATES LOAD ERROR:", err));
+
+  }, []);
+
+
   const resetForm = () => {
 
     setTitle("");
     setPrice("");
     setFrequency("monthly");
     setStartDate(todayLocal());
+    setStartTime("09:00");
+    setDurationMinutes("");
+    setAssignedUserId("");
     setFormError("");
+
+  };
+
+
+  const openEdit = (agreement) => {
+
+    setShowForm(false);
+    setEditingId(agreement.id);
+    setEditTitle(agreement.title);
+    setEditPrice(agreement.price == null ? "" : String(agreement.price));
+    setEditDuration(agreement.duration_minutes == null ? "" : String(agreement.duration_minutes));
+    setEditAssignedUserId(agreement.assigned_user_id || "");
+    setEditError("");
+
+  };
+
+
+  const handleSaveEdit = async () => {
+
+    if (!editTitle.trim()) {
+      setEditError("Give the plan a name.");
+      return;
+    }
+
+    setSaving(true);
+    setEditError("");
+
+    try {
+
+      await updateServiceAgreementDetails(editingId, {
+        title: editTitle.trim(),
+        price: editPrice === "" ? null : Number(editPrice),
+        duration_minutes: editDuration === "" ? null : Number(editDuration),
+        assigned_user_id: editAssignedUserId || null
+      });
+
+      setEditingId(null);
+      await load();
+
+    } catch (err) {
+
+      console.error("SERVICE AGREEMENT EDIT ERROR:", err);
+      setEditError(err.message || "Couldn't save those changes. Please try again.");
+
+    } finally {
+
+      setSaving(false);
+
+    }
 
   };
 
@@ -122,7 +197,9 @@ function ServiceAgreements({ customerId }) {
         null,
         price === "" ? null : Number(price),
         frequency,
-        new Date(`${startDate}T09:00:00`).toISOString()
+        new Date(`${startDate}T${startTime || "09:00"}:00`).toISOString(),
+        durationMinutes === "" ? null : Number(durationMinutes),
+        assignedUserId || null
 
       );
 
@@ -278,7 +355,7 @@ function ServiceAgreements({ customerId }) {
               />
             </div>
 
-            <div className="sm:col-span-2">
+            <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 First Visit Date
               </label>
@@ -288,6 +365,50 @@ function ServiceAgreements({ customerId }) {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
+                Visit Time
+              </label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
+                Visit Length (minutes)
+              </label>
+              <input
+                type="number"
+                min="15"
+                max="1440"
+                step="15"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
+                placeholder="Optional"
+                className="w-full rounded-lg border border-border bg-surface p-2.5 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
+                Assigned To
+              </label>
+              <select
+                value={assignedUserId}
+                onChange={(e) => setAssignedUserId(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface p-2.5 text-sm text-fg focus:border-border-strong focus:outline-none"
+              >
+                <option value="">Unassigned</option>
+                {teammates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
             </div>
 
           </div>
@@ -357,7 +478,11 @@ function ServiceAgreements({ customerId }) {
                   <p className="mt-1 text-xs text-fg-faint">
                     {FREQUENCY_LABELS[agreement.frequency] || agreement.frequency}
                     {agreement.price != null && ` · ${formatMoney(agreement.price)} per visit`}
+                    {agreement.duration_minutes != null && ` · ${agreement.duration_minutes} min`}
                     {` · Started ${formatDate(agreement.start_date)}`}
+                    {agreement.assigned_user_id && (
+                      ` · ${teammates.find((t) => t.id === agreement.assigned_user_id)?.name || "Assigned"}`
+                    )}
                   </p>
 
                   {agreement.status === "active" && (
@@ -395,6 +520,20 @@ function ServiceAgreements({ customerId }) {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+
+                  {agreement.status !== "cancelled" && (
+
+                    <button
+                      onClick={() => openEdit(agreement)}
+                      disabled={actioningId === agreement.id}
+                      title="Edit name, price, visit length, or assigned crew member"
+                      className="flex items-center gap-1 rounded-lg bg-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-border-strong disabled:opacity-50"
+                    >
+                      <Pencil size={12} />
+                      Edit
+                    </button>
+
+                  )}
 
                   {agreement.status === "active" && (
 
@@ -478,6 +617,106 @@ function ServiceAgreements({ customerId }) {
                 </div>
 
               </div>
+
+              {editingId === agreement.id && (
+
+                <div className="mt-3 rounded-lg border border-border bg-surface p-3">
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+                        Plan Name
+                      </label>
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+                        Price Per Visit
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        placeholder="Optional"
+                        className="w-full rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+                        Visit Length (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="15"
+                        max="1440"
+                        step="15"
+                        value={editDuration}
+                        onChange={(e) => setEditDuration(e.target.value)}
+                        placeholder="Optional"
+                        className="w-full rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+                        Assigned To
+                      </label>
+                      <select
+                        value={editAssignedUserId}
+                        onChange={(e) => setEditAssignedUserId(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-surface-muted p-2 text-sm text-fg focus:border-border-strong focus:outline-none"
+                      >
+                        <option value="">Unassigned</option>
+                        {teammates.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  {editError && (
+                    <p className="mt-2 text-xs text-danger">
+                      {editError}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-[11px] text-fg-faint">
+                    Applies to every visit that hasn't happened yet - frequency and the first visit's date can't be changed here.
+                  </p>
+
+                  <div className="mt-2 flex items-center gap-2">
+
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={saving}
+                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+
+                    <button
+                      onClick={() => setEditingId(null)}
+                      disabled={saving}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-border-strong disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+
+                  </div>
+
+                </div>
+
+              )}
 
             </div>
 

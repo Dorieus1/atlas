@@ -254,7 +254,9 @@ module.exports = async () => {
           start_date DATETIME NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           created_by_user_id TEXT,
-          created_by_name TEXT
+          created_by_name TEXT,
+          duration_minutes INTEGER,
+          assigned_user_id TEXT
         )
       `);
 
