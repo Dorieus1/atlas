@@ -26,7 +26,7 @@ import {
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
 import SignaturePad from "../components/SignaturePad";
-import { formatDuration } from "../utils/duration";
+import { formatMinutes, summarizeTimeEntries } from "../utils/duration";
 
 
 // Same local-calendar-day logic Schedule.jsx and CustomerTimeline.jsx
@@ -281,9 +281,16 @@ function Today() {
     .filter((appt) => scope === "everyone" || appt.assigned_user_id === currentUserId)
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
+  // Real per-technician time tracking (migration 059) - "clocked in"
+  // means *I* (the signed-in user) have an open session on this job, not
+  // whether anyone at all does. Two teammates can be on the same job
+  // independently, each seeing their own button state.
+  const isClockedIn = (appt) =>
+    (appt.time_entries || []).some((entry) => entry.user_id === currentUserId && !entry.clock_out_at);
+
   const handleClockToggle = async (appt) => {
 
-    const clockedIn = appt.clock_in_at && !appt.clock_out_at;
+    const clockedIn = isClockedIn(appt);
 
     try {
 
@@ -435,8 +442,9 @@ function Today() {
 
           {todaysJobs.map((appt) => {
 
-            const clockedIn = appt.clock_in_at && !appt.clock_out_at;
+            const clockedIn = isClockedIn(appt);
             const isDone = appt.status === "completed";
+            const timeEntrySummary = summarizeTimeEntries(appt.time_entries);
 
             return (
 
@@ -495,10 +503,17 @@ function Today() {
                   </p>
                 )}
 
-                {appt.clock_in_at && appt.clock_out_at && (
+                {timeEntrySummary.some((person) => person.totalMinutes > 0) && (
                   <p className="mt-2 flex items-center gap-1.5 text-xs text-fg-faint">
                     <Clock size={11} />
-                    Logged {formatDuration(appt.clock_in_at, appt.clock_out_at)}
+                    Logged {timeEntrySummary
+                      .filter((person) => person.totalMinutes > 0)
+                      .map((person) => (
+                        timeEntrySummary.length > 1
+                          ? `${formatMinutes(person.totalMinutes)} (${person.user_name || "a teammate"})`
+                          : formatMinutes(person.totalMinutes)
+                      ))
+                      .join(", ")}
                   </p>
                 )}
 

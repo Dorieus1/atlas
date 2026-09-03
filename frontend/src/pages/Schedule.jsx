@@ -28,7 +28,7 @@ import {
 
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
-import { formatDuration } from "../utils/duration";
+import { formatMinutes, summarizeTimeEntries } from "../utils/duration";
 
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -525,9 +525,16 @@ function Schedule() {
   };
 
 
+  // Real per-technician time tracking (migration 059) - "clocked in"
+  // means *I* (the signed-in user) have an open session on this job, not
+  // whether anyone at all does. Two teammates can be on the same job
+  // independently, each seeing their own button state.
+  const isClockedIn = (appt) =>
+    (appt.time_entries || []).some((entry) => entry.user_id === currentUserId && !entry.clock_out_at);
+
   const handleClockToggle = async (appt) => {
 
-    const clockedIn = appt.clock_in_at && !appt.clock_out_at;
+    const clockedIn = isClockedIn(appt);
 
     try {
 
@@ -1200,7 +1207,12 @@ function Schedule() {
 
             <div className="mt-4 flex flex-col gap-3">
 
-              {selectedDayAppointments.map((appt) => (
+              {selectedDayAppointments.map((appt) => {
+
+                const timeEntrySummary = summarizeTimeEntries(appt.time_entries);
+                const clockedIn = isClockedIn(appt);
+
+                return (
 
                 <div
                   key={appt.id}
@@ -1280,10 +1292,17 @@ function Schedule() {
                     </p>
                   )}
 
-                  {appt.clock_in_at && appt.clock_out_at && (
+                  {timeEntrySummary.some((person) => person.totalMinutes > 0) && (
                     <p className="mt-2 flex items-center gap-1.5 text-[11px] text-fg-faint">
                       <Clock size={11} />
-                      Logged {formatDuration(appt.clock_in_at, appt.clock_out_at)}
+                      Logged {timeEntrySummary
+                        .filter((person) => person.totalMinutes > 0)
+                        .map((person) => (
+                          timeEntrySummary.length > 1
+                            ? `${formatMinutes(person.totalMinutes)} (${person.user_name || "a teammate"})`
+                            : formatMinutes(person.totalMinutes)
+                        ))
+                        .join(", ")}
                     </p>
                   )}
 
@@ -1313,13 +1332,13 @@ function Schedule() {
                         <button
                           onClick={() => handleClockToggle(appt)}
                           disabled={clockingId === appt.id}
-                          title={appt.clock_in_at && !appt.clock_out_at ? "Clock out of this job" : "Clock in to this job"}
-                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${appt.clock_in_at && !appt.clock_out_at ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
+                          title={clockedIn ? "Clock out of this job" : "Clock in to this job"}
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${clockedIn ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
                         >
                           <Clock size={13} />
                           {clockingId === appt.id
                             ? "..."
-                            : appt.clock_in_at && !appt.clock_out_at
+                            : clockedIn
                               ? "Clock Out"
                               : "Clock In"}
                         </button>
@@ -1447,7 +1466,7 @@ function Schedule() {
 
                 </div>
 
-              ))}
+              );})}
 
             </div>
 

@@ -1013,98 +1013,12 @@ const getAppointmentById = (id, business_id) => {
 
 
 
-// Clock-in/out for real labor-cost tracking (feeds analyticsService's
-// margin calculation). Deliberately open to ANY authenticated team
-// member, not just the appointment's assigned_user_id - the existing
-// updateAppointmentStatus above already lets any team member complete
-// someone else's appointment with no ownership check, so restricting
-// clock-in/out more tightly than that would be a new, inconsistent rule
-// for a v1 that's otherwise matching the existing permission model.
-//
-// clockIn always (re)starts a fresh session - if the appointment already
-// has a clock_out_at from an earlier session (e.g. a job that got
-// reopened), clocking in again clears it rather than leaving a stale
-// clock-out sitting alongside a brand new clock-in.
-const clockIn = async (id, business_id) => {
-
-  const existing = await getAppointmentById(id, business_id);
-
-  if (!existing) {
-    return { error: "not_found" };
-  }
-
-  if (existing.clock_in_at && !existing.clock_out_at) {
-    return { error: "already_clocked_in" };
-  }
-
-  const clock_in_at = new Date().toISOString();
-
-  await new Promise((resolve, reject) => {
-
-    db.run(
-      `
-      UPDATE appointments
-      SET clock_in_at = ?, clock_out_at = NULL
-      WHERE id = ?
-      AND business_id = ?
-      `,
-      [clock_in_at, id, business_id],
-      (err) => (err ? reject(err) : resolve())
-    );
-
-  });
-
-  return { clock_in_at };
-
-};
-
-
-
-const clockOut = async (id, business_id) => {
-
-  const existing = await getAppointmentById(id, business_id);
-
-  if (!existing) {
-    return { error: "not_found" };
-  }
-
-  if (!existing.clock_in_at) {
-    return { error: "not_clocked_in" };
-  }
-
-  if (existing.clock_out_at) {
-    return { error: "already_clocked_out" };
-  }
-
-  const clock_out_at = new Date().toISOString();
-
-  if (new Date(clock_out_at) < new Date(existing.clock_in_at)) {
-
-    // Clock drift or a stale client - refuse rather than store a
-    // negative-duration session that would quietly corrupt the labor
-    // cost total.
-    return { error: "clock_out_before_clock_in" };
-
-  }
-
-  await new Promise((resolve, reject) => {
-
-    db.run(
-      `
-      UPDATE appointments
-      SET clock_out_at = ?
-      WHERE id = ?
-      AND business_id = ?
-      `,
-      [clock_out_at, id, business_id],
-      (err) => (err ? reject(err) : resolve())
-    );
-
-  });
-
-  return { clock_in_at: existing.clock_in_at, clock_out_at };
-
-};
+// The old single shared clock_in_at/clock_out_at pair (and its
+// clockIn()/clockOut() functions) that used to live here were replaced
+// by real per-technician time tracking - see timeEntryService.js's
+// clockInUser/clockOutUser and migration 059. The two columns stay on
+// this table (existing historical rows were backfilled into
+// time_entries, not discarded) but nothing writes to them anymore.
 
 
 
@@ -1533,10 +1447,6 @@ module.exports = {
   getAppointmentsByCustomer,
 
   updateAppointmentStatus,
-
-  clockIn,
-
-  clockOut,
 
   updateAppointmentStatusForSeries,
 

@@ -1,4 +1,6 @@
 const request = require("supertest");
+const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 const app = require("../server");
 const db = require("../../database/db");
 const { createBusinessAndUser } = require("./setup/helpers");
@@ -27,11 +29,42 @@ const createAppointment = async (authHeader, title = "Roof repair") => {
 };
 
 
+const inviteTeammate = async (authHeader, prefix) => {
+
+  const res = await request(app)
+    .post("/api/auth/teammates")
+    .set("Authorization", authHeader)
+    .send({
+      name: `${prefix} Teammate`,
+      email: `${prefix.toLowerCase()}@test.com`,
+      password: "testpass123",
+      role: "staff"
+    });
+
+  return res.body.id;
+
+};
+
+
+// Seeds a closed time_entries row directly - going through the real
+// clock-in/clock-out endpoints would take actual wall-clock time to
+// produce a meaningful, non-zero duration.
+const seedTimeEntry = (business_id, appointment_id, user_id, clock_in_at, clock_out_at) =>
+
+  runAsync(
+
+    `INSERT INTO time_entries (id, business_id, appointment_id, user_id, clock_in_at, clock_out_at) VALUES (?, ?, ?, ?, ?, ?)`,
+
+    [uuidv4(), business_id, appointment_id, user_id, clock_in_at, clock_out_at]
+
+  );
+
+
 describe("Appointment time tracking", () => {
 
-  test("clock in, then clock out, records both timestamps", async () => {
+  test("clock in, then clock out, records both timestamps on the caller's own time entry", async () => {
 
-    const { authHeader } = await createBusinessAndUser(app, "ClockInOut");
+    const { authHeader, userId } = await createBusinessAndUser(app, "ClockInOut");
     const appointmentId = await createAppointment(authHeader);
 
     const clockIn = await request(app)
@@ -55,8 +88,63 @@ describe("Appointment time tracking", () => {
 
     const appt = list.body.find((a) => a.id === appointmentId);
 
-    expect(appt.clock_in_at).toBeTruthy();
-    expect(appt.clock_out_at).toBeTruthy();
+    expect(appt.time_entries).toHaveLength(1);
+    expect(appt.time_entries[0].user_id).toBe(userId);
+    expect(appt.time_entries[0].clock_in_at).toBeTruthy();
+    expect(appt.time_entries[0].clock_out_at).toBeTruthy();
+
+  });
+
+
+  test("two different team members can independently clock in and out of the same job", async () => {
+
+    const { authHeader, business_id } = await createBusinessAndUser(app, "ClockMultiCrew");
+    const teammateId = await inviteTeammate(authHeader, "ClockMultiCrewMate");
+    const appointmentId = await createAppointment(authHeader);
+
+    const teammateAuthHeader = `Bearer ${jwt.sign(
+      { id: teammateId, business_id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    )}`;
+
+    const ownerClockIn = await request(app)
+      .post(`/api/appointments/${appointmentId}/clock-in`)
+      .set("Authorization", authHeader);
+
+    expect(ownerClockIn.status).toBe(200);
+
+    // The teammate clocking into the SAME job at the same time must not
+    // be blocked by the owner's own already-open session - these are
+    // two independent people, not one shared clock.
+    const teammateClockIn = await request(app)
+      .post(`/api/appointments/${appointmentId}/clock-in`)
+      .set("Authorization", teammateAuthHeader);
+
+    expect(teammateClockIn.status).toBe(200);
+
+    const ownerClockOut = await request(app)
+      .post(`/api/appointments/${appointmentId}/clock-out`)
+      .set("Authorization", authHeader);
+
+    expect(ownerClockOut.status).toBe(200);
+
+    // The teammate is still on the clock - the owner clocking out must
+    // not have affected the teammate's own still-open session.
+    const list = await request(app)
+      .get("/api/appointments")
+      .set("Authorization", authHeader);
+
+    const appt = list.body.find((a) => a.id === appointmentId);
+
+    expect(appt.time_entries).toHaveLength(2);
+
+    const ownerEntry = appt.time_entries.find((e) => e.user_id !== teammateId);
+    const teammateEntry = appt.time_entries.find((e) => e.user_id === teammateId);
+
+    expect(ownerEntry.clock_out_at).toBeTruthy();
+    expect(teammateEntry.clock_out_at).toBeFalsy();
+    expect(teammateEntry.user_name).toBe("ClockMultiCrewMate Teammate");
 
   });
 
@@ -118,7 +206,7 @@ describe("Appointment time tracking", () => {
   });
 
 
-  test("clocking in again after a completed session starts a fresh one", async () => {
+  test("clocking in again after a completed session starts a fresh one, keeping the earlier one intact", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ClockInAgain");
     const appointmentId = await createAppointment(authHeader);
@@ -143,10 +231,12 @@ describe("Appointment time tracking", () => {
 
     const appt = list.body.find((a) => a.id === appointmentId);
 
-    // A fresh clock-in must clear the previous session's clock_out_at,
-    // not leave a stale one sitting alongside the new clock_in_at.
-    expect(appt.clock_in_at).toBeTruthy();
-    expect(appt.clock_out_at).toBeFalsy();
+    // Two real, distinct sessions - the first one's clock_out_at is
+    // still there (history), and the second is open.
+    expect(appt.time_entries).toHaveLength(2);
+    expect(appt.time_entries[0].clock_out_at).toBeTruthy();
+    expect(appt.time_entries[1].clock_in_at).toBeTruthy();
+    expect(appt.time_entries[1].clock_out_at).toBeFalsy();
 
   });
 
@@ -190,16 +280,10 @@ describe("Appointment time tracking", () => {
 
     test("labor cost is 0 and hourlyLaborCost is null with no rate set, even with a completed session", async () => {
 
-      const { authHeader } = await createBusinessAndUser(app, "LaborNoRate");
+      const { authHeader, userId, business_id } = await createBusinessAndUser(app, "LaborNoRate");
       const appointmentId = await createAppointment(authHeader);
 
-      // Directly seed a 2-hour completed session - going through the real
-      // clock-in/clock-out endpoints would take actual wall-clock time to
-      // produce a meaningful, non-zero duration.
-      await runAsync(
-        `UPDATE appointments SET clock_in_at = ?, clock_out_at = ? WHERE id = ?`,
-        ["2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z", appointmentId]
-      );
+      await seedTimeEntry(business_id, appointmentId, userId, "2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z");
 
       const res = await request(app)
         .get("/api/analytics")
@@ -215,7 +299,7 @@ describe("Appointment time tracking", () => {
 
     test("labor cost multiplies logged hours by the business's hourly rate, and reduces the margin", async () => {
 
-      const { authHeader } = await createBusinessAndUser(app, "LaborWithRate");
+      const { authHeader, userId, business_id } = await createBusinessAndUser(app, "LaborWithRate");
 
       await request(app)
         .put("/api/business")
@@ -224,10 +308,7 @@ describe("Appointment time tracking", () => {
 
       const appointmentId = await createAppointment(authHeader);
 
-      await runAsync(
-        `UPDATE appointments SET clock_in_at = ?, clock_out_at = ? WHERE id = ?`,
-        ["2026-09-01T10:00:00.000Z", "2026-09-01T13:30:00.000Z", appointmentId]
-      );
+      await seedTimeEntry(business_id, appointmentId, userId, "2026-09-01T10:00:00.000Z", "2026-09-01T13:30:00.000Z");
 
       const res = await request(app)
         .get("/api/analytics")
@@ -238,6 +319,34 @@ describe("Appointment time tracking", () => {
       expect(res.body.laborHours).toBe(3.5);
       expect(res.body.laborCost).toBe(87.5);
       expect(res.body.totalMargin).toBe(-87.5);
+
+    });
+
+
+    // The real point of per-technician tracking: two people on the same
+    // job for the same hour is two hours of labor, not one.
+    test("two crew members' sessions on the same job both count toward labor hours", async () => {
+
+      const { authHeader, userId, business_id } = await createBusinessAndUser(app, "LaborTwoCrew");
+      const teammateId = await inviteTeammate(authHeader, "LaborTwoCrewMate");
+
+      await request(app)
+        .put("/api/business")
+        .set("Authorization", authHeader)
+        .send({ name: "LaborTwoCrew Business", default_hourly_labor_cost: 20 });
+
+      const appointmentId = await createAppointment(authHeader);
+
+      // Both worked the same 2-hour window.
+      await seedTimeEntry(business_id, appointmentId, userId, "2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z");
+      await seedTimeEntry(business_id, appointmentId, teammateId, "2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z");
+
+      const res = await request(app)
+        .get("/api/analytics")
+        .set("Authorization", authHeader);
+
+      expect(res.body.laborHours).toBe(4);
+      expect(res.body.laborCost).toBe(80);
 
     });
 
@@ -275,7 +384,7 @@ describe("Appointment time tracking", () => {
     // down for work that was never actually completed for the customer.
     test("labor cost excludes a clocked session on an appointment that was later cancelled", async () => {
 
-      const { authHeader } = await createBusinessAndUser(app, "LaborCancelledExcluded");
+      const { authHeader, userId, business_id } = await createBusinessAndUser(app, "LaborCancelledExcluded");
 
       await request(app)
         .put("/api/business")
@@ -284,10 +393,8 @@ describe("Appointment time tracking", () => {
 
       const appointmentId = await createAppointment(authHeader);
 
-      await runAsync(
-        `UPDATE appointments SET clock_in_at = ?, clock_out_at = ?, status = 'cancelled' WHERE id = ?`,
-        ["2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z", appointmentId]
-      );
+      await seedTimeEntry(business_id, appointmentId, userId, "2026-09-01T10:00:00.000Z", "2026-09-01T12:00:00.000Z");
+      await runAsync(`UPDATE appointments SET status = 'cancelled' WHERE id = ?`, [appointmentId]);
 
       const res = await request(app)
         .get("/api/analytics")

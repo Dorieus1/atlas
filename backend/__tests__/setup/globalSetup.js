@@ -240,6 +240,33 @@ module.exports = async () => {
         )
       `);
 
+      // Mirrors migration 059 - real per-technician time tracking.
+      // appointments.clock_in_at/clock_out_at above are kept in the test
+      // schema (existing fixtures/tests still reference them) but are no
+      // longer what analyticsService.js or the clock-in/out endpoints
+      // actually read from - this table is.
+      db.run(`
+        CREATE TABLE time_entries (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          appointment_id TEXT NOT NULL,
+          user_id TEXT,
+          clock_in_at DATETIME NOT NULL,
+          clock_out_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
+        CREATE INDEX idx_time_entries_appointment_id
+        ON time_entries(appointment_id)
+      `);
+
+      db.run(`
+        CREATE INDEX idx_time_entries_business_id
+        ON time_entries(business_id)
+      `);
+
       db.run(`
         CREATE TABLE service_agreements (
           id TEXT PRIMARY KEY,

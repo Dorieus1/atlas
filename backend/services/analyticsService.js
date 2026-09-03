@@ -208,15 +208,19 @@ const getAnalytics = async (business_id) => {
     // accrual choice - the work was never actually completed for the
     // customer, so it shouldn't count as a cost against a job that isn't
     // happening.
+    // Sums EVERY team member's own session on a job, not one shared
+    // clock per appointment (see migration 059/timeEntryService.js) - a
+    // two-person crew on one visit correctly counts as two people's
+    // worth of labor hours, not one.
     getAsync(
 
       `
-      SELECT COALESCE(SUM((julianday(clock_out_at) - julianday(clock_in_at)) * 24), 0) as hours
-      FROM appointments
-      WHERE business_id = ?
-      AND clock_in_at IS NOT NULL
-      AND clock_out_at IS NOT NULL
-      AND status != 'cancelled'
+      SELECT COALESCE(SUM((julianday(time_entries.clock_out_at) - julianday(time_entries.clock_in_at)) * 24), 0) as hours
+      FROM time_entries
+      JOIN appointments ON appointments.id = time_entries.appointment_id
+      WHERE time_entries.business_id = ?
+      AND time_entries.clock_out_at IS NOT NULL
+      AND appointments.status != 'cancelled'
       `,
 
       [business_id]

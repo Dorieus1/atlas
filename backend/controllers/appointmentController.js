@@ -6,14 +6,18 @@ const {
   getAppointmentsByCustomer: getAppointmentsByCustomerService,
   updateAppointmentStatus: updateAppointmentStatusService,
   updateAppointmentStatusForSeries: updateAppointmentStatusForSeriesService,
-  clockIn: clockInService,
-  clockOut: clockOutService,
   rescheduleAppointment: rescheduleAppointmentService,
   deleteAppointment: deleteAppointmentService,
   deleteAppointmentForSeries: deleteAppointmentForSeriesService,
   RECURRENCE_RULES,
   MAX_RECURRING_OCCURRENCES
 } = require("../services/appointmentService");
+
+const {
+  clockInUser: clockInUserService,
+  clockOutUser: clockOutUserService,
+  getTimeEntriesForAppointmentIds: getTimeEntriesForAppointmentIdsService
+} = require("../services/timeEntryService");
 
 const { getCustomerById } = require("../services/customerService");
 
@@ -222,7 +226,29 @@ const getAppointments = async (req, res) => {
 
     const appointments = await getAppointmentsService(req.user.business_id);
 
-    res.json(appointments);
+    const timeEntries = await getTimeEntriesForAppointmentIdsService(
+
+      appointments.map((appointment) => appointment.id),
+      req.user.business_id
+
+    );
+
+    const timeEntriesByAppointmentId = {};
+
+    for (const entry of timeEntries) {
+
+      if (!timeEntriesByAppointmentId[entry.appointment_id]) {
+        timeEntriesByAppointmentId[entry.appointment_id] = [];
+      }
+
+      timeEntriesByAppointmentId[entry.appointment_id].push(entry);
+
+    }
+
+    res.json(appointments.map((appointment) => ({
+      ...appointment,
+      time_entries: timeEntriesByAppointmentId[appointment.id] || []
+    })));
 
   } catch (error) {
 
@@ -453,6 +479,13 @@ const CLOCK_ERROR_MESSAGES = {
 
 
 
+// Both clock actions are always about the CALLER's own session on this
+// job (req.user.id) - real per-technician time tracking, not one shared
+// clock the whole team fights over. Open to any authenticated team
+// member clocking themselves, not just the appointment's own
+// assigned_user_id - matches the same permission model
+// updateAppointmentStatus already uses for completing someone else's
+// appointment.
 const clockInAppointment = async (req, res) => {
 
   try {
@@ -460,7 +493,7 @@ const clockInAppointment = async (req, res) => {
     const { id } = req.params;
     const business_id = req.user.business_id;
 
-    const result = await clockInService(id, business_id);
+    const result = await clockInUserService(id, business_id, req.user.id);
 
     if (result.error) {
 
@@ -498,7 +531,7 @@ const clockOutAppointment = async (req, res) => {
     const { id } = req.params;
     const business_id = req.user.business_id;
 
-    const result = await clockOutService(id, business_id);
+    const result = await clockOutUserService(id, business_id, req.user.id);
 
     if (result.error) {
 
