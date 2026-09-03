@@ -115,8 +115,49 @@ function quotesToCsv(quotes, itemsByQuoteId, expensesByQuoteId = {}) {
 }
 
 
+// One row per team member for a payroll period - the actual audience is
+// whoever runs payroll (the owner themselves, or handing this to a
+// bookkeeper/accountant), so "Pay" is included whenever a rate is
+// known, right alongside the hours it was computed from, the same way
+// quotesToCsv's Margin column sits next to the Total it was computed
+// from. Hours already come in rounded to hundredths (see
+// timeEntryService.getTimesheetSummary) - not re-rounded here, so the
+// CSV always matches the report someone read on screen before
+// downloading it.
+function timesheetToCsv(people, hourlyRate) {
+
+  const header = [
+    "Team Member",
+    "Hours",
+    "Sessions",
+    "Pay",
+    "Still Clocked In"
+  ];
+
+  const lines = [toCsvRow(header)];
+
+  for (const person of people) {
+
+    const pay = hourlyRate != null ? person.hours * hourlyRate : null;
+
+    lines.push(toCsvRow([
+      person.user_name,
+      person.hours.toFixed(2),
+      person.session_count,
+      pay != null ? pay.toFixed(2) : "",
+      person.has_open_session ? "Yes" : ""
+    ]));
+
+  }
+
+  return lines.join("\r\n") + "\r\n";
+
+}
+
+
 module.exports = {
   escapeCsvField,
   toCsvRow,
-  quotesToCsv
+  quotesToCsv,
+  timesheetToCsv
 };

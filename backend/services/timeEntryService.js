@@ -183,12 +183,82 @@ const getTimeEntriesForAppointmentIds = async (appointmentIds, business_id) => {
 };
 
 
+// A payroll-style report: for every team member who logged time in
+// [start, end] (inclusive, by the calendar day their session started),
+// their total completed hours, how many sessions that came from, and
+// whether they're still clocked in on something right now (excluded
+// from the hours total until it closes, same as analyticsService's
+// labor cost - an open session isn't a known quantity yet). Same
+// cancelled-appointment exclusion as analyticsService's labor query,
+// for the same reason: a job that was called off was never really
+// worked, however long someone happened to be clocked in on it first.
+const getTimesheetSummary = async (business_id, start, end) => {
+
+  const rows = await allAsync(
+
+    `
+    SELECT
+      time_entries.user_id,
+      users.name AS user_name,
+      SUM(
+        CASE WHEN time_entries.clock_out_at IS NOT NULL
+        THEN (julianday(time_entries.clock_out_at) - julianday(time_entries.clock_in_at)) * 24
+        ELSE 0 END
+      ) AS hours,
+      SUM(CASE WHEN time_entries.clock_out_at IS NOT NULL THEN 1 ELSE 0 END) AS session_count,
+      MAX(CASE WHEN time_entries.clock_out_at IS NULL THEN 1 ELSE 0 END) AS has_open_session
+    FROM time_entries
+    LEFT JOIN users ON users.id = time_entries.user_id
+    JOIN appointments ON appointments.id = time_entries.appointment_id
+    WHERE time_entries.business_id = ?
+    AND appointments.status != 'cancelled'
+    AND date(time_entries.clock_in_at) >= date(?)
+    AND date(time_entries.clock_in_at) <= date(?)
+    GROUP BY time_entries.user_id
+    ORDER BY user_name ASC
+    `,
+
+    [business_id, start, end]
+
+  );
+
+  return rows.map((row) => {
+
+    // Two different reasons a name can be missing, worth telling apart
+    // in a report someone might hand to a bookkeeper: `user_id` itself
+    // is null for a pre-migration-059 appointment that never had an
+    // assigned_user_id to backfill onto a person (see migration 059);
+    // a non-null user_id with no matching name is a teammate who has
+    // since been removed from the business - their historical hours
+    // stay (this is payroll data, not something a removal should
+    // erase), they just can't be named by a live join anymore.
+    let user_name = row.user_name;
+
+    if (!user_name) {
+      user_name = row.user_id ? "Removed teammate" : "Unassigned";
+    }
+
+    return {
+      user_id: row.user_id,
+      user_name,
+      hours: Math.round(row.hours * 100) / 100,
+      session_count: row.session_count,
+      has_open_session: !!row.has_open_session
+    };
+
+  });
+
+};
+
+
 module.exports = {
 
   clockInUser,
 
   clockOutUser,
 
-  getTimeEntriesForAppointmentIds
+  getTimeEntriesForAppointmentIds,
+
+  getTimesheetSummary
 
 };

@@ -33,6 +33,7 @@ const Today = lazy(() => import("./pages/Today"));
 const Schedule = lazy(() => import("./pages/Schedule"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const Plans = lazy(() => import("./pages/Plans"));
+const Timesheets = lazy(() => import("./pages/Timesheets"));
 const PublicChat = lazy(() => import("./pages/PublicChat"));
 const PublicBooking = lazy(() => import("./pages/PublicBooking"));
 const PortalLogin = lazy(() => import("./pages/PortalLogin"));
@@ -225,6 +226,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/timesheets"
+            element={
+              <ProtectedRoute>
+                <Timesheets />
               </ProtectedRoute>
             }
           />

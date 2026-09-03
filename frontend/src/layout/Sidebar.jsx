@@ -8,6 +8,7 @@ import {
   Repeat,
   BookOpen,
   BarChart3,
+  Clock,
   Settings,
   LogOut,
   Search,
@@ -44,6 +45,20 @@ function Sidebar({ open, onClose, onOpenSearch }) {
 
   };
 
+
+  // Not a real security boundary (the backend already 403s a staff
+  // login on every /api/timesheets route) - just avoids sending a crew
+  // member into a dead-end click for a report about their coworkers'
+  // pay that they were never going to be allowed to see anyway.
+  const isOwner = (() => {
+
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}").role === "owner";
+    } catch {
+      return false;
+    }
+
+  })();
 
   const links = [
 
@@ -108,6 +123,12 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       icon: BarChart3,
       tourId: "nav-analytics"
     },
+
+    ...(isOwner ? [{
+      name: "Timesheets",
+      path: "/timesheets",
+      icon: Clock
+    }] : []),
 
     {
       name: "Settings",
