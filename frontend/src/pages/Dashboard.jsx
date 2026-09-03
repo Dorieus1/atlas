@@ -4,6 +4,7 @@ import KnowledgePanel from "../components/dashboard/KnowledgePanel";
 import IntelligencePanel from "../components/dashboard/IntelligencePanel";
 import LeadPipeline from "../components/LeadPipeline";
 import TaskPanel from "../components/dashboard/TaskPanel";
+import ClockedInPanel from "../components/dashboard/ClockedInPanel";
 import GettingStartedChecklist from "../components/GettingStartedChecklist";
 import ProductTour from "../components/ProductTour";
 
@@ -21,6 +22,10 @@ function DashboardPage() {
       <ProductTour />
 
       <Dashboard />
+
+      <div className="mt-8">
+        <ClockedInPanel />
+      </div>
 
       <div className="mt-8" data-tour="checklist">
         <GettingStartedChecklist />
