@@ -971,7 +971,9 @@ const acceptQuote = async (req, res) => {
       accepted_by_name: approvedName,
       signature,
       signature_method: "portal",
-      accepted_tier_id: tier_id || null
+      accepted_tier_id: tier_id || null,
+      signed_ip_address: req.ip || null,
+      signed_user_agent: req.headers["user-agent"] || null
     });
 
     if (!won) {

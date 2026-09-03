@@ -1717,11 +1717,29 @@ function Quotes() {
                 )}
 
                 {activeQuote.signature && (
-                  <img
-                    src={activeQuote.signature}
-                    alt={`${activeQuote.accepted_by_name || "Customer"}'s signature`}
-                    className="mt-1.5 h-10 rounded border border-border bg-white px-1"
-                  />
+
+                  <>
+
+                    <img
+                      src={activeQuote.signature}
+                      alt={`${activeQuote.accepted_by_name || "Customer"}'s signature`}
+                      className="mt-1.5 h-10 rounded border border-border bg-white px-1"
+                    />
+
+                    {activeQuote.signed_ip_address && (
+
+                      // A basic audit trail - the same kind of thing a
+                      // mainstream e-signature tool (DocuSign, etc.)
+                      // records by default, kept around in case a
+                      // signature is ever disputed.
+                      <p className="mt-1 text-[11px] text-fg-faint" title={activeQuote.signed_user_agent || ""}>
+                        Signed from {activeQuote.signed_ip_address}
+                      </p>
+
+                    )}
+
+                  </>
+
                 )}
                 {activeQuote.status === "declined" && activeQuote.declined_at && (
                   <p className="mt-0.5 text-xs text-danger">

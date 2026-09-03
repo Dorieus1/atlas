@@ -1575,7 +1575,9 @@ const signQuoteInPerson = async (req, res) => {
       accepted_by_name: name.trim(),
       signature,
       signature_method: "in_person",
-      accepted_tier_id: tier_id || null
+      accepted_tier_id: tier_id || null,
+      signed_ip_address: req.ip || null,
+      signed_user_agent: req.headers["user-agent"] || null
     });
 
     if (!won) {

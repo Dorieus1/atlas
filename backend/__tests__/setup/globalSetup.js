@@ -287,7 +287,9 @@ module.exports = async () => {
           tax_rate REAL,
           signature TEXT,
           signature_method TEXT,
-          accepted_tier_id TEXT
+          accepted_tier_id TEXT,
+          signed_ip_address TEXT,
+          signed_user_agent TEXT
         )
       `);
 

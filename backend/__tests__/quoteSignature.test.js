@@ -66,6 +66,34 @@ describe("Signing a quote in person (staff-side)", () => {
   });
 
 
+  // Regression coverage for the audit trail (migration 057) - a real,
+  // independently-checkable record of who actually submitted the
+  // signing request, the same basic thing mainstream e-signature tools
+  // capture by default.
+  test("signing in person records the request's IP address and user agent", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "SignInPersonAudit");
+    const customerId = await createCustomer(authHeader, "Audit Customer");
+    const quoteId = await createSentQuote(authHeader, customerId);
+
+    const signed = await request(app)
+      .post(`/api/quotes/${quoteId}/sign`)
+      .set("Authorization", authHeader)
+      .set("User-Agent", "AtlasTestAgent/1.0")
+      .send({ name: "Audit Signer", signature: TEST_SIGNATURE });
+
+    expect(signed.status).toBe(200);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${quoteId}`)
+      .set("Authorization", authHeader);
+
+    expect(fetched.body.signed_ip_address).toBeTruthy();
+    expect(fetched.body.signed_user_agent).toBe("AtlasTestAgent/1.0");
+
+  });
+
+
   test("a missing name, missing signature, or malformed signature is rejected", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "SignValidation");

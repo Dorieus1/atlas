@@ -509,7 +509,11 @@ const markQuoteDepositPaidAtomic = (quote_id, business_id, deposit_paid_at) => {
 // before this feature existed - only a "Good/Better/Best" quote's accept
 // flow ever passes a real one, and the controller validates it actually
 // belongs to this quote's own tiers before this atomic write ever runs.
-const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, signature, signature_method, accepted_tier_id = null }) => {
+// signed_ip_address/signed_user_agent are the audit trail (migration
+// 057) - whichever request actually carried the signature, recorded
+// unconditionally rather than left null when missing, since "unknown"
+// is itself worth recording accurately rather than silently.
+const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, signature, signature_method, accepted_tier_id = null, signed_ip_address = null, signed_user_agent = null }) => {
 
   return new Promise((resolve, reject) => {
 
@@ -522,13 +526,15 @@ const acceptQuoteWithSignatureAtomic = (id, business_id, { accepted_by_name, sig
           accepted_by_name = ?,
           signature = ?,
           signature_method = ?,
-          accepted_tier_id = ?
+          accepted_tier_id = ?,
+          signed_ip_address = ?,
+          signed_user_agent = ?
       WHERE id = ?
       AND business_id = ?
       AND status = 'sent'
       `,
 
-      [new Date().toISOString(), accepted_by_name, signature, signature_method, accepted_tier_id, id, business_id],
+      [new Date().toISOString(), accepted_by_name, signature, signature_method, accepted_tier_id, signed_ip_address, signed_user_agent, id, business_id],
 
       function (err) {
         if (err) reject(err); else resolve(this.changes > 0);

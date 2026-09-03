@@ -37,16 +37,23 @@ const extractToken = () => {
 };
 
 
+// X-Test-Client-Id (inert outside the test suite - see rateLimiter.js)
+// gives each test's own simulated customer an independent rate-limit
+// bucket on the shared per-file server, instead of every test in the
+// file colliding on one bucket keyed by the loopback IP they all
+// actually share.
 const loginAsCustomer = async (slug, email) => {
 
   await request(app)
     .post(`/api/portal/${slug}/login`)
+    .set("X-Test-Client-Id", email)
     .send({ email });
 
   const token = extractToken();
 
   const verify = await request(app)
     .post(`/api/portal/${slug}/verify`)
+    .set("X-Test-Client-Id", email)
     .send({ token });
 
   return `Bearer ${verify.body.token}`;

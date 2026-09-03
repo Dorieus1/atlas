@@ -38,10 +38,17 @@ const getBusinessId = async (authHeader) => {
 };
 
 
+// X-Test-Client-Id (inert outside the test suite - see rateLimiter.js)
+// gives each test's own simulated customer an independent rate-limit
+// bucket on the shared per-file server, instead of every test in the
+// file colliding on one bucket keyed by the loopback IP they all
+// actually share. Without it, a file with enough of these calls
+// eventually 429s a later, unrelated test's login attempt.
 const loginAsCustomer = async (slug, email) => {
 
   await request(app)
     .post(`/api/portal/${slug}/login`)
+    .set("X-Test-Client-Id", email)
     .send({ email });
 
   const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
@@ -50,6 +57,7 @@ const loginAsCustomer = async (slug, email) => {
 
   const verify = await request(app)
     .post(`/api/portal/${slug}/verify`)
+    .set("X-Test-Client-Id", email)
     .send({ token });
 
   return `Bearer ${verify.body.token}`;
@@ -160,6 +168,45 @@ describe("Customer accept/decline", () => {
       .set("Authorization", authHeader);
 
     expect(notifications.body.some((n) => n.type === "quote_accepted")).toBe(true);
+
+  });
+
+
+  // Regression coverage for the audit trail (migration 057) - the same
+  // basic record a mainstream e-signature tool captures by default, in
+  // case a signature is ever disputed later.
+  test("a portal customer's acceptance records the request's IP address and user agent", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AcceptAudit");
+    const slug = await getSlug(authHeader);
+    const customerId = await createCustomer(authHeader, "Audit Customer", "acceptaudit@test.com");
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({ customer_id: customerId, items: ITEMS });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    const customerAuthHeader = await loginAsCustomer(slug, "acceptaudit@test.com");
+
+    const accept = await request(app)
+      .post(`/api/portal/account/quotes/${created.body.id}/accept`)
+      .set("Authorization", customerAuthHeader)
+      .set("User-Agent", "AtlasPortalTestAgent/1.0")
+      .send({ name: "Audit Homeowner", signature: TEST_SIGNATURE });
+
+    expect(accept.status).toBe(200);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    expect(fetched.body.signed_ip_address).toBeTruthy();
+    expect(fetched.body.signed_user_agent).toBe("AtlasPortalTestAgent/1.0");
 
   });
 
@@ -840,6 +887,11 @@ describe("Paying a deposit from the portal", () => {
     const partialCheckout = await request(app)
       .post(`/api/portal/account/quotes/${partial.body.id}/checkout`)
       .set("Authorization", customerAuthHeader);
+
+    if (partialCheckout.status !== 200) {
+      console.error("DEBUG partialCheckout body:", JSON.stringify(partialCheckout.body));
+      console.error("DEBUG customerAuthHeader:", customerAuthHeader);
+    }
 
     expect(partialCheckout.status).toBe(200);
 
