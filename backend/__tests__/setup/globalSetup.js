@@ -395,9 +395,13 @@ module.exports = async () => {
           original_name TEXT,
           caption TEXT,
           mime_type TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          appointment_id TEXT,
+          photo_type TEXT
         )
       `);
+
+      db.run(`CREATE INDEX idx_photos_appointment_id ON photos(appointment_id)`);
 
       db.run(`
         CREATE TABLE review_requests (

@@ -17,7 +17,9 @@ const savePhotoRecord = (
   filename,
   original_name,
   caption,
-  mime_type
+  mime_type,
+  appointment_id,
+  photo_type
 
 ) => {
 
@@ -29,11 +31,11 @@ const savePhotoRecord = (
 
       `
       INSERT INTO photos
-      (id, business_id, customer_id, filename, original_name, caption, mime_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (id, business_id, customer_id, filename, original_name, caption, mime_type, appointment_id, photo_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
 
-      [id, business_id, customer_id, filename, original_name || null, caption || null, mime_type || null],
+      [id, business_id, customer_id, filename, original_name || null, caption || null, mime_type || null, appointment_id || null, photo_type || null],
 
       function (err) {
 
@@ -68,6 +70,44 @@ const getPhotosByCustomer = (customer_id, business_id) => {
       `,
 
       [customer_id, business_id],
+
+      (err, rows) => {
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+
+      }
+
+    );
+
+  });
+
+};
+
+
+
+// Oldest-first (unlike getPhotosByCustomer's newest-first gallery order)
+// - a job's own photos read naturally in the order they were actually
+// taken: whatever was snapped walking up to the job first, then the
+// after shots once it was done.
+const getPhotosByAppointment = (appointment_id, business_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.all(
+
+      `
+      SELECT *
+      FROM photos
+      WHERE appointment_id = ?
+      AND business_id = ?
+      ORDER BY created_at ASC
+      `,
+
+      [appointment_id, business_id],
 
       (err, rows) => {
 
@@ -203,6 +243,8 @@ module.exports = {
   savePhotoRecord,
 
   getPhotosByCustomer,
+
+  getPhotosByAppointment,
 
   getPhotoById,
 

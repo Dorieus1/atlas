@@ -7,16 +7,38 @@ const {
   UPLOAD_DIR,
   savePhotoRecord,
   getPhotosByCustomer,
+  getPhotosByAppointment,
   getPhotoById,
   deletePhoto
 } = require("../services/photoService");
 
 const { getCustomerById } = require("../services/customerService");
 const { getBusinessById } = require("../services/businessService");
+const { getAppointmentById } = require("../services/appointmentService");
 const { generateEstimateFromPhoto } = require("../services/aiService");
 
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+// Validated here in application code rather than a SQL CHECK constraint
+// on the column - same convention as every other enum-shaped field in
+// this app (quotes.type, appointments.status). null/omitted stays a
+// valid, untagged photo - tagging is optional depth, not a requirement
+// every upload has to satisfy.
+const PHOTO_TYPES = ["before", "after"];
+
+
+// Shared by both list endpoints below - the customer gallery and a
+// single job's own photos need to render identically (PhotoGallery.jsx
+// is used from both places), so they share one response shape.
+const formatPhoto = (photo) => ({
+  id: photo.id,
+  caption: photo.caption,
+  created_at: photo.created_at,
+  appointment_id: photo.appointment_id,
+  photo_type: photo.photo_type,
+  url: `/uploads/photos/${photo.filename}`
+});
 
 // The extension a saved file gets is picked from THIS map, keyed by the
 // (fileFilter-validated) mimetype - never from the client-supplied
@@ -101,7 +123,7 @@ const uploadPhoto = (req, res) => {
 
     try {
 
-      const { customer_id, caption } = req.body;
+      const { customer_id, caption, appointment_id, photo_type } = req.body;
       const business_id = req.user.business_id;
 
       if (!req.file) {
@@ -112,10 +134,10 @@ const uploadPhoto = (req, res) => {
 
       }
 
-      if (!customer_id) {
+      if (photo_type && !PHOTO_TYPES.includes(photo_type)) {
 
         return res.status(400).json({
-          error: "customer_id is required"
+          error: "photo_type must be either \"before\" or \"after\""
         });
 
       }
@@ -128,7 +150,52 @@ const uploadPhoto = (req, res) => {
 
       }
 
-      const customer = await getCustomerById(customer_id, business_id);
+      // A job-card upload (from the mobile field view) only ever has the
+      // appointment on hand, not a separate customer_id - rather than
+      // make every caller look up and pass a redundant customer_id, this
+      // derives it from the appointment itself, the same customer_id it's
+      // already scoped to. customer_id is still accepted directly (and
+      // still required in that case) for the plain customer-gallery
+      // upload, which has no appointment context at all.
+      let resolvedCustomerId = customer_id;
+
+      if (appointment_id) {
+
+        const appointment = await getAppointmentById(appointment_id, business_id);
+
+        if (!appointment) {
+
+          return res.status(404).json({
+            error: "Appointment not found"
+          });
+
+        }
+
+        if (!resolvedCustomerId) {
+
+          if (!appointment.customer_id) {
+
+            return res.status(400).json({
+              error: "This job has no customer attached, so a photo can't be saved to it"
+            });
+
+          }
+
+          resolvedCustomerId = appointment.customer_id;
+
+        }
+
+      }
+
+      if (!resolvedCustomerId) {
+
+        return res.status(400).json({
+          error: "customer_id is required"
+        });
+
+      }
+
+      const customer = await getCustomerById(resolvedCustomerId, business_id);
 
       if (!customer) {
 
@@ -140,11 +207,13 @@ const uploadPhoto = (req, res) => {
 
       const id = await savePhotoRecord(
         business_id,
-        customer_id,
+        resolvedCustomerId,
         req.file.filename,
         req.file.originalname,
         caption,
-        req.file.mimetype
+        req.file.mimetype,
+        appointment_id || null,
+        photo_type || null
       );
 
       res.status(201).json({
@@ -187,16 +256,42 @@ const getCustomerPhotos = async (req, res) => {
 
     const photos = await getPhotosByCustomer(customer_id, business_id);
 
-    res.json(
+    res.json(photos.map(formatPhoto));
 
-      photos.map((photo) => ({
-        id: photo.id,
-        caption: photo.caption,
-        created_at: photo.created_at,
-        url: `/uploads/photos/${photo.filename}`
-      }))
+  } catch (error) {
 
-    );
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+const getJobPhotos = async (req, res) => {
+
+  try {
+
+    const { appointment_id } = req.params;
+    const business_id = req.user.business_id;
+
+    const appointment = await getAppointmentById(appointment_id, business_id);
+
+    if (!appointment) {
+
+      return res.status(404).json({
+        error: "Appointment not found"
+      });
+
+    }
+
+    const photos = await getPhotosByAppointment(appointment_id, business_id);
+
+    res.json(photos.map(formatPhoto));
 
   } catch (error) {
 
@@ -313,6 +408,8 @@ module.exports = {
   uploadPhoto,
 
   getCustomerPhotos,
+
+  getJobPhotos,
 
   removePhoto,
 

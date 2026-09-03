@@ -16,6 +16,17 @@ const createCustomer = async (app, authHeader, name) => {
 
 };
 
+const createAppointment = async (app, authHeader, customer_id) => {
+
+  const res = await request(app)
+    .post("/api/appointments")
+    .set("Authorization", authHeader)
+    .send({ title: "Job", start_time: "2026-09-01T10:00:00.000Z", customer_id: customer_id || null });
+
+  return res.body.id;
+
+};
+
 const FAKE_IMAGE = Buffer.from("not-a-real-image-but-thats-fine-for-this-test");
 
 describe("Photos", () => {
@@ -220,6 +231,155 @@ describe("Photos", () => {
     // once the customer is permanently purged after 30 days in the
     // trash (see backend/__tests__/customerTrash.test.js).
     expect(fs.existsSync(path.join(UPLOAD_DIR, storedFilename))).toBe(true);
+
+  });
+
+
+  describe("Photos linked to a specific job", () => {
+
+    test("a photo uploaded with an appointment_id (and no customer_id) is derived from the job's own customer", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoJobDerive");
+      const customerId = await createCustomer(app, authHeader, "Job Derive Customer");
+      const appointmentId = await createAppointment(app, authHeader, customerId);
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", appointmentId)
+        .field("photo_type", "before")
+        .attach("photo", FAKE_IMAGE, { filename: "before.jpg", contentType: "image/jpeg" });
+
+      expect(uploaded.status).toBe(201);
+
+      const customerList = await request(app)
+        .get(`/api/photos/customer/${customerId}`)
+        .set("Authorization", authHeader);
+
+      expect(customerList.body).toHaveLength(1);
+      expect(customerList.body[0].appointment_id).toBe(appointmentId);
+      expect(customerList.body[0].photo_type).toBe("before");
+
+    });
+
+    test("a job's own photos are listed back in the order they were taken", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoJobList");
+      const customerId = await createCustomer(app, authHeader, "Job List Customer");
+      const appointmentId = await createAppointment(app, authHeader, customerId);
+
+      await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", appointmentId)
+        .field("photo_type", "before")
+        .attach("photo", FAKE_IMAGE, { filename: "before.jpg", contentType: "image/jpeg" });
+
+      await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", appointmentId)
+        .field("photo_type", "after")
+        .attach("photo", FAKE_IMAGE, { filename: "after.jpg", contentType: "image/jpeg" });
+
+      const jobPhotos = await request(app)
+        .get(`/api/photos/appointment/${appointmentId}`)
+        .set("Authorization", authHeader);
+
+      expect(jobPhotos.status).toBe(200);
+      expect(jobPhotos.body).toHaveLength(2);
+      expect(jobPhotos.body[0].photo_type).toBe("before");
+      expect(jobPhotos.body[1].photo_type).toBe("after");
+
+    });
+
+    test("an invalid photo_type is rejected", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoTypeInvalid");
+      const customerId = await createCustomer(app, authHeader, "Type Invalid Customer");
+      const appointmentId = await createAppointment(app, authHeader, customerId);
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", appointmentId)
+        .field("photo_type", "sideways")
+        .attach("photo", FAKE_IMAGE, { filename: "test.jpg", contentType: "image/jpeg" });
+
+      expect(uploaded.status).toBe(400);
+
+    });
+
+    test("uploading against a job with no customer, and no customer_id given, is rejected clearly", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoJobNoCustomer");
+      const appointmentId = await createAppointment(app, authHeader, null);
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", appointmentId)
+        .attach("photo", FAKE_IMAGE, { filename: "test.jpg", contentType: "image/jpeg" });
+
+      expect(uploaded.status).toBe(400);
+
+    });
+
+    test("uploading against a nonexistent appointment is rejected", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoJobNotFound");
+
+      const uploaded = await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("appointment_id", "does-not-exist")
+        .attach("photo", FAKE_IMAGE, { filename: "test.jpg", contentType: "image/jpeg" });
+
+      expect(uploaded.status).toBe(404);
+
+    });
+
+    test("a job's photos are scoped to the right business", async () => {
+
+      const bizA = await createBusinessAndUser(app, "PhotoJobScopeA");
+      const bizB = await createBusinessAndUser(app, "PhotoJobScopeB");
+
+      const customerId = await createCustomer(app, bizA.authHeader, "Scope Customer");
+      const appointmentId = await createAppointment(app, bizA.authHeader, customerId);
+
+      await request(app)
+        .post("/api/photos")
+        .set("Authorization", bizA.authHeader)
+        .field("appointment_id", appointmentId)
+        .attach("photo", FAKE_IMAGE, { filename: "test.jpg", contentType: "image/jpeg" });
+
+      const crossAttempt = await request(app)
+        .get(`/api/photos/appointment/${appointmentId}`)
+        .set("Authorization", bizB.authHeader);
+
+      expect(crossAttempt.status).toBe(404);
+
+    });
+
+    test("a plain customer-gallery upload with no appointment still works exactly as before, with a null appointment_id", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "PhotoNoJob");
+      const customerId = await createCustomer(app, authHeader, "No Job Customer");
+
+      await request(app)
+        .post("/api/photos")
+        .set("Authorization", authHeader)
+        .field("customer_id", customerId)
+        .attach("photo", FAKE_IMAGE, { filename: "test.jpg", contentType: "image/jpeg" });
+
+      const list = await request(app)
+        .get(`/api/photos/customer/${customerId}`)
+        .set("Authorization", authHeader);
+
+      expect(list.body[0].appointment_id).toBeNull();
+      expect(list.body[0].photo_type).toBeNull();
+
+    });
 
   });
 

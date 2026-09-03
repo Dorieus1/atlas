@@ -248,6 +248,13 @@ function PhotoGallery({ customerId }) {
                 alt={photo.caption || "Customer photo"}
                 className="h-full w-full object-cover transition group-hover:opacity-75"
               />
+
+              {photo.photo_type && (
+                <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+                  {photo.photo_type}
+                </span>
+              )}
+
             </button>
 
           ))}
@@ -271,7 +278,18 @@ function PhotoGallery({ customerId }) {
             <div className="flex items-center justify-between p-3">
 
               <p className="truncate text-sm text-fg-muted">
-                {confirmingDelete ? "Delete this photo?" : (activePhoto.caption || "Untitled")}
+                {confirmingDelete ? (
+                  "Delete this photo?"
+                ) : (
+                  <>
+                    {activePhoto.photo_type && (
+                      <span className="mr-1.5 rounded-full bg-brand-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-accent-text">
+                        {activePhoto.photo_type}
+                      </span>
+                    )}
+                    {activePhoto.caption || "Untitled"}
+                  </>
+                )}
               </p>
 
               <div className="flex shrink-0 items-center gap-1">

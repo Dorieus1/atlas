@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   CalendarDays,
   PenLine,
+  Camera,
   X
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ import {
 import EmptyState from "../components/EmptyState";
 import Skeleton from "../components/Skeleton";
 import SignaturePad from "../components/SignaturePad";
+import JobPhotosModal from "../components/JobPhotosModal";
 import { formatMinutes, summarizeTimeEntries } from "../utils/duration";
 
 
@@ -98,6 +100,8 @@ function Today() {
   const [signError, setSignError] = useState("");
   const [signSubmitting, setSignSubmitting] = useState(false);
   const signaturePadRef = useRef(null);
+
+  const [photosAppt, setPhotosAppt] = useState(null);
 
   // "mine" once teammates load and the signed-in user turns out to be
   // staff - a crew member's own phone should open straight to their own
@@ -550,6 +554,14 @@ function Today() {
                     </Link>
                   )}
 
+                  <button
+                    onClick={() => setPhotosAppt(appt)}
+                    className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium transition hover:bg-border-strong"
+                  >
+                    <Camera size={14} />
+                    Photos
+                  </button>
+
                   {!isDone && (
 
                     <button
@@ -680,6 +692,15 @@ function Today() {
           </div>
 
         </div>
+
+      )}
+
+      {photosAppt && (
+
+        <JobPhotosModal
+          appointmentId={photosAppt.id}
+          onClose={() => setPhotosAppt(null)}
+        />
 
       )}
 

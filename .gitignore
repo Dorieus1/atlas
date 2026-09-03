@@ -13,3 +13,4 @@ backend/__tests__/test.db*
 backend/__tests__/test-backups/
 backend/__tests__/test-uploads/
 backend/__tests__/.runs/
+logs/

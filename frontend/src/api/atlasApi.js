@@ -1314,17 +1314,39 @@ export const getCustomerPhotos = (customerId) =>
 
 
 
-export const uploadPhoto = async (customerId, file, caption) => {
+export const getAppointmentPhotos = (appointmentId) =>
+
+  request(`/photos/appointment/${appointmentId}`);
+
+
+
+// customerId stays a plain positional arg (every existing caller passes
+// it), while appointmentId/photoType ride along as an options object -
+// both are optional add-ons for tagging a photo to a specific job (see
+// migration 060), not something the original customer-gallery upload
+// needs to change at all.
+export const uploadPhoto = async (customerId, file, caption, { appointmentId, photoType } = {}) => {
 
   const token = localStorage.getItem("token");
 
   const formData = new FormData();
 
-  formData.append("customer_id", customerId);
+  if (customerId) {
+    formData.append("customer_id", customerId);
+  }
+
   formData.append("photo", file);
 
   if (caption) {
     formData.append("caption", caption);
+  }
+
+  if (appointmentId) {
+    formData.append("appointment_id", appointmentId);
+  }
+
+  if (photoType) {
+    formData.append("photo_type", photoType);
   }
 
   const response = await fetch(`${API}/photos`, {
