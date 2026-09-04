@@ -342,6 +342,15 @@ function Customers() {
 
       await loadCustomers();
 
+      // Importing a CSV is exactly the moment a NEW near-duplicate is
+      // most likely to appear - "John Smith" from a spreadsheet next to
+      // an existing "Jon Smith" won't get caught by the exact-match
+      // skip above (skipped_duplicates), but it will show up here.
+      // Without this refresh, the "Possible Duplicate Customers" banner
+      // stayed stale until the next unrelated page load, so a business
+      // that just imported 200 rows had no prompt to go check it.
+      await loadDuplicates();
+
     } catch (error) {
 
       console.error("CUSTOMER IMPORT ERROR:", error);
@@ -948,6 +957,23 @@ function Customers() {
                       <li key={i}>Row {missing.row}</li>
                     ))}
                   </ul>
+
+                )}
+
+                {duplicateGroups.length > 0 && (
+
+                  // Not necessarily caused by THIS import (loadDuplicates
+                  // above just re-checked the whole customer list), but
+                  // right after importing a batch of rows is exactly when
+                  // a near-duplicate that isn't an exact match - "John
+                  // Smith" imported next to an existing "Jon Smith" -
+                  // actually matters, so it's worth a nudge here rather
+                  // than leaving it to whenever they happen to notice the
+                  // banner above the list.
+                  <p className="flex items-center gap-1.5 text-fg-muted">
+                    <Copy size={13} />
+                    {duplicateGroups.length} possible duplicate {duplicateGroups.length === 1 ? "group" : "groups"} in your customer list — worth a look above once you close this.
+                  </p>
 
                 )}
 
