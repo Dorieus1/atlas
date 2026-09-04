@@ -27,7 +27,7 @@ const FEATURES = [
   {
     icon: Send,
     title: "Follow-Ups, Written For You",
-    description: "One click generates a ready-to-send text or email for any lead — in your voice, based on what they actually asked about."
+    description: "One click drafts a message for any lead, ready to copy into a text or email — in your voice, based on what they actually asked about."
   },
   {
     icon: Sun,
