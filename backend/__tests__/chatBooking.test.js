@@ -145,14 +145,21 @@ describe("AI chat booking tools", () => {
   });
 
 
-  test("a book_appointment tool call creates a real 'requested' appointment and notifies the owner", async () => {
+  // Real booking through chat only happens on the PUBLIC path now (a
+  // real visitor talking to the business's actual widget) - the
+  // internal, authenticated /api/chat endpoint used by the CRM's own
+  // "Test Atlas" box (ChatWindow.jsx) is always a preview and must never
+  // book anything for real (see the dedicated preview describe block
+  // below for that half of the behavior).
+  test("a book_appointment tool call on the real public chat creates a real 'requested' appointment and notifies the owner", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ChatBookAppointment");
     await setBusinessHours(authHeader, "ChatBookAppointment Business", WEEKDAY_HOURS);
 
-    const customerRes = await request(app)
-      .post("/api/customers")
-      .set("Authorization", authHeader)
+    const business = (await request(app).get("/api/business").set("Authorization", authHeader)).body[0];
+
+    const started = await request(app)
+      .post(`/api/public/${business.slug}/start`)
       .send({ name: "Booking Customer" });
 
     global.__mockOpenAICreate.mockResolvedValueOnce({
@@ -173,9 +180,8 @@ describe("AI chat booking tools", () => {
     });
 
     const res = await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerRes.body.id, message: "Book me for Monday at 10am please" });
+      .post(`/api/public/${business.slug}/chat`)
+      .send({ customer_id: started.body.customer_id, message: "Book me for Monday at 10am please" });
 
     expect(res.status).toBe(200);
     expect(res.body.reply).toBe("You're all set for Monday at 10am!");
@@ -200,14 +206,15 @@ describe("AI chat booking tools", () => {
   });
 
 
-  test("the model can't book a slot that's already taken - the tool reports failure, not a silent double-booking", async () => {
+  test("the model can't book a slot that's already taken on the real public chat - the tool reports failure, not a silent double-booking", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ChatBookConflict");
     await setBusinessHours(authHeader, "ChatBookConflict Business", WEEKDAY_HOURS);
 
-    const customerRes = await request(app)
-      .post("/api/customers")
-      .set("Authorization", authHeader)
+    const business = (await request(app).get("/api/business").set("Authorization", authHeader)).body[0];
+
+    const started = await request(app)
+      .post(`/api/public/${business.slug}/start`)
       .send({ name: "Conflict Customer" });
 
     // Something else already booked that exact time.
@@ -234,9 +241,8 @@ describe("AI chat booking tools", () => {
     });
 
     await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerRes.body.id, message: "Book me for Monday at 10am" });
+      .post(`/api/public/${business.slug}/chat`)
+      .send({ customer_id: started.body.customer_id, message: "Book me for Monday at 10am" });
 
     const [, secondCallArgs] = replyCalls();
     const toolOutputItem = secondCallArgs.input.find((item) => item.type === "function_call_output");
@@ -252,6 +258,137 @@ describe("AI chat booking tools", () => {
 
     // Still just the one pre-existing appointment - not two.
     expect(atThatTime).toHaveLength(1);
+
+  });
+
+
+  // Regression coverage for a real bug a design/feature review caught:
+  // this internal, authenticated endpoint is what the CRM's own "Test
+  // Atlas" box (ChatWindow.jsx) calls when an owner or teammate types a
+  // message just to see how Atlas would respond. Before this fix, it ran
+  // through the exact same pipeline as a real customer's message -
+  // meaning a business owner innocently testing "what would Atlas say if
+  // someone asked to book Tuesday" could actually consume a real slot
+  // and create a real appointment on their own calendar, plus write a
+  // fabricated exchange into that customer's real, portal-visible
+  // conversation history, plus spawn a fake lead/follow-up task/
+  // notification - all from a message nobody outside the business ever
+  // sent. This describe block is what proves that's fixed.
+  describe("the internal /api/chat endpoint is always a preview - it never has real side effects", () => {
+
+    test("a book_appointment tool call is refused, not executed, and creates no appointment or notification", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ChatPreviewNoBook");
+      await setBusinessHours(authHeader, "ChatPreviewNoBook Business", WEEKDAY_HOURS);
+
+      const customerRes = await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "Preview Customer" });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({
+
+        output_text: "",
+
+        output: [{
+          type: "function_call",
+          call_id: "call_1",
+          name: "book_appointment",
+          arguments: JSON.stringify({ start_time: "2026-09-14T10:00:00.000Z", title: "Leaky faucet" })
+        }]
+
+      });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({
+        output_text: "I wasn't able to book that."
+      });
+
+      const res = await request(app)
+        .post("/api/chat")
+        .set("Authorization", authHeader)
+        .send({ customer_id: customerRes.body.id, message: "Book me for Monday at 10am please" });
+
+      expect(res.status).toBe(200);
+
+      const [, secondCallArgs] = replyCalls();
+      const toolOutputItem = secondCallArgs.input.find((item) => item.type === "function_call_output");
+      const parsed = JSON.parse(toolOutputItem.output);
+
+      expect(parsed.success).toBe(false);
+
+      const appts = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      expect(appts.body.find((a) => a.start_time === "2026-09-14T10:00:00.000Z")).toBeUndefined();
+
+      const notifications = await request(app)
+        .get("/api/notifications")
+        .set("Authorization", authHeader);
+
+      expect(notifications.body.some((n) => n.type === "appointment_requested")).toBe(false);
+
+    });
+
+
+    test("a preview message is never saved to the customer's real conversation history", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ChatPreviewNoSave");
+
+      const customerRes = await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "No Save Customer" });
+
+      global.__mockOpenAICreate.mockResolvedValueOnce({ output_text: "Sure, here's an answer." });
+
+      await request(app)
+        .post("/api/chat")
+        .set("Authorization", authHeader)
+        .send({ customer_id: customerRes.body.id, message: "This is only a test message" });
+
+      const history = await request(app)
+        .get(`/api/conversations/${customerRes.body.id}`)
+        .set("Authorization", authHeader);
+
+      expect(history.body).toHaveLength(0);
+
+    });
+
+
+    test("a preview message doesn't create a lead, even with clear buying intent", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ChatPreviewNoLead");
+
+      const customerRes = await request(app)
+        .post("/api/customers")
+        .set("Authorization", authHeader)
+        .send({ name: "No Lead Customer" });
+
+      global.__mockOpenAICreate.mockImplementation((args) => {
+
+        if (args.instructions && args.instructions.includes("sales qualification")) {
+          return Promise.resolve({ output_text: "hot" });
+        }
+
+        return Promise.resolve({ output_text: "Sure, I can help with that." });
+
+      });
+
+      await request(app)
+        .post("/api/chat")
+        .set("Authorization", authHeader)
+        .send({ customer_id: customerRes.body.id, message: "I need a full roof replacement ASAP, how much?" });
+
+      await flushBackgroundWork();
+
+      const leads = await request(app)
+        .get("/api/leads")
+        .set("Authorization", authHeader);
+
+      expect(leads.body).toHaveLength(0);
+
+    });
 
   });
 

@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const { flushBackgroundWork } = require("../services/chatService");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 const createCustomer = async (app, authHeader, name) => {
 
@@ -43,10 +43,7 @@ describe("Notifications", () => {
     const { authHeader } = await createBusinessAndUser(app, "NotifyHotLead");
     const customerId = await createCustomer(app, authHeader, "Notify Customer");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "I need an estimate for a new roof" });
+    await sendChatMessage(app, authHeader, customerId, "I need an estimate for a new roof");
 
     await flushBackgroundWork();
 
@@ -75,10 +72,7 @@ describe("Notifications", () => {
       .mockResolvedValueOnce({ output_text: "Sure, happy to help!" })
       .mockResolvedValueOnce({ output_text: "cold" });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Just saying hello" });
+    await sendChatMessage(app, authHeader, customerId, "Just saying hello");
 
     // Nothing to poll FOR here (the whole point is absence). Wait for
     // the detached lead-detection work to actually finish rather than
@@ -135,15 +129,9 @@ describe("Notifications", () => {
     const customerOneId = await createCustomer(app, authHeader, "Read State Customer One");
     const customerTwoId = await createCustomer(app, authHeader, "Read State Customer Two");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerOneId, message: "I need a repair estimate" });
+    await sendChatMessage(app, authHeader, customerOneId, "I need a repair estimate");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerTwoId, message: "What's the price for a repair?" });
+    await sendChatMessage(app, authHeader, customerTwoId, "What's the price for a repair?");
 
     await flushBackgroundWork();
 
@@ -193,10 +181,7 @@ describe("Notifications", () => {
 
     const customerId = await createCustomer(app, bizA.authHeader, "Isolation Customer");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", bizA.authHeader)
-      .send({ customer_id: customerId, message: "I need an estimate" });
+    await sendChatMessage(app, bizA.authHeader, customerId, "I need an estimate");
 
     await flushBackgroundWork();
 
@@ -222,10 +207,7 @@ describe("Notifications", () => {
 
     const customerId = await createCustomer(app, bizA.authHeader, "Cross Read Customer");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", bizA.authHeader)
-      .send({ customer_id: customerId, message: "I need an estimate" });
+    await sendChatMessage(app, bizA.authHeader, customerId, "I need an estimate");
 
     await flushBackgroundWork();
 

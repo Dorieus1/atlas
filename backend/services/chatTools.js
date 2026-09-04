@@ -141,7 +141,16 @@ function formatAvailabilityForModel(days, timezone) {
 // own "no hours configured" handling), so rather than exposing a tool
 // that always comes back empty, the model just relies on its plain-text
 // instructions to say scheduling isn't self-service yet.
-function buildChatTools(business, customer) {
+// `preview` is true for the internal, authenticated "test what Atlas
+// would say" box in the CRM (ChatWindow.jsx / chatController.chatResponse)
+// - never for a real customer, on the public widget or in their portal.
+// check_availability is still allowed there (it's read-only, and being
+// able to test "does Atlas know our hours" is the actual point of a
+// preview), but book_appointment is refused rather than executed - a
+// business owner poking at "what would Atlas say if someone asked to
+// book Tuesday" must never actually consume a real slot or create a
+// real appointment on their own calendar just from testing a reply.
+function buildChatTools(business, customer, { preview = false } = {}) {
 
   if (!business?.business_hours) {
 
@@ -160,6 +169,12 @@ function buildChatTools(business, customer) {
         const days = await getAvailability(business, args?.start_date, DEFAULT_LOOKAHEAD_DAYS, DEFAULT_DURATION_MINUTES);
 
         return { days: formatAvailabilityForModel(days, business.timezone) };
+
+      }
+
+      if (name === "book_appointment" && preview) {
+
+        return { success: false, error: "This is a preview - booking isn't performed here. Try it from the customer's own real chat." };
 
       }
 

@@ -178,20 +178,15 @@ function ChatWindow({ business, customer }) {
 
       <h2 className="text-2xl font-bold flex items-center gap-2">
         <MessageSquare size={22} />
-        Atlas Chat
-
-        {business && (
-          <span className="font-normal text-fg-muted">
-            {" "} - {business.name}
-          </span>
-        )}
+        Test Atlas
       </h2>
 
-      {customer && (
-        <p className="text-fg-muted mt-1">
-          Customer: {customer.name}
-        </p>
-      )}
+      <p className="text-fg-muted mt-1">
+        See how Atlas would reply to {customer?.name || "this customer"} - your test messages
+        below are only a preview. They aren't saved to {customer?.name ? `${customer.name}'s` : "the customer's"} real
+        conversation, and Atlas won't book a real appointment from here. The messages already
+        shown are their actual conversation history with Atlas, for reference.
+      </p>
 
 
 
@@ -230,8 +225,8 @@ function ChatWindow({ business, customer }) {
 
         <input
           type="text"
-          aria-label="Type a message"
-          placeholder="Type a message..."
+          aria-label="Type a test message"
+          placeholder="Try a message to preview Atlas's reply..."
           value={message}
           onChange={(e) =>
             setMessage(e.target.value)

@@ -211,6 +211,15 @@ function ProductTour() {
 
     setActive(false);
 
+    // A later step (e.g. the Getting Started checklist, below the fold)
+    // scrolls its target into view via useTargetRect's own
+    // scrollIntoView call - real bug found in review: skipping or
+    // finishing the tour from one of those steps left the page scrolled
+    // down with nothing there anymore (the tour overlay that was
+    // pointing at that spot is gone), which reads as a broken, empty
+    // dashboard rather than a completed tour.
+    window.scrollTo({ top: 0 });
+
     completeTour().catch((error) => console.error("TOUR COMPLETE ERROR:", error));
 
   };

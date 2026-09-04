@@ -65,4 +65,30 @@ const createBusinessAndUser = async (app, prefix) => {
 
 };
 
-module.exports = { createBusinessAndUser };
+
+
+// Sends a message through the exact pipeline a REAL customer's message
+// takes (the public chat widget - see routes/public.js's sendPublicMessage),
+// not the internal, authenticated /api/chat endpoint the CRM's own "Test
+// Atlas" preview box uses. Since the preview fix (see chatService's
+// `preview` option), /api/chat never saves a conversation, never creates a
+// lead/activity/memory/knowledge-gap, and never books a real appointment -
+// so any test that needs one of those real side effects to actually happen
+// has to go through here instead, exactly like a real customer would.
+// Reuses whatever customer_id the caller already has (from the normal
+// authenticated POST /api/customers, say) - sendPublicMessage only needs
+// that customer to belong to the business the slug resolves to, it doesn't
+// care whether the customer was created through the public /start flow or
+// not.
+const sendChatMessage = async (app, authHeader, customerId, message) => {
+
+  const business = (await request(app).get("/api/business").set("Authorization", authHeader)).body[0];
+
+  return request(app)
+    .post(`/api/public/${business.slug}/chat`)
+    .send({ customer_id: customerId, message });
+
+};
+
+
+module.exports = { createBusinessAndUser, sendChatMessage };

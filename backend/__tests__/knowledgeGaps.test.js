@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const { flushBackgroundWork } = require("../services/chatService");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 
 const createCustomer = async (app, authHeader, name) => {
@@ -73,10 +73,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
       });
 
-    const chat = await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Do you offer any kind of warranty?" });
+    const chat = await sendChatMessage(app, authHeader, customerId, "Do you offer any kind of warranty?");
 
     expect(chat.status).toBe(200);
 
@@ -106,10 +103,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({ output_text: JSON.stringify({ has_gap: false }) });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "What are your hours?" });
+    await sendChatMessage(app, authHeader, customerId, "What are your hours?");
 
     const gaps = await waitForGaps(app, authHeader);
 
@@ -128,10 +122,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
       .mockResolvedValueOnce({ output_text: "cold" })
       .mockResolvedValueOnce({ output_text: "not json at all" });
 
-    const chat = await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Random question" });
+    const chat = await sendChatMessage(app, authHeader, customerId, "Random question");
 
     expect(chat.status).toBe(200);
     expect(chat.body.reply).toBe("Here's an answer for you.");
@@ -161,10 +152,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
       });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Do you do emergency calls?" });
+    await sendChatMessage(app, authHeader, customerId, "Do you do emergency calls?");
 
     const gaps = await waitForGaps(app, authHeader);
 
@@ -209,10 +197,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
       });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Some question" });
+    await sendChatMessage(app, authHeader, customerId, "Some question");
 
     const gaps = await waitForGaps(app, authHeader);
 
@@ -250,10 +235,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
       });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "Some question" });
+    await sendChatMessage(app, authHeader, customerId, "Some question");
 
     const gaps = await waitForGaps(app, authHeader);
 
@@ -296,10 +278,7 @@ describe("Self-improving knowledge base (knowledge gaps)", () => {
 
       });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", bizA.authHeader)
-      .send({ customer_id: customerId, message: "Some question" });
+    await sendChatMessage(app, bizA.authHeader, customerId, "Some question");
 
     const bList = await request(app)
       .get("/api/knowledge-gaps")

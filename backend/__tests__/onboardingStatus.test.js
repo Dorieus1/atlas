@@ -1,6 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 describe("Onboarding status", () => {
 
@@ -61,10 +61,13 @@ describe("Onboarding status", () => {
     expect(afterReviewLink.body.has_review_link).toBe(true);
     expect(afterReviewLink.body.has_conversation).toBe(false);
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerRes.body.id, message: "Just saying hi" });
+    // A real conversation, not a test message through the CRM's own
+    // preview box (see chatService's `preview` option) - that box never
+    // writes a real conversation row on purpose (see chatBooking.test.js),
+    // so this milestone can only be completed by an actual customer (or
+    // the owner trying their own public chat page as one) ever having
+    // talked to Atlas.
+    await sendChatMessage(app, authHeader, customerRes.body.id, "Just saying hi");
 
     const afterConversation = await request(app)
       .get("/api/onboarding/status")

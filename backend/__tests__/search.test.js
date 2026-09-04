@@ -1,6 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 // Lead creation now runs detached from the chat response (see
 // chatService.js's runLeadDetection), so it isn't guaranteed to be
@@ -135,10 +135,7 @@ describe("Search", () => {
       .set("Authorization", authHeader)
       .send({ name: "Terry Nakamura", email: "terry@test.com" });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerRes.body.id, message: "Can I get a price estimate for a new roof?" });
+    await sendChatMessage(app, authHeader, customerRes.body.id, "Can I get a price estimate for a new roof?");
 
     const byInterest = await waitFor(async () => {
 

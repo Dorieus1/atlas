@@ -2,7 +2,7 @@ const request = require("supertest");
 const app = require("../server");
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 const runAsync = (sql, params = []) => {
 
@@ -63,13 +63,7 @@ const createCustomerWithLead = async (app, authHeader, customerName, phone) => {
     .set("Authorization", authHeader)
     .send({ name: customerName, phone });
 
-  await request(app)
-    .post("/api/chat")
-    .set("Authorization", authHeader)
-    .send({
-      customer_id: customer.body.id,
-      message: "I need an estimate for a repair"
-    });
+  await sendChatMessage(app, authHeader, customer.body.id, "I need an estimate for a repair");
 
   const leads = await waitFor(async () => {
 
@@ -119,13 +113,7 @@ describe("Leads", () => {
 
     const { customerId, lead } = await createCustomerWithLead(app, authHeader, "No Duplicate Customer");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({
-        customer_id: customerId,
-        message: "Also, how soon could someone come out?"
-      });
+    await sendChatMessage(app, authHeader, customerId, "Also, how soon could someone come out?");
 
     // No waitFor here on purpose - there's nothing new to wait for. A
     // short real delay is what actually proves the second message's
@@ -154,13 +142,7 @@ describe("Leads", () => {
       .set("Authorization", authHeader)
       .send({ status: "closed" });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({
-        customer_id: customerId,
-        message: "I'd like to book another repair"
-      });
+    await sendChatMessage(app, authHeader, customerId, "I'd like to book another repair");
 
     const leads = await waitFor(async () => {
 
@@ -202,13 +184,7 @@ describe("Leads", () => {
     // getCustomerLead's own "most recent" query would return.
     await insertLead(business_id, customerId, "closed", "2026-01-02T00:00:00.000Z");
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({
-        customer_id: customerId,
-        message: "Following up on my repair request"
-      });
+    await sendChatMessage(app, authHeader, customerId, "Following up on my repair request");
 
     // No waitFor here on purpose, same reasoning as the duplicate-
     // message test above - there's nothing new to wait for, and a short

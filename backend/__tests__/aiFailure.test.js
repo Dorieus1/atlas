@@ -1,6 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 
 const createCustomer = async (app, authHeader, name) => {
 
@@ -58,10 +58,10 @@ describe("AI failures don't take down the server", () => {
     // saved before this detached call even starts.
     global.__mockOpenAICreate.mockRejectedValueOnce(new Error("Request timed out"));
 
-    const res = await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "I need an estimate for a repair" });
+    // A real message, not the CRM's own preview box - persistence is
+    // exactly what this test is checking, and the preview endpoint never
+    // persists on purpose (see chatService's `preview` option).
+    const res = await sendChatMessage(app, authHeader, customerId, "I need an estimate for a repair");
 
     expect(res.status).toBe(200);
     expect(res.body.reply).toBe("Sure, I can help with that.");

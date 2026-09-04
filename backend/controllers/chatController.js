@@ -40,7 +40,11 @@ const chatResponse = async (req, res) => {
 
     try {
 
-      const result = await processChatMessage(customer, business, message);
+      // Always preview here - this endpoint is the internal, authenticated
+      // "test what Atlas would say" tool used from inside the CRM
+      // (ChatWindow.jsx), never the real customer. See processChatMessage's
+      // own comment for exactly what preview mode does and doesn't do.
+      const result = await processChatMessage(customer, business, message, { preview: true });
 
       res.json(result);
 

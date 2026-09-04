@@ -1,6 +1,6 @@
 const request = require("supertest");
 const app = require("../server");
-const { createBusinessAndUser } = require("./setup/helpers");
+const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
 const db = require("../../database/db");
 
 const allAsync = (sql, params = []) => {
@@ -229,10 +229,7 @@ describe("Customers", () => {
       .set("Authorization", authHeader)
       .send({ customer_id: customerId, memory: "should survive" });
 
-    await request(app)
-      .post("/api/chat")
-      .set("Authorization", authHeader)
-      .send({ customer_id: customerId, message: "I need an estimate for a repair" });
+    await sendChatMessage(app, authHeader, customerId, "I need an estimate for a repair");
 
     await waitForLead(customerId);
 
