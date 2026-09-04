@@ -280,7 +280,9 @@ const login = async (req,res)=>{
 
         email:user.email,
 
-        business_id:user.business_id
+        business_id:user.business_id,
+
+        role:user.role
 
       }
 

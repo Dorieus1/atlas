@@ -35,6 +35,16 @@ describe("Auth: register and login", () => {
     expect(login.body.token).toBeTruthy();
     expect(login.body.user.business_id).toBe(biz.body.id);
 
+    // The frontend's own sidebar decides whether to show the
+    // owner-only Timesheets link straight from this field on the
+    // logged-in-in-browser user object (see frontend/src/layout/
+    // Sidebar.jsx) - never fetched fresh from the server, so it has to
+    // actually be present in the login response, not just true in the
+    // database. The very first account on a brand new business is
+    // always the owner (see register() - it only ever succeeds when
+    // the business has zero existing users).
+    expect(login.body.user.role).toBe("owner");
+
   });
 
   test("registering with a too-short password is rejected", async () => {

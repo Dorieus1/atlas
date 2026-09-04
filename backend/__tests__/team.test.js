@@ -45,6 +45,7 @@ describe("Team logins", () => {
 
     expect(teammateLogin.status).toBe(200);
     expect(teammateLogin.body.user.business_id).toBe(owner.business_id);
+    expect(teammateLogin.body.user.role).toBe("staff");
 
     const created = await request(app)
       .post("/api/customers")
