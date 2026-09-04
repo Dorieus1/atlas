@@ -455,4 +455,88 @@ describe("Appointment time tracking", () => {
 
   });
 
+
+  describe("Time tracking on/off toggle", () => {
+
+    test("is on by default for a brand new business", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "TimeTrackingDefault");
+
+      const res = await request(app)
+        .get("/api/business")
+        .set("Authorization", authHeader);
+
+      expect(res.body[0].time_tracking_enabled).toBe(1);
+
+    });
+
+
+    test("turning it off blocks clocking in, but an update that omits the field leaves it as-is", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "TimeTrackingOff");
+
+      const appointmentId = await createAppointment(authHeader);
+
+      await request(app)
+        .put("/api/business")
+        .set("Authorization", authHeader)
+        .send({ name: "TimeTrackingOff Business", time_tracking_enabled: false });
+
+      const disabledCheck = await request(app)
+        .get("/api/business")
+        .set("Authorization", authHeader);
+
+      expect(disabledCheck.body[0].time_tracking_enabled).toBe(0);
+
+      const clockIn = await request(app)
+        .post(`/api/appointments/${appointmentId}/clock-in`)
+        .set("Authorization", authHeader);
+
+      expect(clockIn.status).toBe(400);
+      expect(clockIn.body.error).toMatch(/turned off/i);
+
+      // An unrelated save (e.g. just changing the phone number) that
+      // doesn't mention time_tracking_enabled at all must not silently
+      // flip it back on.
+      await request(app)
+        .put("/api/business")
+        .set("Authorization", authHeader)
+        .send({ name: "TimeTrackingOff Business", phone: "555-0100" });
+
+      const stillOff = await request(app)
+        .get("/api/business")
+        .set("Authorization", authHeader);
+
+      expect(stillOff.body[0].time_tracking_enabled).toBe(0);
+
+    });
+
+
+    test("turning it back off doesn't strand someone already clocked in - clock-out still works", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "TimeTrackingStrand");
+
+      const appointmentId = await createAppointment(authHeader);
+
+      const clockIn = await request(app)
+        .post(`/api/appointments/${appointmentId}/clock-in`)
+        .set("Authorization", authHeader);
+
+      expect(clockIn.status).toBe(200);
+
+      await request(app)
+        .put("/api/business")
+        .set("Authorization", authHeader)
+        .send({ name: "TimeTrackingStrand Business", time_tracking_enabled: false });
+
+      const clockOut = await request(app)
+        .post(`/api/appointments/${appointmentId}/clock-out`)
+        .set("Authorization", authHeader);
+
+      expect(clockOut.status).toBe(200);
+
+    });
+
+  });
+
 });

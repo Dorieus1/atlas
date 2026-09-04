@@ -16,14 +16,32 @@ import {
 } from "lucide-react";
 
 
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import NotificationBell from "../components/NotificationBell";
+import { getBusinesses } from "../api/atlasApi";
 
 
 function Sidebar({ open, onClose, onOpenSearch }) {
 
   const navigate = useNavigate();
+
+  // Defaults to true (shown) so the link doesn't flicker in and back out
+  // for the common case - a business that's turned it off is the
+  // exception, not the norm. Fetched once here (Sidebar mounts once for
+  // the whole logged-in session, unlike the page content inside it)
+  // rather than threading the setting down from every page that has its
+  // own Clock In/Out button.
+  const [timeTrackingEnabled, setTimeTrackingEnabled] = useState(true);
+
+  useEffect(() => {
+
+    getBusinesses()
+      .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
+      .catch((error) => console.error("SIDEBAR BUSINESS LOAD ERROR:", error));
+
+  }, []);
 
   const handleLogout = () => {
 
@@ -124,7 +142,7 @@ function Sidebar({ open, onClose, onOpenSearch }) {
       tourId: "nav-analytics"
     },
 
-    ...(isOwner ? [{
+    ...(isOwner && timeTrackingEnabled ? [{
       name: "Timesheets",
       path: "/timesheets",
       icon: Clock

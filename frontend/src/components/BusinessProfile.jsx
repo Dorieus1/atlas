@@ -68,6 +68,7 @@ function BusinessProfile({ business }) {
     timezone: "",
     default_tax_rate: "",
     default_hourly_labor_cost: "",
+    time_tracking_enabled: true,
   });
 
   // null means "hours not configured" (nothing enforced). Once the owner
@@ -105,6 +106,10 @@ function BusinessProfile({ business }) {
         default_hourly_labor_cost: business.default_hourly_labor_cost === null || business.default_hourly_labor_cost === undefined
           ? ""
           : String(business.default_hourly_labor_cost),
+        // Not every column exists on every row yet on a freshly-migrated
+        // database mid-deploy - undefined is treated the same as the
+        // migration's own default (on), never as off.
+        time_tracking_enabled: business.time_tracking_enabled !== 0,
 
       });
 
@@ -539,6 +544,36 @@ function BusinessProfile({ business }) {
       <p className="text-xs text-fg-faint -mt-2 mb-3">
         Used with clock-in/out on appointments to work out real labor cost for the Profit Margin report - leave blank to leave labor out of that number.
       </p>
+
+      <div className="rounded-lg border border-border bg-surface-muted p-3 mb-3">
+
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+
+          <input
+            type="checkbox"
+            checked={form.time_tracking_enabled}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                time_tracking_enabled: e.target.checked
+              })
+            }
+            className="h-4 w-4 accent-brand-600"
+          />
+
+          <span className="font-semibold">
+            Time Tracking (Clock In/Out)
+          </span>
+
+        </label>
+
+        <p className="mt-1.5 text-xs text-fg-faint">
+          {form.time_tracking_enabled
+            ? "Your team can clock in and out on jobs, and it feeds real labor cost into the Profit Margin report. Turn this off if you don't pay by the hour - not every business needs it."
+            : "Off - the Clock In/Out buttons, the \"On The Clock\" dashboard panel, and Timesheets are all hidden. Nothing already recorded is deleted."}
+        </p>
+
+      </div>
 
 
       <div className="border-t border-border pt-4 mt-2 mb-3">

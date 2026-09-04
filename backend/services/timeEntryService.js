@@ -48,6 +48,16 @@ const clockInUser = async (appointment_id, business_id, user_id) => {
     return { error: "not_found" };
   }
 
+  // Checked here, not just hidden in the UI - the Settings toggle is the
+  // real gate. Clock-OUT is deliberately never blocked this way: turning
+  // the feature off mid-shift shouldn't strand whoever's already clocked
+  // in with no way to close out their own open session.
+  const business = await getAsync(`SELECT time_tracking_enabled FROM businesses WHERE id = ?`, [business_id]);
+
+  if (business && business.time_tracking_enabled === 0) {
+    return { error: "time_tracking_disabled" };
+  }
+
   const openEntry = await getAsync(
 
     `

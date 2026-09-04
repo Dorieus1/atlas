@@ -103,7 +103,8 @@ module.exports = async () => {
           apple_calendar_url TEXT,
           calendar_feed_token TEXT,
           default_tax_rate REAL,
-          default_hourly_labor_cost REAL
+          default_hourly_labor_cost REAL,
+          time_tracking_enabled INTEGER NOT NULL DEFAULT 1
         )
       `);
 

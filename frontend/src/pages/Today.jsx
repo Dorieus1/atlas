@@ -21,7 +21,8 @@ import {
   clockOutAppointment,
   updateAppointmentStatus,
   getQuoteByAppointment,
-  signQuoteInPerson
+  signQuoteInPerson,
+  getBusinesses
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
@@ -103,6 +104,11 @@ function Today() {
 
   const [photosAppt, setPhotosAppt] = useState(null);
 
+  // Defaults to true so the Clock In/Out buttons don't flash in and back
+  // out for the common case while this loads - a business that's turned
+  // the feature off in Settings is the exception, not the norm.
+  const [timeTrackingEnabled, setTimeTrackingEnabled] = useState(true);
+
   // "mine" once teammates load and the signed-in user turns out to be
   // staff - a crew member's own phone should open straight to their own
   // jobs, not the whole team's, the same default Schedule.jsx already
@@ -148,6 +154,10 @@ function Today() {
   useEffect(() => {
 
     load();
+
+    getBusinesses()
+      .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
+      .catch((error) => console.error("TODAY BUSINESS LOAD ERROR:", error));
 
   }, []);
 
@@ -507,7 +517,7 @@ function Today() {
                   </p>
                 )}
 
-                {timeEntrySummary.some((person) => person.totalMinutes > 0) && (
+                {timeTrackingEnabled && timeEntrySummary.some((person) => person.totalMinutes > 0) && (
                   <p className="mt-2 flex items-center gap-1.5 text-xs text-fg-faint">
                     <Clock size={11} />
                     Logged {timeEntrySummary
@@ -562,60 +572,72 @@ function Today() {
                     Photos
                   </button>
 
-                  {!isDone && (
+                  {/*
+                    One wrapper carries the ml-auto (rather than the old
+                    approach of putting it on the Clock button alone) so
+                    this group still gets pushed to the right end even
+                    when Clock In/Out is hidden - a business with time
+                    tracking turned off shouldn't see Sign On-Site/Mark
+                    Done shift over to sit right after Photos.
+                  */}
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
 
-                    <button
-                      onClick={() => handleClockToggle(appt)}
-                      disabled={clockingId === appt.id}
-                      className={`ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${clockedIn ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
-                    >
-                      <Clock size={14} />
-                      {clockingId === appt.id ? "..." : clockedIn ? "Clock Out" : "Clock In"}
-                    </button>
+                    {!isDone && timeTrackingEnabled && (
 
-                  )}
+                      <button
+                        onClick={() => handleClockToggle(appt)}
+                        disabled={clockingId === appt.id}
+                        className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${clockedIn ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
+                      >
+                        <Clock size={14} />
+                        {clockingId === appt.id ? "..." : clockedIn ? "Clock Out" : "Clock In"}
+                      </button>
 
-                  {signableQuotes[appt.id] && !signableQuotes[appt.id].has_tiers && (
+                    )}
 
-                    <button
-                      onClick={() => openSignOnSite(appt)}
-                      className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
-                    >
-                      <PenLine size={14} />
-                      Sign On-Site
-                    </button>
+                    {signableQuotes[appt.id] && !signableQuotes[appt.id].has_tiers && (
 
-                  )}
+                      <button
+                        onClick={() => openSignOnSite(appt)}
+                        className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+                      >
+                        <PenLine size={14} />
+                        Sign On-Site
+                      </button>
 
-                  {signableQuotes[appt.id]?.has_tiers && (
+                    )}
 
-                    // A "Good/Better/Best" quote needs its own option
-                    // picker before signing - this quick view doesn't
-                    // have room to build that out, so it points to the
-                    // one place that does rather than offering a Sign
-                    // On-Site button that would just fail.
-                    <Link
-                      to={`/quotes?open=${signableQuotes[appt.id].id}`}
-                      className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium text-fg-muted transition hover:bg-border-strong"
-                    >
-                      <PenLine size={14} />
-                      Sign from Quotes
-                    </Link>
+                    {signableQuotes[appt.id]?.has_tiers && (
 
-                  )}
+                      // A "Good/Better/Best" quote needs its own option
+                      // picker before signing - this quick view doesn't
+                      // have room to build that out, so it points to the
+                      // one place that does rather than offering a Sign
+                      // On-Site button that would just fail.
+                      <Link
+                        to={`/quotes?open=${signableQuotes[appt.id].id}`}
+                        className="flex items-center gap-1.5 rounded-lg bg-border px-3 py-2 text-sm font-medium text-fg-muted transition hover:bg-border-strong"
+                      >
+                        <PenLine size={14} />
+                        Sign from Quotes
+                      </Link>
 
-                  {!isDone && (
+                    )}
 
-                    <button
-                      onClick={() => handleComplete(appt)}
-                      disabled={completingId === appt.id}
-                      className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
-                    >
-                      <Check size={14} />
-                      {completingId === appt.id ? "..." : "Mark Done"}
-                    </button>
+                    {!isDone && (
 
-                  )}
+                      <button
+                        onClick={() => handleComplete(appt)}
+                        disabled={completingId === appt.id}
+                        className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+                      >
+                        <Check size={14} />
+                        {completingId === appt.id ? "..." : "Mark Done"}
+                      </button>
+
+                    )}
+
+                  </div>
 
                 </div>
 

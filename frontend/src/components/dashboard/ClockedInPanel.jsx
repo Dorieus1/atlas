@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 
-import { getAppointments } from "../../api/atlasApi";
+import { getAppointments, getBusinesses } from "../../api/atlasApi";
 import { formatMinutes } from "../../utils/duration";
 import EmptyState from "../EmptyState";
 import Skeleton from "../Skeleton";
@@ -31,6 +31,15 @@ function ClockedInPanel() {
   const [entries, setEntries] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [timeTrackingEnabled, setTimeTrackingEnabled] = useState(true);
+
+  useEffect(() => {
+
+    getBusinesses()
+      .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
+      .catch((error) => console.error("CLOCKED IN PANEL BUSINESS LOAD ERROR:", error));
+
+  }, []);
 
   const load = async () => {
 
@@ -75,6 +84,11 @@ function ClockedInPanel() {
     return () => clearInterval(interval);
 
   }, []);
+
+
+  if (!timeTrackingEnabled) {
+    return null;
+  }
 
 
   return (

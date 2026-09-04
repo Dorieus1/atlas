@@ -148,7 +148,8 @@ const updateBusiness = (req, res) => {
     business_hours,
     timezone,
     default_tax_rate,
-    default_hourly_labor_cost
+    default_hourly_labor_cost,
+    time_tracking_enabled
 
   } = req.body;
 
@@ -219,6 +220,26 @@ const updateBusiness = (req, res) => {
   }
 
 
+  // A plain feature toggle, not a "value that can be unset" like the two
+  // above. When the caller doesn't mention it at all (an older test, some
+  // future integration that predates this setting, or just a save of one
+  // of the other fields on this same form), it must stay exactly what it
+  // already was - not silently reset to "on" - so `?` in the SQL below
+  // becomes NULL for that case, and COALESCE falls back to the column's
+  // own current value instead of overwriting it.
+  const hasTimeTrackingEnabled = time_tracking_enabled !== undefined;
+  const normalizedTimeTrackingEnabled = hasTimeTrackingEnabled
+    ? (
+      time_tracking_enabled === false
+        || time_tracking_enabled === 0
+        || time_tracking_enabled === "false"
+        || time_tracking_enabled === "0"
+        ? 0
+        : 1
+    )
+    : null;
+
+
   db.run(
 
     `
@@ -235,7 +256,8 @@ const updateBusiness = (req, res) => {
       business_hours = ?,
       timezone = ?,
       default_tax_rate = ?,
-      default_hourly_labor_cost = ?
+      default_hourly_labor_cost = ?,
+      time_tracking_enabled = COALESCE(?, time_tracking_enabled)
 
     WHERE id = ?
 
@@ -254,6 +276,7 @@ const updateBusiness = (req, res) => {
       normalizedTimezone,
       normalizedTaxRate,
       normalizedLaborCost,
+      normalizedTimeTrackingEnabled,
       id
 
     ],

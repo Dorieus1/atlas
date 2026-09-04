@@ -474,7 +474,8 @@ const CLOCK_ERROR_MESSAGES = {
   already_clocked_in: "Already clocked in for this appointment",
   not_clocked_in: "Not clocked in yet",
   already_clocked_out: "Already clocked out for this appointment",
-  clock_out_before_clock_in: "Clock-out time can't be before clock-in time"
+  clock_out_before_clock_in: "Clock-out time can't be before clock-in time",
+  time_tracking_disabled: "Time tracking is turned off for this business. Turn it on in Settings to clock in."
 };
 
 

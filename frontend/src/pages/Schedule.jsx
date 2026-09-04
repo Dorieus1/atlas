@@ -23,7 +23,8 @@ import {
   rescheduleAppointment,
   deleteAppointment,
   getCustomers,
-  getTeammates
+  getTeammates,
+  getBusinesses
 } from "../api/atlasApi";
 
 import EmptyState from "../components/EmptyState";
@@ -253,6 +254,7 @@ function Schedule() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [clockingId, setClockingId] = useState(null);
+  const [timeTrackingEnabled, setTimeTrackingEnabled] = useState(true);
 
   // Who to show appointments for: "all", "unassigned", or a specific
   // teammate's user id. Defaults to "all" and is switched to "just me"
@@ -362,6 +364,10 @@ function Schedule() {
     getTeammates()
       .then(setTeammates)
       .catch((error) => console.error("TEAMMATES LOAD ERROR:", error));
+
+    getBusinesses()
+      .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
+      .catch((error) => console.error("SCHEDULE BUSINESS LOAD ERROR:", error));
 
   }, []);
 
@@ -1292,7 +1298,7 @@ function Schedule() {
                     </p>
                   )}
 
-                  {timeEntrySummary.some((person) => person.totalMinutes > 0) && (
+                  {timeTrackingEnabled && timeEntrySummary.some((person) => person.totalMinutes > 0) && (
                     <p className="mt-2 flex items-center gap-1.5 text-[11px] text-fg-faint">
                       <Clock size={11} />
                       Logged {timeEntrySummary
@@ -1329,19 +1335,23 @@ function Schedule() {
 
                     {appt.status === "scheduled" && cancelPromptId !== appt.id && (
                       <>
-                        <button
-                          onClick={() => handleClockToggle(appt)}
-                          disabled={clockingId === appt.id}
-                          title={clockedIn ? "Clock out of this job" : "Clock in to this job"}
-                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${clockedIn ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
-                        >
-                          <Clock size={13} />
-                          {clockingId === appt.id
-                            ? "..."
-                            : clockedIn
-                              ? "Clock Out"
-                              : "Clock In"}
-                        </button>
+                        {timeTrackingEnabled && (
+
+                          <button
+                            onClick={() => handleClockToggle(appt)}
+                            disabled={clockingId === appt.id}
+                            title={clockedIn ? "Clock out of this job" : "Clock in to this job"}
+                            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${clockedIn ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-border hover:bg-border-strong"}`}
+                          >
+                            <Clock size={13} />
+                            {clockingId === appt.id
+                              ? "..."
+                              : clockedIn
+                                ? "Clock Out"
+                                : "Clock In"}
+                          </button>
+
+                        )}
 
                         <button
                           onClick={() => handleStatusChange(appt.id, "completed")}
