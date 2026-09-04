@@ -1,401 +1,77 @@
-import { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Brain } from "lucide-react";
-import { API_BASE } from "../api/atlasApi";
 import Logo from "../components/Logo";
+import KnowledgeEditor from "../components/dashboard/KnowledgeEditor";
+import KnowledgePanel from "../components/dashboard/KnowledgePanel";
 
 
+// This used to be its own bespoke form - four fixed textareas (Hours,
+// Services, Service Area, FAQ), saved as a batch - a completely
+// different shape than the real, ongoing Knowledge page (Knowledge.jsx),
+// which lets an owner add any number of freely titled/categorized
+// entries, one at a time, and search/edit/delete them later. A new
+// owner learned one mental model at signup and a different one the
+// first time they came back to update it - a real review finding, not
+// just cosmetic, since it meant re-learning the feature.
+//
+// This now reuses the exact same KnowledgeEditor and KnowledgePanel
+// components Knowledge.jsx itself uses, wrapped in a welcoming
+// first-run framing - one real mental model, taught once, in the place
+// it's actually going to keep living. Each entry saves for real the
+// moment it's added (KnowledgeEditor already does that), so there's
+// nothing left to "batch save" - "Continue" just moves on.
 function KnowledgeSetup() {
-
 
   const navigate = useNavigate();
 
-  const savingRef = useRef(false);
-
-
-  const business_id =
-    localStorage.getItem("business_id");
-
-
-
-  const [knowledge,setKnowledge] = useState({
-
-    hours:"",
-    services:"",
-    serviceArea:"",
-    faq:""
-
-  });
-
-  const [error, setError] = useState("");
-
-  const [saving, setSaving] = useState(false);
-
-
-
-
-
-  const update = (e)=>{
-
-
-    setKnowledge({
-
-      ...knowledge,
-
-      [e.target.name]:
-      e.target.value
-
-    });
-
-
-  };
-
-
-
-
-
-  const saveKnowledge = async()=>{
-
-
-    const entries = [
-
-      {
-        title:"Hours",
-        content:knowledge.hours.trim()
-      },
-
-      {
-        title:"Services",
-        content:knowledge.services.trim()
-      },
-
-      {
-        title:"Service Area",
-        content:knowledge.serviceArea.trim()
-      },
-
-      {
-        title:"FAQ",
-        content:knowledge.faq.trim()
-      }
-
-    ].filter((item)=>item.content);
-
-
-    if (entries.length === 0) {
-
-      setError("Fill in at least one field before saving.");
-
-      return;
-
-    }
-
-    if (savingRef.current) {
-
-      return;
-
-    }
-
-    savingRef.current = true;
-
-    setError("");
-
-    setSaving(true);
-
-
-    try {
-
-
-      const token = localStorage.getItem("token");
-
-      for (const item of entries){
-
-
-        const res = await fetch(
-
-          `${API_BASE}/api/knowledge`,
-
-          {
-
-            method:"POST",
-
-            headers:{
-
-              "Content-Type":
-              "application/json",
-
-              ...(token
-                ? { Authorization: `Bearer ${token}` }
-                : {})
-
-            },
-
-            body:JSON.stringify({
-
-              business_id,
-
-              title:item.title,
-
-              content:item.content
-
-            })
-
-          }
-
-        );
-
-
-        if (!res.ok) {
-
-          throw new Error("Failed to save " + item.title);
-
-        }
-
-
-      }
-
-
-
-      navigate("/dashboard");
-
-
-    } catch (err) {
-
-      setError(err.message);
-
-    } finally {
-
-      savingRef.current = false;
-
-      setSaving(false);
-
-    }
-
-
-  };
-
-
-
-
-
+  // KnowledgePanel manages its own fetching with no refresh hook
+  // exposed - same reason Knowledge.jsx bumps this same kind of key -
+  // so an entry added above shows up in the list below without a
+  // manual reload.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
 
-    <div className="
-      max-w-xl
-      mx-auto
-      mt-12
-      mb-12
-      rounded-2xl
-      border
-      border-border
-      bg-surface/60
-      p-8
-    ">
+    <div className="mx-auto mb-12 mt-12 max-w-2xl">
 
       <Logo size={34} className="mb-6" />
 
-      <h1 className="
-        text-3xl
-        font-bold
-        mb-6
-        flex
-        items-center
-        gap-2
-      ">
-
+      <h1 className="flex items-center gap-2 text-3xl font-bold">
         <Brain size={28} />
         Teach Atlas Your Business
-
       </h1>
 
-
-      {error && (
-
-        <p className="text-danger mb-4">
-
-          {error}
-
-        </p>
-
-      )}
-
-
-      <label htmlFor="knowledge-hours" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
-        Business Hours
-      </label>
-
-      <textarea
-
-        id="knowledge-hours"
-
-        name="hours"
-
-        placeholder="Business hours"
-
-        onChange={update}
-
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
-
-      />
-
-
-
-
-      <label htmlFor="knowledge-services" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
-        Services You Offer
-      </label>
-
-      <textarea
-
-        id="knowledge-services"
-
-        name="services"
-
-        placeholder="Services you offer"
-
-        onChange={update}
-
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
-
-      />
-
-
-
-
-      <label htmlFor="knowledge-service-area" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
-        Areas You Serve
-      </label>
-
-      <textarea
-
-        id="knowledge-service-area"
-
-        name="serviceArea"
-
-        placeholder="Areas you serve"
-
-        onChange={update}
-
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
-
-      />
-
-
-
-
-      <label htmlFor="knowledge-faq" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
-        Common Customer Questions
-      </label>
-
-      <textarea
-
-        id="knowledge-faq"
-
-        name="faq"
-
-        placeholder="Common customer questions"
-
-        onChange={update}
-
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
-
-      />
-
-
-
-
-      <button
-
-        onClick={saveKnowledge}
-
-        disabled={saving}
-
-        className="
-          bg-brand-600
-          hover:bg-brand-500
-          px-6
-          py-3
-          rounded-lg
-          cursor-pointer
-          font-semibold
-          text-white
-          transition
-          disabled:opacity-50
-        "
-
-      >
-
-        {saving ? "Saving..." : "Train Atlas"}
-
-      </button>
-
-
-      <p className="mt-6 text-fg-muted">
-
-        <Link to="/dashboard" className="text-accent-text hover:underline">
-
-          Skip for now
-        </Link>
-
+      <p className="mt-2 text-fg-muted">
+        Add a few things Atlas should know before it starts talking to customers -
+        your hours, the services you offer, the areas you serve, common questions,
+        anything someone might ask. Add as many as you like, one at a time. You can
+        always come back and add more later from Knowledge in the sidebar.
       </p>
 
+      <div className="mt-6">
+        <KnowledgeEditor onSaved={() => setRefreshKey((k) => k + 1)} />
+      </div>
 
+      <div className="mt-6">
+        <KnowledgePanel key={refreshKey} />
+      </div>
+
+      <div className="mt-6 flex justify-end">
+
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white transition hover:bg-brand-500"
+        >
+          Continue to Dashboard
+        </button>
+
+      </div>
 
     </div>
 
   );
 
-
 }
-
 
 export default KnowledgeSetup;
