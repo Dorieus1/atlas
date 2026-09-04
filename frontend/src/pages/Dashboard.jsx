@@ -50,7 +50,7 @@ function DashboardPage() {
         </div>
 
         <div className="lg:col-span-4">
-          <LeadPipeline />
+          <LeadPipeline compact />
         </div>
 
       </div>

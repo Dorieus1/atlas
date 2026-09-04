@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Download, Sparkles, UserSquare2 } from "lucide-react";
+import { Flame, Download, Sparkles, UserSquare2, ArrowRight } from "lucide-react";
 import { API_BASE, handleSessionExpired, generateFollowUpMessage, updateLeadSource } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
@@ -43,7 +43,23 @@ const SOURCE_OPTIONS = [
   { value: "other", label: "Other" }
 ];
 
-function LeadPipeline() {
+// A review caught a real layout bug: the full board's grid
+// (sm:grid-cols-2 xl:grid-cols-4, further down) reacts to VIEWPORT
+// width, not the width of whatever box it's actually sitting in -
+// Dashboard.jsx embeds this same component in a third-of-the-page
+// column, so on a real desktop the viewport is easily "xl" while the
+// component's own rendered box is only ~1/3 of that, and it was
+// cramming all 4 kanban columns into that one narrow slot instead of
+// the full board it looks fine as on the dedicated /leads page (which
+// gives it the whole width). Rather than fight a full 4-column board
+// into a space it was never designed for, `compact` swaps in a
+// different, deliberately smaller view for the dashboard: the leads
+// that most need attention right now (open, hottest first), as a
+// simple list rather than a board, with a link to the real thing.
+const PRIORITY_RANK = { hot: 0, warm: 1, cold: 2 };
+const COMPACT_LEAD_LIMIT = 5;
+
+function LeadPipeline({ compact = false }) {
 
   const [leads, setLeads] = useState([]);
 
@@ -426,6 +442,102 @@ function LeadPipeline() {
 
   );
 
+
+  if (compact) {
+
+    const topLeads = leads
+      .filter((lead) => (lead.status || "new") !== "closed")
+      .sort((a, b) => {
+
+        const rankDiff = (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
+
+        if (rankDiff !== 0) {
+          return rankDiff;
+        }
+
+        return new Date(b.created_at) - new Date(a.created_at);
+
+      })
+      .slice(0, COMPACT_LEAD_LIMIT);
+
+    return (
+
+      <div className="h-full rounded-2xl border border-border bg-surface/60 p-6">
+
+        <div className="flex items-center justify-between gap-3">
+
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Flame size={22} />
+            Lead Pipeline
+          </h2>
+
+          <Link
+            to="/leads"
+            className="flex shrink-0 items-center gap-1 text-sm text-accent-text hover:opacity-80"
+          >
+            View All
+            <ArrowRight size={14} />
+          </Link>
+
+        </div>
+
+        {error && (
+          <p className="text-danger mt-3">
+            {error}
+          </p>
+        )}
+
+        {topLeads.length === 0 ? (
+
+          <div className="mt-5">
+            <EmptyState
+              icon={Flame}
+              title="No open leads"
+              description="Leads are created automatically as Atlas chats with your customers."
+            />
+          </div>
+
+        ) : (
+
+          <div className="mt-5 flex flex-col gap-3">
+
+            {topLeads.map((lead) => (
+
+              <Link
+                key={lead.id}
+                to={lead.customer_id ? `/customers/${lead.customer_id}` : "/leads"}
+                className="flex items-center justify-between gap-3 rounded-xl bg-surface-muted p-4 transition hover:bg-border"
+              >
+
+                <div className="min-w-0">
+
+                  <p className="truncate font-semibold">
+                    {lead.name || "Unknown Customer"}
+                  </p>
+
+                  <p className="mt-0.5 truncate text-sm text-fg-muted">
+                    {lead.interest}
+                  </p>
+
+                </div>
+
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs capitalize ${PRIORITY_STYLES[lead.priority] || "bg-slate-500/20 text-fg-muted"}`}>
+                  {lead.priority}
+                </span>
+
+              </Link>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+    );
+
+  }
 
   return (
 
