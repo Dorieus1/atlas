@@ -33,6 +33,22 @@ function formatMoney(amount) {
 }
 
 
+// This page used to be nine stacked cards on one long scroll - fine for
+// a customer with nothing going on yet, but answering something as
+// simple as "did this customer pay their last invoice" meant scrolling
+// past Tags, Service Agreements, the Activity Timeline, and the Test
+// Atlas box first. Same fix Settings.jsx already went through for the
+// same reason (see its own comment) - group into named tabs, move
+// nothing about how any individual section works.
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "timeline", label: "Timeline & Notes" },
+  { key: "agreements", label: "Service Agreements" },
+  { key: "photos", label: "Photos & Reviews" },
+  { key: "chat", label: "Test Atlas" }
+];
+
+
 function CustomerProfile() {
 
   const { id } = useParams();
@@ -69,6 +85,7 @@ function CustomerProfile() {
   const [removingTagId, setRemovingTagId] = useState(null);
   const [newTagName, setNewTagName] = useState("");
   const [creatingTag, setCreatingTag] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
 
   useEffect(() => {
@@ -979,6 +996,43 @@ function CustomerProfile() {
 
 
 
+      <div className="flex flex-wrap gap-1.5 border-b border-border">
+
+        {TABS.map((tab) => (
+
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`
+              -mb-px
+              rounded-t-lg
+              border-b-2
+              px-4
+              py-2.5
+              text-sm
+              transition
+              ${
+                activeTab === tab.key
+                  ? "border-brand-500 bg-brand-600/10 font-semibold text-accent-text"
+                  : "border-transparent text-fg-muted hover:text-fg"
+              }
+            `}
+          >
+
+            {tab.label}
+
+          </button>
+
+        ))}
+
+      </div>
+
+
+      {activeTab === "overview" && (
+
+      <div className="flex flex-col gap-6">
+
+
       {/* TAGS */}
 
       <div className="
@@ -1081,70 +1135,6 @@ function CustomerProfile() {
         </div>
 
       </div>
-
-
-      <ServiceAgreements customerId={id} />
-
-
-      <CustomerTimeline customerId={id} onNoteChange={loadSummary} />
-
-
-
-      {/* ATLAS CHAT */}
-
-      {business ? (
-
-        <ChatWindow
-
-          business={business}
-
-          customer={customer}
-
-        />
-
-      ) : (
-
-        <div className="
-          rounded-2xl
-          border
-          border-border
-          bg-surface/60
-          p-6
-        ">
-
-          <h2 className="text-xl font-bold flex items-center gap-2">
-
-            <MessageSquare size={20} />
-            Atlas Chat
-
-          </h2>
-
-          <p className="
-            mt-3
-            text-fg-muted
-          ">
-
-            Loading business information...
-
-          </p>
-
-        </div>
-
-      )}
-
-
-      <MemoryPanel customer={customer} />
-
-
-      <div className="mt-6">
-        <PhotoGallery customerId={id} />
-      </div>
-
-
-      <div className="mt-6">
-        <ReviewRequestPanel customerId={id} />
-      </div>
-
 
 
       {/* AI CUSTOMER SUMMARY */}
@@ -1299,6 +1289,98 @@ function CustomerProfile() {
 
       </div>
 
+      </div>
+
+      )}
+
+
+      {activeTab === "timeline" && (
+
+      <div className="flex flex-col gap-6">
+
+      <CustomerTimeline customerId={id} onNoteChange={loadSummary} />
+
+      </div>
+
+      )}
+
+
+      {activeTab === "agreements" && (
+
+      <div className="flex flex-col gap-6">
+
+      <ServiceAgreements customerId={id} />
+
+      </div>
+
+      )}
+
+
+      {activeTab === "photos" && (
+
+      <div className="flex flex-col gap-6">
+
+      <PhotoGallery customerId={id} />
+
+      <ReviewRequestPanel customerId={id} />
+
+      </div>
+
+      )}
+
+
+      {activeTab === "chat" && (
+
+      <div className="flex flex-col gap-6">
+
+      {/* TEST ATLAS */}
+
+      {business ? (
+
+        <ChatWindow
+
+          business={business}
+
+          customer={customer}
+
+        />
+
+      ) : (
+
+        <div className="
+          rounded-2xl
+          border
+          border-border
+          bg-surface/60
+          p-6
+        ">
+
+          <h2 className="text-xl font-bold flex items-center gap-2">
+
+            <MessageSquare size={20} />
+            Test Atlas
+
+          </h2>
+
+          <p className="
+            mt-3
+            text-fg-muted
+          ">
+
+            Loading business information...
+
+          </p>
+
+        </div>
+
+      )}
+
+
+      <MemoryPanel customer={customer} />
+
+      </div>
+
+      )}
 
 
     </div>
