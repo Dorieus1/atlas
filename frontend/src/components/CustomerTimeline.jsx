@@ -8,6 +8,7 @@ import {
   FileText,
   Camera,
   MessageSquare,
+  Mail,
   Pencil,
   Trash2
 } from "lucide-react";
@@ -232,6 +233,7 @@ function CustomerTimeline({ customerId, onNoteChange }) {
       case "quote": return FileText;
       case "photo": return Camera;
       case "review_request": return MessageSquare;
+      case "owner_message": return Mail;
       default: return History;
     }
 
@@ -403,6 +405,23 @@ function CustomerTimeline({ customerId, onNoteChange }) {
           <p className="text-sm text-fg-muted">
             Review request sent{event.sentTo ? ` to ${event.sentTo}` : ""}
           </p>
+        );
+
+      case "owner_message":
+
+        return (
+          <div>
+
+            <p className="text-sm font-semibold">
+              You emailed: {event.subject}
+              {event.sentByName ? ` (${event.sentByName})` : ""}
+            </p>
+
+            <p className="mt-1 whitespace-pre-wrap text-sm text-fg-muted">
+              {event.body}
+            </p>
+
+          </div>
         );
 
       default:

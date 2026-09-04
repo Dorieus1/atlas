@@ -368,6 +368,16 @@ export const getCustomerTimeline = (id) =>
 
   request(`/customers/${id}/timeline`);
 
+export const sendCustomerMessage = (id, subject, body) =>
+
+  request(`/customers/${id}/messages`, {
+
+    method: "POST",
+
+    body: JSON.stringify({ subject, body })
+
+  });
+
 export const getCustomerStatement = (id) =>
 
   request(`/customers/${id}/statement`);

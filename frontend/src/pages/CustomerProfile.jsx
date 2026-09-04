@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, User, Tag, MessageSquare, Brain, Flame, DollarSign, MapPin, FileText } from "lucide-react";
+import { Trash2, User, Tag, MessageSquare, Brain, Flame, DollarSign, MapPin, FileText, Mail } from "lucide-react";
 
 import {
   getCustomer,
@@ -21,6 +21,7 @@ import {
 
 import ChatWindow from "../components/ChatWindow";
 import CustomerTimeline from "../components/CustomerTimeline";
+import SendMessageModal from "../components/SendMessageModal";
 import ServiceAgreements from "../components/ServiceAgreements";
 import MemoryPanel from "../components/MemoryPanel";
 import PhotoGallery from "../components/PhotoGallery";
@@ -68,6 +69,8 @@ function CustomerProfile() {
   const [statementError, setStatementError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [messagingOpen, setMessagingOpen] = useState(false);
+  const [messageSentNote, setMessageSentNote] = useState("");
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [editCustomerName, setEditCustomerName] = useState("");
   const [editCustomerEmail, setEditCustomerEmail] = useState("");
@@ -852,6 +855,29 @@ function CustomerProfile() {
 
               )}
 
+              {customer.email && (
+
+                <button
+                  onClick={() => {
+                    setMessagingOpen(true);
+                    setMessageSentNote("");
+                  }}
+                  className="mt-3 flex items-center gap-1.5 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm font-medium text-fg transition hover:border-border-strong hover:bg-surface"
+                >
+                  <Mail size={14} />
+                  Message Customer
+                </button>
+
+              )}
+
+              {messageSentNote && (
+
+                <p className="mt-2 text-sm text-success">
+                  {messageSentNote}
+                </p>
+
+              )}
+
             </>
 
           )}
@@ -1379,6 +1405,22 @@ function CustomerProfile() {
       <MemoryPanel customer={customer} />
 
       </div>
+
+      )}
+
+
+      {messagingOpen && (
+
+        <SendMessageModal
+          customerId={id}
+          customerName={customer.name}
+          customerEmail={customer.email}
+          onClose={() => setMessagingOpen(false)}
+          onSent={() => {
+            setMessagingOpen(false);
+            setMessageSentNote(`Email sent to ${customer.email}.`);
+          }}
+        />
 
       )}
 

@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const rateLimiter = require("../middleware/rateLimiter");
 
 
 
@@ -14,6 +15,7 @@ const {
 
   getCustomerById,
   getCustomerTimeline,
+  sendCustomerMessage,
   getCustomersByBusiness,
   deleteCustomer,
   getTrashedCustomers,
@@ -100,6 +102,19 @@ router.get(
   "/:id/timeline",
   authMiddleware,
   getCustomerTimeline
+);
+
+
+
+// Real email-sending, so it's rate-limited beyond the plain auth check
+// every other route here has - 20/hour per user is generous for a real
+// one-at-a-time "message this customer" workflow while still bounding
+// how much mail one compromised or careless login could blast out.
+router.post(
+  "/:id/messages",
+  authMiddleware,
+  rateLimiter(20, 60 * 60 * 1000),
+  sendCustomerMessage
 );
 
 

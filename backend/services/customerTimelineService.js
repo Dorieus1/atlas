@@ -3,32 +3,36 @@ const { getAppointmentsByCustomer } = require("./appointmentService");
 const { getQuotesByCustomer, formatQuoteNumber } = require("./quoteService");
 const { getPhotosByCustomer } = require("./photoService");
 const { getReviewRequestsByCustomer } = require("./reviewRequestService");
+const { getMessagesByCustomer } = require("./customerMessageService");
 
 
 // Merges every dated thing tied to a customer - notes, appointments,
-// quotes/invoices, photos, review requests, plus the customer's own
-// creation - into one chronologically-sorted feed, replacing what used
-// to be a handful of disconnected cards (a separate Notes card, a
-// separate Appointment History card, no visibility into quotes/photos/
-// review requests at all) with a single story of the relationship.
+// quotes/invoices, photos, review requests, owner-sent emails, plus the
+// customer's own creation - into one chronologically-sorted feed,
+// replacing what used to be a handful of disconnected cards (a separate
+// Notes card, a separate Appointment History card, no visibility into
+// quotes/photos/review requests at all) with a single story of the
+// relationship.
 //
 // Deliberately built on the SAME per-customer service functions the rest
 // of the app already calls (getCustomerNotes, getAppointmentsByCustomer,
-// getQuotesByCustomer, getPhotosByCustomer, getReviewRequestsByCustomer)
-// rather than new SQL - a quote's total still comes from quoteService's
-// own applyDiscount, so there's exactly one definition of each entity's
-// shape, not a second one drifting here. Returns raw fields (not
-// pre-formatted display strings) so the frontend composes text/icons per
-// type the same way it already does for quotes, appointments, etc.
+// getQuotesByCustomer, getPhotosByCustomer, getReviewRequestsByCustomer,
+// getMessagesByCustomer) rather than new SQL - a quote's total still
+// comes from quoteService's own applyDiscount, so there's exactly one
+// definition of each entity's shape, not a second one drifting here.
+// Returns raw fields (not pre-formatted display strings) so the frontend
+// composes text/icons per type the same way it already does for quotes,
+// appointments, etc.
 const getCustomerTimeline = async (customer, business_id) => {
 
-  const [notes, appointments, quotes, photos, reviewRequests] = await Promise.all([
+  const [notes, appointments, quotes, photos, reviewRequests, messages] = await Promise.all([
 
     getCustomerNotes(customer.id),
     getAppointmentsByCustomer(customer.id, business_id),
     getQuotesByCustomer(customer.id, business_id),
     getPhotosByCustomer(customer.id, business_id),
-    getReviewRequestsByCustomer(customer.id, business_id)
+    getReviewRequestsByCustomer(customer.id, business_id),
+    getMessagesByCustomer(customer.id, business_id)
 
   ]);
 
@@ -97,6 +101,19 @@ const getCustomerTimeline = async (customer, business_id) => {
       id: request.id,
       date: request.created_at,
       sentTo: request.sent_to
+    });
+
+  });
+
+  messages.forEach((msg) => {
+
+    events.push({
+      type: "owner_message",
+      id: msg.id,
+      date: msg.created_at,
+      subject: msg.subject,
+      body: msg.body,
+      sentByName: msg.sent_by_name || null
     });
 
   });

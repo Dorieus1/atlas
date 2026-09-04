@@ -269,6 +269,28 @@ module.exports = async () => {
       `);
 
       db.run(`
+        CREATE TABLE customer_messages (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          customer_id TEXT NOT NULL,
+          sent_by_user_id TEXT,
+          subject TEXT NOT NULL,
+          body TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(`
+        CREATE INDEX idx_customer_messages_customer_id
+        ON customer_messages(customer_id)
+      `);
+
+      db.run(`
+        CREATE INDEX idx_customer_messages_business_id
+        ON customer_messages(business_id)
+      `);
+
+      db.run(`
         CREATE TABLE service_agreements (
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL,

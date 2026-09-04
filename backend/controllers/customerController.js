@@ -16,6 +16,7 @@ const {
 } = require("../services/customerService");
 
 const { getCustomerTimeline: getCustomerTimelineService } = require("../services/customerTimelineService");
+const { sendMessageToCustomer } = require("../services/customerMessageService");
 
 const { importCustomersFromCsv } = require("../services/customerImportService");
 
@@ -290,6 +291,92 @@ const getCustomerTimeline = async (req, res) => {
 
     res.status(500).json({
       error: "Something went wrong. Please try again."
+    });
+
+  }
+
+};
+
+
+
+// The real "message this customer" feature the review flagged as
+// missing - see customerMessageService.js's own comment for why. Kept
+// as its own small endpoint (not folded into an existing one) since
+// sending an email is a real side effect with its own failure mode
+// (Resend down, no domain verified yet), distinct from every other
+// customer-controller action, which is a plain database write.
+const sendCustomerMessage = async (req, res) => {
+
+  try {
+
+    const { subject, body } = req.body;
+
+    if (!subject || !subject.trim() || !body || !body.trim()) {
+
+      return res.status(400).json({
+        error: "A subject and message are both required."
+      });
+
+    }
+
+    if (subject.length > 200) {
+
+      return res.status(400).json({
+        error: "Subject is too long (200 characters max)."
+      });
+
+    }
+
+    if (body.length > 10000) {
+
+      return res.status(400).json({
+        error: "Message is too long (10,000 characters max)."
+      });
+
+    }
+
+    const result = await sendMessageToCustomer(
+
+      req.params.id,
+      req.user.business_id,
+      req.user.id,
+      subject.trim(),
+      body.trim()
+
+    );
+
+    if (result.error === "not_found") {
+
+      return res.status(404).json({
+        error: "Customer not found"
+      });
+
+    }
+
+    if (result.error === "no_email") {
+
+      return res.status(400).json({
+        error: "This customer doesn't have an email on file, so there's nowhere to send this."
+      });
+
+    }
+
+    res.status(201).json({
+      message: "Message sent",
+      sentTo: result.sentTo
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    // Distinct from the generic 500 below - a Resend failure (bad API
+    // key, no domain verified for a non-sandbox recipient, Resend itself
+    // down) is a real, actionable-sounding failure a business owner
+    // should see as "the email didn't go out," not a generic "something
+    // went wrong" that looks like an Atlas bug.
+    res.status(502).json({
+      error: "Couldn't send that email. Please try again in a moment."
     });
 
   }
@@ -914,6 +1001,8 @@ module.exports = {
   getCustomerById,
 
   getCustomerTimeline,
+
+  sendCustomerMessage,
 
   deleteCustomer,
 
