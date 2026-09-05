@@ -25,6 +25,18 @@ const PIPELINE_STAGES = [
   { key: "closed", label: "Closed" }
 ];
 
+// Analytics grew into 6 stat cards + 4 charts + accounts receivable all
+// stacked on one page - AR Aging in particular ended up buried below the
+// fold every time, even though "who owes me money" is exactly the kind
+// of thing an owner opens this page to check. Same hand-rolled tab
+// pattern Settings.jsx and CustomerProfile.jsx already use for the same
+// "too much on one page" problem - only where each section lives
+// changed, not how any of it works or fetches its data.
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "receivable", label: "Accounts Receivable" }
+];
+
 function formatMoney(amount) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount || 0);
 }
@@ -138,6 +150,8 @@ function Analytics() {
 
   const [loadError, setLoadError] = useState("");
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   const [arAging, setArAging] = useState({ totals: { total_outstanding: 0, buckets: {} }, bucket_labels: {}, customers: [] });
   const [arAgingError, setArAgingError] = useState("");
 
@@ -219,6 +233,45 @@ function Analytics() {
           {loadError}
         </p>
       )}
+
+      <div className="mt-6 flex flex-wrap gap-1.5 border-b border-border">
+
+        {TABS.map((tab) => (
+
+          <button
+
+            key={tab.key}
+
+            onClick={() => setActiveTab(tab.key)}
+
+            className={`
+              -mb-px
+              rounded-t-lg
+              border-b-2
+              px-4
+              py-2.5
+              text-sm
+              transition
+              ${
+                activeTab === tab.key
+                  ? "border-brand-500 bg-brand-600/10 font-semibold text-accent-text"
+                  : "border-transparent text-fg-muted hover:text-fg"
+              }
+            `}
+
+          >
+
+            {tab.label}
+
+          </button>
+
+        ))}
+
+      </div>
+
+      {activeTab === "overview" && (
+
+      <>
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
@@ -428,7 +481,13 @@ function Analytics() {
 
       </div>
 
-      <div className="mt-8 rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
+      </>
+
+      )}
+
+      {activeTab === "receivable" && (
+
+      <div className="mt-6 rounded-2xl border border-border bg-surface/60 p-6 transition hover:border-border-strong">
 
         <h2 className="flex items-center gap-2 text-xl font-bold">
           <Receipt size={20} />
@@ -506,6 +565,8 @@ function Analytics() {
         )}
 
       </div>
+
+      )}
 
     </div>
 
