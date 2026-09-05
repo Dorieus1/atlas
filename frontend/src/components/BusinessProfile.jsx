@@ -34,6 +34,19 @@ const TIMEZONE_OPTIONS = [
   { value: "UTC", label: "UTC" },
 ];
 
+// Keep in sync with backend/controllers/businessController.js's own
+// ACCENT_COLORS allowlist. `swatch` is the -600 shade of each palette
+// (frontend/src/index.css) - a fixed hex here rather than the CSS
+// variable itself, since the whole point of this swatch is showing what
+// each option looks like BEFORE it's selected/applied, when the page's
+// own --color-brand-* still reflects whatever is currently active.
+const ACCENT_OPTIONS = [
+  { key: "orange", label: "Orange (default)", swatch: "#ea580c" },
+  { key: "blue", label: "Blue", swatch: "#2563eb" },
+  { key: "violet", label: "Violet", swatch: "#7c3aed" },
+  { key: "teal", label: "Teal", swatch: "#0d9488" },
+];
+
 // business.business_hours comes back from the API as a JSON string (or
 // null if the business hasn't configured hours yet). Parsed into a plain
 // { mon: {open, close} | null, ... } object for the form to edit.
@@ -70,6 +83,7 @@ function BusinessProfile({ business }) {
     default_tax_rate: "",
     default_hourly_labor_cost: "",
     time_tracking_enabled: true,
+    accent_color: "orange",
   });
 
   // null means "hours not configured" (nothing enforced). Once the owner
@@ -111,6 +125,7 @@ function BusinessProfile({ business }) {
         // database mid-deploy - undefined is treated the same as the
         // migration's own default (on), never as off.
         time_tracking_enabled: business.time_tracking_enabled !== 0,
+        accent_color: business.accent_color || "orange",
 
       });
 
@@ -232,6 +247,15 @@ function BusinessProfile({ business }) {
       });
 
       setSuccess("Business updated");
+
+      // Applied here (only once the save actually succeeded), not the
+      // instant a swatch is clicked above - a click-time preview would
+      // leave the WHOLE APP looking like an unsaved choice for the rest
+      // of the visit if the owner picked a color then navigated away
+      // without hitting Save, since Sidebar.jsx (which normally sets
+      // this) only ever re-checks it on its own next mount, not on
+      // every route change.
+      document.documentElement.dataset.accent = form.accent_color;
 
     } catch (err) {
 
@@ -546,6 +570,47 @@ function BusinessProfile({ business }) {
             ? "Your team can clock in and out on jobs, and it feeds real labor cost into the Profit Margin report. Turn this off if you don't pay by the hour - not every business needs it."
             : "Off - the Clock In/Out buttons, the \"On The Clock\" dashboard panel, and Timesheets are all hidden. Nothing already recorded is deleted."}
         </p>
+
+      </div>
+
+      <div className="rounded-lg border border-border bg-surface-muted p-3 mb-3">
+
+        <span className="font-semibold">
+          Brand Color
+        </span>
+
+        <p className="mt-1 text-xs text-fg-faint">
+          Used for buttons, the active nav highlight, and links throughout the app. Applies to everyone on your team, not just you.
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+
+          {ACCENT_OPTIONS.map((option) => (
+
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setForm({ ...form, accent_color: option.key })}
+              aria-pressed={form.accent_color === option.key}
+              aria-label={option.label}
+              title={option.label}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition ${
+                form.accent_color === option.key
+                  ? "border-fg"
+                  : "border-transparent hover:border-border-strong"
+              }`}
+            >
+
+              <span
+                className="h-6 w-6 rounded-full"
+                style={{ backgroundColor: option.swatch }}
+              />
+
+            </button>
+
+          ))}
+
+        </div>
 
       </div>
 

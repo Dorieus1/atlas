@@ -565,9 +565,21 @@ function QuoteFormModal({
 
             ))}
 
+            {/*
+              text-accent-text, not the raw text-brand-400 this (and the
+              two other "Add..." buttons below) used to hardcode - found
+              while wiring up a per-business accent color: brand-400 is
+              tuned for a DARK background (7-10:1 contrast there), and
+              on a light background it measures ~2.3:1, well under even
+              the relaxed 3:1 minimum. accent-text already exists
+              specifically to swap to the darker brand-700 in light mode
+              - this component already uses it correctly nowhere else,
+              this was just a leftover raw class from before that
+              convention was established.
+            */}
             <button
               onClick={addFormItem}
-              className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-brand-400 transition hover:bg-brand-600/10"
+              className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-accent-text transition hover:bg-brand-600/10"
             >
               <Plus size={15} />
               {isMultiOption ? "Add shared item" : "Add line item"}
@@ -675,7 +687,7 @@ function QuoteFormModal({
 
                     <button
                       onClick={() => addTierItem(tierIndex)}
-                      className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1 text-xs font-medium text-brand-400 transition hover:bg-brand-600/10"
+                      className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1 text-xs font-medium text-accent-text transition hover:bg-brand-600/10"
                     >
                       <Plus size={13} />
                       Add item
@@ -691,7 +703,7 @@ function QuoteFormModal({
 
                 <button
                   onClick={addTier}
-                  className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-brand-400 transition hover:bg-brand-600/10"
+                  className="flex items-center gap-1.5 self-start rounded-lg px-2 py-1.5 text-sm font-medium text-accent-text transition hover:bg-brand-600/10"
                 >
                   <Plus size={15} />
                   Add another option

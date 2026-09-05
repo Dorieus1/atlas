@@ -4,6 +4,16 @@ const { generateUniqueSlug } = require("../services/businessService");
 const { validateBusinessHours, isValidTimezone } = require("../services/businessHoursService");
 
 
+// Keep in sync with the picker in frontend/src/components/BusinessProfile.jsx.
+// NULL (or "orange") means the original, default brand color - every
+// business that never touches this setting keeps looking exactly like
+// it always has. Deliberately excludes red/green/amber tones: this app
+// already uses red/green/amber semantically (danger/success/warning),
+// and a brand color from the same family would make a plain button
+// harder to tell apart from a real error or success state at a glance.
+const ACCENT_COLORS = ["orange", "blue", "violet", "teal"];
+
+
 
 const createBusiness = async (req, res) => {
 
@@ -149,7 +159,8 @@ const updateBusiness = (req, res) => {
     timezone,
     default_tax_rate,
     default_hourly_labor_cost,
-    time_tracking_enabled
+    time_tracking_enabled,
+    accent_color
 
   } = req.body;
 
@@ -240,6 +251,30 @@ const updateBusiness = (req, res) => {
     : null;
 
 
+  // Same "omitted means leave it alone" goal as time_tracking_enabled
+  // above, but COALESCE alone won't work here: NULL is this column's
+  // real, meaningful "use the default orange" value, not just a sentinel
+  // for "the caller didn't mention it" - COALESCE(?, accent_color) would
+  // wrongly treat "explicitly reset to orange" (null) the same as "not
+  // mentioned" and silently keep whatever color was set before. The
+  // explicit hasAccentColor flag, threaded through as its own bound
+  // parameter below, tells the CASE which of those two null cases this
+  // actually is.
+  const hasAccentColor = accent_color !== undefined;
+
+  if (hasAccentColor && accent_color !== null && accent_color !== "" && !ACCENT_COLORS.includes(accent_color)) {
+
+    return res.status(400).json({
+      error: `accent_color must be one of: ${ACCENT_COLORS.join(", ")}`
+    });
+
+  }
+
+  const normalizedAccentColor = hasAccentColor
+    ? (accent_color === "orange" ? null : (accent_color || null))
+    : null;
+
+
   db.run(
 
     `
@@ -257,7 +292,8 @@ const updateBusiness = (req, res) => {
       timezone = ?,
       default_tax_rate = ?,
       default_hourly_labor_cost = ?,
-      time_tracking_enabled = COALESCE(?, time_tracking_enabled)
+      time_tracking_enabled = COALESCE(?, time_tracking_enabled),
+      accent_color = CASE WHEN ? THEN ? ELSE accent_color END
 
     WHERE id = ?
 
@@ -277,6 +313,8 @@ const updateBusiness = (req, res) => {
       normalizedTaxRate,
       normalizedLaborCost,
       normalizedTimeTrackingEnabled,
+      hasAccentColor ? 1 : 0,
+      normalizedAccentColor,
       id
 
     ],

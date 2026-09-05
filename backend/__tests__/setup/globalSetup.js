@@ -104,7 +104,8 @@ module.exports = async () => {
           calendar_feed_token TEXT,
           default_tax_rate REAL,
           default_hourly_labor_cost REAL,
-          time_tracking_enabled INTEGER NOT NULL DEFAULT 1
+          time_tracking_enabled INTEGER NOT NULL DEFAULT 1,
+          accent_color TEXT
         )
       `);
 

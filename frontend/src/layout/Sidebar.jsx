@@ -38,7 +38,21 @@ function Sidebar({ open, onClose, onOpenSearch }) {
   useEffect(() => {
 
     getBusinesses()
-      .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
+      .then((businesses) => {
+
+        setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0);
+
+        // Same per-business (not per-device) brand color for every
+        // team member, set here rather than in ThemeContext - that
+        // context owns dark/light, a genuinely per-DEVICE preference
+        // stored in localStorage, while this is business identity and
+        // has to come from the server. A brief flash of the default
+        // orange before this resolves is an accepted tradeoff, same as
+        // timeTrackingEnabled's own default-true above - this changes
+        // rarely and isn't worth a loading-state UI for.
+        document.documentElement.dataset.accent = businesses?.[0]?.accent_color || "orange";
+
+      })
       .catch((error) => console.error("SIDEBAR BUSINESS LOAD ERROR:", error));
 
   }, []);

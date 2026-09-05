@@ -24,11 +24,21 @@
   --color-ink-700: #1f2433;
   --color-ink-600: #2a3040;
 
-  --color-brand-300: #fdba74;
-  --color-brand-400: #fb923c;
-  --color-brand-500: #f97316;
-  --color-brand-600: #ea580c;
-  --color-brand-700: #c2410c;
+  /*
+    Each points at a plain custom property (--brand-300, ...) redefined
+    per accent color below, the same indirection --color-surface etc.
+    already use for light/dark - so every bg-brand-600/text-brand-400/
+    border-brand-500 utility in the app follows whichever accent color
+    the business has chosen, with zero per-component changes needed.
+    :root's own values (just below) are the default "orange" palette -
+    a business that never touches this setting keeps looking exactly
+    like it always has.
+  */
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
 
   /*
     Semantic tokens, named for the ROLE they play rather than the raw
@@ -79,6 +89,54 @@
   --success: #4ade80;
   --warning: #fbbf24;
 
+  /* Default "orange" accent - a business with no accent_color set (or
+     explicitly "orange") gets exactly this, unchanged from before this
+     setting existed. */
+  --brand-300: #fdba74;
+  --brand-400: #fb923c;
+  --brand-500: #f97316;
+  --brand-600: #ea580c;
+  --brand-700: #c2410c;
+
+}
+
+
+/*
+  Alternate accent colors (Settings > Business Profile > Time Tracking's
+  neighboring "Brand Color" picker sets data-accent on <html>). Each is
+  a straight Tailwind-standard 300/400/500/600/700 step, chosen from
+  families that don't overlap red/green/amber - this app already uses
+  those three semantically (--danger/--success/--warning), so a brand
+  color from the same family would make an ordinary button harder to
+  tell apart from a real error or success state at a glance. Contrast-
+  checked the same way the light theme's own tokens were: text-brand-400
+  on the dark surface and text-brand-700 on the light surface (the two
+  shades --accent-text actually uses) both clear 7:1+ for every color
+  here, and white text on brand-600 (every solid button's fill) is at
+  least as good as the default orange already shipping.
+*/
+:root[data-accent="blue"] {
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+}
+
+:root[data-accent="violet"] {
+  --brand-300: #c4b5fd;
+  --brand-400: #a78bfa;
+  --brand-500: #8b5cf6;
+  --brand-600: #7c3aed;
+  --brand-700: #6d28d9;
+}
+
+:root[data-accent="teal"] {
+  --brand-300: #5eead4;
+  --brand-400: #2dd4bf;
+  --brand-500: #14b8a6;
+  --brand-600: #0d9488;
+  --brand-700: #0f766e;
 }
 
 
