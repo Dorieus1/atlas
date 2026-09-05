@@ -449,4 +449,5 @@ module.exports = {
   classifyLead,
   generateEstimateFromPhoto,
   detectKnowledgeGap,
+  MAX_HISTORY_TURNS,
 };

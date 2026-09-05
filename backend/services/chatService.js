@@ -1,4 +1,4 @@
-const { generateAIResponse, detectKnowledgeGap, classifyLead } = require("./aiService");
+const { generateAIResponse, detectKnowledgeGap, classifyLead, MAX_HISTORY_TURNS } = require("./aiService");
 const { buildChatTools } = require("./chatTools");
 const { getCustomerMemories } = require("./memoryService");
 const { saveConversation, getConversationHistory } = require("./conversationService");
@@ -81,7 +81,14 @@ const processChatMessage = async (customer, business, message, { preview = false
   // the whole point of a preview is showing how Atlas would really
   // respond. See generateAIResponse's own MAX_HISTORY_TURNS for why this
   // isn't the customer's entire history, unbounded.
-  const history = await getConversationHistory(customer_id);
+  // Only the last MAX_HISTORY_TURNS exchanges are ever actually used
+  // (see generateAIResponse's own slice) - passed through as a real SQL
+  // LIMIT rather than fetching a customer's entire history and throwing
+  // most of it away in JS, a real inefficiency a review caught (it would
+  // have grown without bound for a customer who's been chatting with the
+  // same business for months, which is exactly the scenario
+  // MAX_HISTORY_TURNS itself exists to bound).
+  const history = await getConversationHistory(customer_id, MAX_HISTORY_TURNS);
 
   // Gives the AI a real check_availability/book_appointment ability when
   // (and only when) the business has real hours configured - see
