@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail, escapeHtml } = require("./emailService");
+const { sendEmail, escapeHtml, renderEmailLayout, renderEmailButton } = require("./emailService");
 const { createLoginToken } = require("./portalAuthService");
 const { applyDiscount, calculateDeposit, formatQuoteNumber } = require("./quoteService");
 const { createNotification } = require("./notificationService");
@@ -85,7 +85,8 @@ const sendInvoiceReminders = async () => {
       customers.name AS customer_name,
       customers.email AS customer_email,
       businesses.name AS business_name,
-      businesses.slug AS business_slug
+      businesses.slug AS business_slug,
+      businesses.accent_color AS business_accent_color
     FROM quotes
     JOIN customers ON customers.id = quotes.customer_id
     JOIN businesses ON businesses.id = quotes.business_id
@@ -128,12 +129,16 @@ const sendInvoiceReminders = async () => {
 
         subject: `Payment reminder: ${formatMoney(total)} outstanding with ${invoice.business_name}`,
 
-        html: `
-          <p>Hi ${escapeHtml(invoice.customer_name) || "there"},</p>
-          <p>This is a friendly reminder that you have an outstanding invoice with ${escapeHtml(invoice.business_name)} for ${formatMoney(total)}${depositOwed ? `, including a ${formatMoney(depositAmount)} deposit to get started` : ""}.</p>
-          <p><a href="${portalUrl}">View and pay it here</a></p>
-          <p>If you've already paid, please disregard this message. This link works for the next 7 days.</p>
-        `
+        html: renderEmailLayout({
+          heading: escapeHtml(invoice.business_name),
+          accentColor: invoice.business_accent_color,
+          bodyHtml: `
+            <p>Hi ${escapeHtml(invoice.customer_name) || "there"},</p>
+            <p>This is a friendly reminder that you have an outstanding invoice with ${escapeHtml(invoice.business_name)} for ${formatMoney(total)}${depositOwed ? `, including a ${formatMoney(depositAmount)} deposit to get started` : ""}.</p>
+            <p>${renderEmailButton(portalUrl, "View and pay it here", invoice.business_accent_color)}</p>
+            <p>If you've already paid, please disregard this message. This link works for the next 7 days.</p>
+          `
+        })
 
       });
 

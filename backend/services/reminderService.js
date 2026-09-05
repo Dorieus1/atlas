@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail, escapeHtml } = require("./emailService");
+const { sendEmail, escapeHtml, renderEmailLayout } = require("./emailService");
 
 
 const allAsync = (sql, params = []) => {
@@ -62,7 +62,8 @@ const sendAppointmentReminders = async () => {
       appointments.start_time,
       customers.name AS customer_name,
       customers.email AS customer_email,
-      businesses.name AS business_name
+      businesses.name AS business_name,
+      businesses.accent_color AS business_accent_color
     FROM appointments
     JOIN customers ON customers.id = appointments.customer_id
     JOIN businesses ON businesses.id = appointments.business_id
@@ -101,12 +102,16 @@ const sendAppointmentReminders = async () => {
 
         subject: `Reminder: your appointment with ${appt.business_name}`,
 
-        html: `
-          <p>Hi ${escapeHtml(appt.customer_name) || "there"},</p>
-          <p>This is a friendly reminder about your upcoming appointment with ${escapeHtml(appt.business_name)}:</p>
-          <p><strong>${escapeHtml(appt.title)}</strong><br>${when}</p>
-          <p>If you need to reschedule, just reply to this email or give us a call.</p>
-        `
+        html: renderEmailLayout({
+          heading: escapeHtml(appt.business_name),
+          accentColor: appt.business_accent_color,
+          bodyHtml: `
+            <p>Hi ${escapeHtml(appt.customer_name) || "there"},</p>
+            <p>This is a friendly reminder about your upcoming appointment with ${escapeHtml(appt.business_name)}:</p>
+            <p><strong>${escapeHtml(appt.title)}</strong><br>${when}</p>
+            <p>If you need to reschedule, just reply to this email or give us a call.</p>
+          `
+        })
 
       });
 

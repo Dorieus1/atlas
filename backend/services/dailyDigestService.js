@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail, escapeHtml } = require("./emailService");
+const { sendEmail, escapeHtml, renderEmailLayout } = require("./emailService");
 const { getUsersByBusiness } = require("./authService");
 const { getAppointments } = require("./appointmentService");
 
@@ -234,12 +234,16 @@ function buildDigestEmail(business, data) {
 
   }
 
-  const html = `
-    <p>Good morning,</p>
-    <p>Here's what's happening at ${escapeHtml(business.name)} today:</p>
-    ${sections.join("")}
-    <p>Log in to Atlas for the full picture.</p>
-  `;
+  const html = renderEmailLayout({
+    heading: escapeHtml(business.name),
+    accentColor: business.accent_color,
+    bodyHtml: `
+      <p>Good morning,</p>
+      <p>Here's what's happening at ${escapeHtml(business.name)} today:</p>
+      ${sections.join("")}
+      <p>Log in to Atlas for the full picture.</p>
+    `
+  });
 
   return { subject, html };
 
@@ -261,7 +265,7 @@ const sendDailyDigests = async () => {
   const now = new Date();
 
   const businesses = await allAsync(
-    `SELECT id, name, timezone, last_digest_sent_date FROM businesses`
+    `SELECT id, name, timezone, last_digest_sent_date, accent_color FROM businesses`
   );
 
   let sent = 0;

@@ -30,7 +30,7 @@ const { markQuotePaid } = require("../services/quotePaymentService");
 const { streamQuotePdf } = require("../services/pdfService");
 const { quotesToCsv } = require("../services/csvService");
 const { createLoginToken } = require("../services/portalAuthService");
-const { sendEmail, escapeHtml } = require("../services/emailService");
+const { sendEmail, escapeHtml, renderEmailLayout, renderEmailButton } = require("../services/emailService");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -794,13 +794,17 @@ const sendQuote = async (req, res) => {
 
       subject: `Your ${label} from ${business.name} — ${formatMoneyForEmail(quote.total)}`,
 
-      html: `
-        <p>Hi ${escapeHtml(customer.name) || "there"},</p>
-        <p>${escapeHtml(business.name)} has sent you a${label === "invoice" ? "n" : ""} ${label} for ${formatMoneyForEmail(quote.total)}.</p>
-        ${quote.deposit_type && !quote.deposit_paid_at ? `<p>A deposit of ${formatMoneyForEmail(quote.deposit_amount)} is required to get started.</p>` : ""}
-        <p><a href="${portalUrl}">View and respond to it here</a></p>
-        <p>This link works for the next 7 days. If you didn't expect this, you can ignore this email.</p>
-      `
+      html: renderEmailLayout({
+        heading: escapeHtml(business.name),
+        accentColor: business.accent_color,
+        bodyHtml: `
+          <p>Hi ${escapeHtml(customer.name) || "there"},</p>
+          <p>${escapeHtml(business.name)} has sent you a${label === "invoice" ? "n" : ""} ${label} for ${formatMoneyForEmail(quote.total)}.</p>
+          ${quote.deposit_type && !quote.deposit_paid_at ? `<p>A deposit of ${formatMoneyForEmail(quote.deposit_amount)} is required to get started.</p>` : ""}
+          <p>${renderEmailButton(portalUrl, "View and respond to it here", business.accent_color)}</p>
+          <p>This link works for the next 7 days. If you didn't expect this, you can ignore this email.</p>
+        `
+      })
 
     });
 

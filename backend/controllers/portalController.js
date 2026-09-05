@@ -1,7 +1,7 @@
 const { getBusinessBySlug, getBusinessById } = require("../services/businessService");
 const { getActiveCustomerById, getActiveCustomerByEmail } = require("../services/customerService");
 const { createLoginToken, consumeLoginToken, signCustomerToken } = require("../services/portalAuthService");
-const { sendEmail, escapeHtml } = require("../services/emailService");
+const { sendEmail, escapeHtml, renderEmailLayout, renderEmailButton } = require("../services/emailService");
 const { getQuotesByCustomer, getQuoteById, updateQuoteFields, formatQuoteNumber, calculateDeposit, validateSignature, validateTierSelection, acceptQuoteWithSignatureAtomic } = require("../services/quoteService");
 const {
   getAppointmentsByCustomer,
@@ -121,12 +121,16 @@ const requestLogin = async (req, res) => {
 
           subject: `Your ${business.name} login link`,
 
-          html: `
-            <p>Hi ${escapeHtml(customer.name) || "there"},</p>
-            <p>Click below to view your appointments, quotes, and photos with ${escapeHtml(business.name)}.</p>
-            <p><a href="${loginUrl}">Log in to your portal</a></p>
-            <p>This link expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
-          `
+          html: renderEmailLayout({
+            heading: escapeHtml(business.name),
+            accentColor: business.accent_color,
+            bodyHtml: `
+              <p>Hi ${escapeHtml(customer.name) || "there"},</p>
+              <p>Click below to view your appointments, quotes, and photos with ${escapeHtml(business.name)}.</p>
+              <p>${renderEmailButton(loginUrl, "Log in to your portal", business.accent_color)}</p>
+              <p>This link expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
+            `
+          })
 
         });
 

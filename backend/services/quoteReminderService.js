@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { sendEmail, escapeHtml } = require("./emailService");
+const { sendEmail, escapeHtml, renderEmailLayout, renderEmailButton } = require("./emailService");
 const { createLoginToken } = require("./portalAuthService");
 const { applyDiscount, calculateDeposit } = require("./quoteService");
 
@@ -94,7 +94,8 @@ const sendQuoteReminders = async () => {
       customers.name AS customer_name,
       customers.email AS customer_email,
       businesses.name AS business_name,
-      businesses.slug AS business_slug
+      businesses.slug AS business_slug,
+      businesses.accent_color AS business_accent_color
     FROM quotes
     JOIN customers ON customers.id = quotes.customer_id
     JOIN businesses ON businesses.id = quotes.business_id
@@ -136,12 +137,16 @@ const sendQuoteReminders = async () => {
 
         subject: `Following up on your ${formatMoney(total)} estimate from ${quote.business_name}`,
 
-        html: `
-          <p>Hi ${escapeHtml(quote.customer_name) || "there"},</p>
-          <p>Just checking in - you still have an open estimate from ${escapeHtml(quote.business_name)} for ${formatMoney(total)} that hasn't been accepted yet${quote.deposit_type ? ` (accepting it starts with a ${formatMoney(depositAmount)} deposit)` : ""}.</p>
-          <p><a href="${portalUrl}">View and respond to it here</a></p>
-          <p>If you've decided not to proceed, no action is needed. This link works for the next 7 days.</p>
-        `
+        html: renderEmailLayout({
+          heading: escapeHtml(quote.business_name),
+          accentColor: quote.business_accent_color,
+          bodyHtml: `
+            <p>Hi ${escapeHtml(quote.customer_name) || "there"},</p>
+            <p>Just checking in - you still have an open estimate from ${escapeHtml(quote.business_name)} for ${formatMoney(total)} that hasn't been accepted yet${quote.deposit_type ? ` (accepting it starts with a ${formatMoney(depositAmount)} deposit)` : ""}.</p>
+            <p>${renderEmailButton(portalUrl, "View and respond", quote.business_accent_color)}</p>
+            <p>If you've decided not to proceed, no action is needed. This link works for the next 7 days.</p>
+          `
+        })
 
       });
 

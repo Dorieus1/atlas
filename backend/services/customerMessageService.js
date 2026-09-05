@@ -1,6 +1,6 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
-const { sendEmail, escapeHtml } = require("./emailService");
+const { sendEmail, escapeHtml, renderEmailLayout } = require("./emailService");
 const { getActiveCustomerById } = require("./customerService");
 const { getBusinessById } = require("./businessService");
 
@@ -60,10 +60,14 @@ const sendMessageToCustomer = async (customer_id, business_id, sent_by_user_id, 
   // escapeHtml first (the body is about to become another business's
   // customer's inbox content) then re-introduce just the line breaks the
   // owner actually typed.
-  const html = `
-    <div style="white-space: pre-wrap; font-family: sans-serif; font-size: 15px; line-height: 1.5;">${escapeHtml(body)}</div>
-    <p style="margin-top: 24px; color: #666; font-size: 13px;">— ${escapeHtml(business?.name || "Your service provider")}</p>
-  `;
+  const html = renderEmailLayout({
+    heading: escapeHtml(business?.name || "Your service provider"),
+    accentColor: business?.accent_color,
+    bodyHtml: `
+      <div style="white-space: pre-wrap; font-family: sans-serif; font-size: 15px; line-height: 1.5;">${escapeHtml(body)}</div>
+      <p style="margin-top: 24px; color: #666; font-size: 13px;">— ${escapeHtml(business?.name || "Your service provider")}</p>
+    `
+  });
 
   await sendEmail({
     to: customer.email,
