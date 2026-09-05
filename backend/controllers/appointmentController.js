@@ -220,11 +220,60 @@ const createAppointment = async (req, res) => {
 
 
 
+// Turns a plain "YYYY-MM-DD" (the caller's own local calendar day - see
+// Today.jsx's toDateKey) into a generously padded UTC range: the day
+// before through two days after. Deliberately not timezone-precise -
+// this is a performance optimization with a safety margin, not a
+// timezone-aware feature, so it doesn't need this app's real
+// business-hours-timezone machinery. A full day of padding on each side
+// safely covers any real-world UTC offset (up to ~14 hours) converting
+// "local midnight" to UTC could produce, plus any appointment duration
+// this app's own default (1 hour) or any realistic real one would ever
+// reach - comfortably wide enough that attachConflicts, run on
+// everything the range query returns, can't miss a real conflict
+// spilling in from just outside the requested day.
+function paddedDayRange(dateString) {
+
+  const start = new Date(`${dateString}T00:00:00.000Z`);
+
+  if (Number.isNaN(start.getTime())) {
+    return null;
+  }
+
+  start.setUTCDate(start.getUTCDate() - 1);
+
+  const end = new Date(`${dateString}T00:00:00.000Z`);
+  end.setUTCDate(end.getUTCDate() + 2);
+
+  return { start: start.toISOString(), end: end.toISOString() };
+
+}
+
+
 const getAppointments = async (req, res) => {
 
   try {
 
-    const appointments = await getAppointmentsService(req.user.business_id);
+    let range = null;
+
+    // Optional - Schedule.jsx's own calendar calls this with no `date`
+    // at all and keeps getting the business's full history, exactly as
+    // before. Only Today.jsx's field view passes one.
+    if (req.query.date) {
+
+      range = paddedDayRange(req.query.date);
+
+      if (!range) {
+
+        return res.status(400).json({
+          error: "date must be a valid YYYY-MM-DD"
+        });
+
+      }
+
+    }
+
+    const appointments = await getAppointmentsService(req.user.business_id, range);
 
     const timeEntries = await getTimeEntriesForAppointmentIdsService(
 

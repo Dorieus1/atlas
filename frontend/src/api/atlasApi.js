@@ -962,9 +962,16 @@ export const deleteNote = (id) =>
 /* ---------- Appointments ---------- */
 
 
-export const getAppointments = () =>
+// date is optional ("YYYY-MM-DD", the caller's own local calendar day) -
+// Schedule.jsx's calendar needs the business's whole appointment history
+// for month/week navigation and calls this with none. Today.jsx's field
+// view only ever needs one day, so it passes one - the backend pads it
+// generously and returns everything that could possibly matter for that
+// day, not literally just that day's own rows (see
+// appointmentController.js's paddedDayRange).
+export const getAppointments = (date) =>
 
-  request("/appointments");
+  request(date ? `/appointments?date=${encodeURIComponent(date)}` : "/appointments");
 
 
 

@@ -129,8 +129,12 @@ function Today() {
 
     try {
 
+      // Scoped to today - see atlasApi.js's own comment. This used to
+      // fetch the business's ENTIRE appointment history on every load,
+      // which a review caught as a real, growing cost specifically for
+      // this page (a mobile field view, likely on real cellular data).
       const [apptData, teammateData] = await Promise.all([
-        getAppointments(),
+        getAppointments(toDateKey(new Date())),
         getTeammates()
       ]);
 

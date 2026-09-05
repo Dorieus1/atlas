@@ -431,4 +431,97 @@ describe("Appointments", () => {
 
   });
 
+
+  // Today.jsx's field view passes ?date= so it isn't downloading a
+  // business's ENTIRE appointment history just to show today's jobs -
+  // a real, growing cost a review caught. Schedule.jsx's calendar never
+  // passes this and must keep seeing everything, unbounded.
+  describe("Scoping the list to one day via ?date=", () => {
+
+    test("only returns appointments within the padded window around the requested date", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ApptDateScope");
+
+      await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Far past job", start_time: "2026-01-01T10:00:00.000Z" });
+
+      await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Requested day job", start_time: "2026-09-01T10:00:00.000Z" });
+
+      await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Far future job", start_time: "2026-12-01T10:00:00.000Z" });
+
+      const scoped = await request(app)
+        .get("/api/appointments?date=2026-09-01")
+        .set("Authorization", authHeader);
+
+      expect(scoped.status).toBe(200);
+
+      const titles = scoped.body.map((a) => a.title);
+
+      expect(titles).toContain("Requested day job");
+      expect(titles).not.toContain("Far past job");
+      expect(titles).not.toContain("Far future job");
+
+      // Nothing scoped at all when `date` is omitted - Schedule.jsx's
+      // own calendar relies on this exact behavior for month/week
+      // navigation.
+      const unscoped = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      expect(unscoped.body.map((a) => a.title)).toEqual(
+        expect.arrayContaining(["Far past job", "Requested day job", "Far future job"])
+      );
+
+    });
+
+
+    test("still catches a real conflict from a job starting just before midnight and spilling into the requested day", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ApptDateScopeConflict");
+
+      // Starts the day before, ends 90 minutes into the requested day.
+      await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Overnight job", start_time: "2026-09-01T23:00:00.000Z", end_time: "2026-09-02T01:30:00.000Z" });
+
+      await request(app)
+        .post("/api/appointments")
+        .set("Authorization", authHeader)
+        .send({ title: "Early morning job", start_time: "2026-09-02T01:00:00.000Z", end_time: "2026-09-02T02:00:00.000Z" });
+
+      const scoped = await request(app)
+        .get("/api/appointments?date=2026-09-02")
+        .set("Authorization", authHeader);
+
+      const byTitle = Object.fromEntries(scoped.body.map((a) => [a.title, a.has_conflict]));
+
+      expect(byTitle["Overnight job"]).toBe(true);
+      expect(byTitle["Early morning job"]).toBe(true);
+
+    });
+
+
+    test("an invalid date is rejected with a clear error", async () => {
+
+      const { authHeader } = await createBusinessAndUser(app, "ApptDateScopeInvalid");
+
+      const res = await request(app)
+        .get("/api/appointments?date=not-a-date")
+        .set("Authorization", authHeader);
+
+      expect(res.status).toBe(400);
+
+    });
+
+  });
+
 });

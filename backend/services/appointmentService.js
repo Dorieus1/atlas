@@ -904,11 +904,30 @@ const updateFutureServiceAgreementAppointments = async (service_agreement_id, bu
 
 
 
-const getAppointments = (business_id) => {
+// `range` is optional - { start, end } ISO bounds on start_time. Every
+// existing caller (Schedule.jsx's calendar, which genuinely needs a
+// broad range for month/week navigation) keeps getting the business's
+// full appointment history, unbounded, exactly as before. Only
+// Today.jsx's field view passes a range (see appointmentController.js's
+// getAppointments, which pads whatever single day it's asked about into
+// this) - a review caught that it was downloading a business's ENTIRE
+// appointment history just to show today's handful of jobs, growing
+// forever as a business's history grows, which matters more here than
+// for Schedule.jsx since this is explicitly the page built for a phone
+// on a job site.
+//
+// attachConflicts is still run on exactly whatever set of rows this
+// returns, same as always - correctness depends on the CALLER (see
+// appointmentController.js) padding a requested range generously enough
+// that nothing outside the window could possibly overlap into it, not
+// on anything in this function.
+const getAppointments = (business_id, range = null) => {
 
 
   return new Promise((resolve, reject) => {
 
+    const rangeClause = range ? `AND appointments.start_time >= ? AND appointments.start_time < ?` : "";
+    const params = range ? [business_id, range.start, range.end] : [business_id];
 
     db.all(
 
@@ -921,10 +940,11 @@ const getAppointments = (business_id) => {
       FROM appointments
       LEFT JOIN customers ON customers.id = appointments.customer_id
       WHERE appointments.business_id = ?
+      ${rangeClause}
       ORDER BY appointments.start_time ASC
       `,
 
-      [business_id],
+      params,
 
       (err, rows) => {
 
