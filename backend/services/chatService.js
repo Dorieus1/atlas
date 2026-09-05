@@ -5,7 +5,7 @@ const { saveConversation } = require("./conversationService");
 const { getBusinessKnowledge } = require("./knowledgeService");
 const { createMemory } = require("./memoryCreationService");
 const { createActivity } = require("./activityService");
-const { createLead, hasOpenLead } = require("./leadService");
+const { createLeadIfNoneOpen } = require("./leadService");
 const { createTask } = require("./taskService");
 const { createNotification } = require("./notificationService");
 const { createKnowledgeGap } = require("./knowledgeGapService");
@@ -191,14 +191,23 @@ const runLeadDetection = async (customer, business_id, message) => {
   // for what the owner experiences as a single conversation. A lead the
   // owner has already closed is a genuinely new opportunity if the
   // customer comes back, so only an existing OPEN lead blocks a new one -
-  // checked across ALL of the customer's leads (hasOpenLead), not just
-  // their most recent one, since a customer can have an older lead
-  // still open and a newer one already closed.
-  if (await hasOpenLead(customer.id, business_id)) {
+  // checked across ALL of the customer's leads, not just their most
+  // recent one, since a customer can have an older lead still open and
+  // a newer one already closed.
+  //
+  // The open-lead check and the insert used to be two separate awaited
+  // calls here, with nothing stopping a second, concurrent
+  // runLeadDetection (this runs detached - see trackBackgroundWork
+  // above) from running its own check in the gap before the first
+  // one's insert landed - two messages sent close together could each
+  // see "no open lead yet" and both create one. createLeadIfNoneOpen
+  // does the check and the insert as one mutex-serialized unit (see its
+  // own comment in leadService.js) so that race can't happen.
+  const leadResult = await createLeadIfNoneOpen(customer.id, business_id, message, priority);
+
+  if (!leadResult.created) {
     return;
   }
-
-  await createLead(customer.id, business_id, message, priority);
 
   await createTask(
 

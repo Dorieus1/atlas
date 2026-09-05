@@ -1,5 +1,17 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
+const { withTransaction } = require("../../database/transactionQueue");
+
+
+const runAsync = (sql, params = []) => {
+
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      err ? reject(err) : resolve(this);
+    });
+  });
+
+};
 
 
 
@@ -383,11 +395,67 @@ const hasOpenLead = (customer_id, business_id) => {
 
 
 
+// Closes a real race a bug-hunt review found: chatService.js's
+// runLeadDetection runs detached (not awaited) for every customer
+// message, and classifyLead is a slow real OpenAI round-trip - two
+// messages sent close together in the same conversation each start
+// their own hasOpenLead() check before either has finished inserting,
+// so both see "no open lead yet" and both call createLead(), producing
+// two lead cards, two follow-up tasks, and two notifications for one
+// real opportunity. hasOpenLead + createLead were previously two
+// separate awaited calls with nothing preventing another call from
+// interleaving between them.
+//
+// Routed through the app's shared withTransaction mutex
+// (database/transactionQueue.js), the same fix shape already used for
+// the public booking double-booking race (availabilityService.js) -
+// the mutex guarantees no second call's check-then-insert can even
+// START until the first has fully committed or rolled back, so the
+// read and the write behave as one atomic unit against any other
+// concurrent lead-detection run for the same customer.
+const createLeadIfNoneOpen = (customer_id, business_id, interest, priority) => {
+
+  return withTransaction(async () => {
+
+    await runAsync("BEGIN TRANSACTION");
+
+    try {
+
+      const alreadyOpen = await hasOpenLead(customer_id, business_id);
+
+      if (alreadyOpen) {
+
+        await runAsync("ROLLBACK");
+        return { created: false };
+
+      }
+
+      const id = await createLead(customer_id, business_id, interest, priority);
+
+      await runAsync("COMMIT");
+
+      return { created: true, id };
+
+    } catch (err) {
+
+      await runAsync("ROLLBACK").catch(() => {});
+      throw err;
+
+    }
+
+  });
+
+};
+
+
+
 module.exports = {
 
   createLead,
 
   hasOpenLead,
+
+  createLeadIfNoneOpen,
 
   getLeadsByBusiness,
 

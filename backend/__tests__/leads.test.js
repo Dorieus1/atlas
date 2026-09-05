@@ -3,6 +3,7 @@ const app = require("../server");
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 const { createBusinessAndUser, sendChatMessage } = require("./setup/helpers");
+const { flushBackgroundWork } = require("../services/chatService");
 
 const runAsync = (sql, params = []) => {
 
@@ -81,6 +82,18 @@ const createCustomerWithLead = async (app, authHeader, customerName, phone) => {
 
 describe("Leads", () => {
 
+  // mockReset (not mockClear) so a `mockImplementation` a test overrides
+  // (e.g. the race test below, which needs a real delay to reproduce a
+  // real race) can never survive into the next test - same convention
+  // assistant.test.js/aiFailure.test.js/chatBooking.test.js already use.
+  // This file didn't need its own reset before now because nothing in
+  // it touched the mock beyond the plain default mockOpenai.js sets up
+  // once; the race test below is the first thing here that does.
+  beforeEach(() => {
+    global.__mockOpenAICreate.mockReset();
+    global.__mockOpenAICreate.mockResolvedValue({ output_text: "hot" });
+  });
+
   test("a chat message with buying intent automatically creates a lead", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "LeadCreate");
@@ -128,6 +141,55 @@ describe("Leads", () => {
 
     expect(leads.body.length).toBe(1);
     expect(leads.body[0].id).toBe(lead.id);
+
+  });
+
+  // Regression test for a real race a bug-hunt review found: the test
+  // above only proves SEQUENTIAL dedup (the second message's detection
+  // runs once a lead already exists). The actual bug needed two
+  // messages' detached lead-detection to genuinely overlap - a plain
+  // sequential test can never reproduce that because the mock's default
+  // instant response means the first message's whole detached pipeline
+  // reliably finishes before the second request even lands. A real
+  // classifyLead() call is a slow OpenAI round-trip, so this gives the
+  // mock a real (short) delay to open that same window on purpose, then
+  // fires both messages without awaiting between them.
+  test("two buying-intent messages sent at nearly the same time only create one lead (a real race, not just sequential dedup)", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "LeadRace");
+
+    const customer = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Race Customer" });
+
+    const business = (await request(app).get("/api/business").set("Authorization", authHeader)).body[0];
+
+    global.__mockOpenAICreate.mockImplementation(() =>
+
+      new Promise((resolve) => setTimeout(() => resolve({ output_text: "hot" }), 50))
+
+    );
+
+    await Promise.all([
+
+      request(app)
+        .post(`/api/public/${business.slug}/chat`)
+        .send({ customer_id: customer.body.id, message: "I need an estimate for a repair" }),
+
+      request(app)
+        .post(`/api/public/${business.slug}/chat`)
+        .send({ customer_id: customer.body.id, message: "Also, how soon could someone come out?" })
+
+    ]);
+
+    await flushBackgroundWork();
+
+    const leads = await request(app)
+      .get("/api/leads")
+      .set("Authorization", authHeader);
+
+    expect(leads.body.length).toBe(1);
 
   });
 
