@@ -1,5 +1,5 @@
 const { getBusinessBySlug } = require("../services/businessService");
-const { createCustomer, getCustomerById } = require("../services/customerService");
+const { createCustomer, getCustomerById, getActiveCustomerByEmail, getActiveCustomerByPhone } = require("../services/customerService");
 const { getConversationHistory } = require("../services/conversationService");
 const { processChatMessage } = require("../services/chatService");
 const { createNotification } = require("../services/notificationService");
@@ -10,6 +10,55 @@ const MAX_NAME_LENGTH = 200;
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_TITLE_LENGTH = 200;
 const MAX_NOTES_LENGTH = 2000;
+
+
+// Shared by both public entry points below (the chat widget's
+// startConversation and the booking page's createPublicBooking) - a
+// deliberate reversal of an earlier decision to always create a fresh
+// customer on every visit and let the separate duplicate-detection/
+// merge feature clean it up afterward. In practice that meant a
+// returning visitor (closed their browser, switched devices, came back
+// the next day - anything that lost the frontend's own sessionStorage-
+// based memory of who they are) got a brand-new, disconnected customer
+// record every time, silently fragmenting their real conversation/
+// quote/appointment history across multiple records and requiring the
+// owner to notice and manually merge them. Matching on email or phone
+// first reuses their real existing record instead - the same "high
+// confidence, essentially never shared by two different real people"
+// criterion this app's own duplicate-detection feature already trusts
+// enough to offer as a one-click merge. Only ever creates a genuinely
+// new customer when no match is found, or the visitor gave neither
+// (nothing reliable to match on). Doesn't touch the visitor's given
+// name even on a match - an existing record's name is left exactly as
+// it was rather than silently overwritten by whatever they happened to
+// type this time.
+const findOrCreateCustomer = async (business_id, name, email, phone) => {
+
+  if (email) {
+
+    const existing = await getActiveCustomerByEmail(business_id, email);
+
+    if (existing) {
+      return { id: existing.id, isReturning: true };
+    }
+
+  }
+
+  if (phone) {
+
+    const existing = await getActiveCustomerByPhone(business_id, phone);
+
+    if (existing) {
+      return { id: existing.id, isReturning: true };
+    }
+
+  }
+
+  const id = await createCustomer(business_id, name.trim(), email || null, phone || null);
+
+  return { id, isReturning: false };
+
+};
 
 
 const getBusinessBySlugHandler = async (req, res) => {
@@ -76,21 +125,13 @@ const startConversation = async (req, res) => {
 
     }
 
-    const customerId = await createCustomer(
-
-      business.id,
-
-      name.trim(),
-
-      email || null,
-
-      phone || null
-
-    );
+    const { id: customerId, isReturning } = await findOrCreateCustomer(business.id, name, email, phone);
 
     // Best-effort - a stranger reaching out through the public chat page
     // is worth flagging, but a failure here must never block them from
-    // actually starting the conversation.
+    // actually starting the conversation. Still fires for a returning
+    // visitor too - "someone's back and chatting" is worth knowing about
+    // either way, not just a brand-new lead.
     try {
 
       await createNotification(
@@ -99,9 +140,13 @@ const startConversation = async (req, res) => {
 
         "new_conversation",
 
-        `💬 ${name.trim()} started a chat`,
+        isReturning
+          ? `💬 ${name.trim()} is back and chatting`
+          : `💬 ${name.trim()} started a chat`,
 
-        "New visitor from your public chat page",
+        isReturning
+          ? "Returning visitor from your public chat page"
+          : "New visitor from your public chat page",
 
         `/customers/${customerId}`
 
@@ -302,11 +347,13 @@ const getPublicAvailability = async (req, res) => {
 // comment for why a plain separate check-then-insert here left a real
 // double-booking race) rather than trusting that a slot the browser
 // fetched moments ago is still open - two visitors can always be
-// looking at the same page at once. Creates a fresh customer every
-// time, same as startConversation above already does for the public
-// chat - deduping a repeat visitor by email is what the existing
-// duplicate-detection/merge feature is for, not something this endpoint
-// should try to guess at.
+// looking at the same page at once. Uses findOrCreateCustomer (see
+// above) the same as startConversation - a past version of this comment
+// said bookings always created a fresh customer and left deduping to
+// the separate merge feature, but that meant a returning customer
+// booking again got a brand-new disconnected record every time; the
+// user confirmed (2026-09-05) matching on email/phone first is worth
+// the small risk of two different real people ever sharing one.
 const createPublicBooking = async (req, res) => {
 
   try {
@@ -371,17 +418,7 @@ const createPublicBooking = async (req, res) => {
 
     }
 
-    const customerId = await createCustomer(
-
-      business.id,
-
-      name.trim(),
-
-      email || null,
-
-      phone || null
-
-    );
+    const { id: customerId } = await findOrCreateCustomer(business.id, name, email, phone);
 
     const appointmentTitle = title && title.trim() ? title.trim() : "Appointment request";
 

@@ -99,6 +99,57 @@ describe("Public chat page", () => {
 
   });
 
+
+  // Regression test for a real, user-confirmed fix (2026-09-05): this
+  // used to create a brand-new customer every single time someone
+  // clicked "Start Chat," even the exact same real person coming back
+  // later (closed their browser, switched devices, etc. - anything that
+  // lost the frontend's own sessionStorage memory of who they are) -
+  // their conversation history ended up split across disconnected
+  // customer records unless the owner noticed and manually merged them.
+  test("a returning visitor (matched by email) continues their existing customer record instead of getting a new one", async () => {
+
+    const bizRes = await request(app)
+      .post("/api/business")
+      .send({ name: "Returning Visitor Business" });
+
+    const db = require("../../database/db");
+    const slug = await new Promise((resolve, reject) => {
+      db.get("SELECT slug FROM businesses WHERE id = ?", [bizRes.body.id], (err, row) => (err ? reject(err) : resolve(row.slug)));
+    });
+
+    // Independent rate-limit bucket (see rateLimiter.js) so this test's
+    // own two "start chat" calls don't eat into the shared-IP bucket
+    // every other test in this file draws from.
+    const first = await request(app)
+      .post(`/api/public/${slug}/start`)
+      .set("X-Test-Client-Id", "start-returning-email")
+      .send({ name: "Returning Person", email: "returning@test.com" });
+
+    // A second "Start Chat" for the same real person - the frontend
+    // would only ever do this if it lost track of who they were, but
+    // the backend shouldn't assume that can't happen.
+    const second = await request(app)
+      .post(`/api/public/${slug}/start`)
+      .set("X-Test-Client-Id", "start-returning-email")
+      .send({ name: "Returning Person", email: "returning@test.com" });
+
+    expect(second.status).toBe(201);
+    expect(second.body.customer_id).toBe(first.body.customer_id);
+
+    const count = await new Promise((resolve, reject) => {
+      db.get(
+        "SELECT COUNT(*) as count FROM customers WHERE business_id = ? AND email = ?",
+        [bizRes.body.id, "returning@test.com"],
+        (err, row) => (err ? reject(err) : resolve(row.count))
+      );
+    });
+
+    expect(count).toBe(1);
+
+  });
+
+
   test("a public visitor can send a message and get a reply, and it's saved to their history", async () => {
 
     const bizRes = await request(app)

@@ -268,6 +268,48 @@ const getActiveCustomerByEmail = (business_id, email) => {
 
 
 
+// Same idea as getActiveCustomerByEmail, for the public chat/booking
+// pages' "returning visitor" lookup (see publicController.js) - a phone
+// number typed into a form varies in formatting far more than an email
+// does ("555-123-4567" vs "(555) 123-4567" vs "5551234567" are all the
+// same real number), so a plain equality check would miss most real
+// matches. Strips the common punctuation from BOTH sides before
+// comparing - not a full phone-number-parsing library, just enough to
+// catch the formatting a person actually types into a plain text box.
+// Doesn't attempt to reconcile a missing/present country code
+// ("+15551234567" vs "5551234567") - a narrower, still-real gap left
+// for later if it turns out to matter in practice.
+const digitsOnlySql = (column) =>
+  `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${column}, '-', ''), ' ', ''), '(', ''), ')', ''), '+', '')`;
+
+const getActiveCustomerByPhone = (business_id, phone) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.get(
+
+      `
+      SELECT *
+      FROM customers
+      WHERE business_id = ?
+      AND ${digitsOnlySql("phone")} = ${digitsOnlySql("?")}
+      AND phone IS NOT NULL
+      AND phone != ''
+      AND deleted_at IS NULL
+      `,
+
+      [business_id, phone],
+
+      (err, row) => (err ? reject(err) : resolve(row))
+
+    );
+
+  });
+
+};
+
+
+
 // Attaches each customer's assigned tags (as a small [{id, name}] array) in
 // a single batch query instead of one query per customer.
 const attachTagsToCustomers = async (customers, business_id) => {
@@ -835,6 +877,7 @@ module.exports = {
   getCustomerByEmail,
   getActiveCustomerById,
   getActiveCustomerByEmail,
+  getActiveCustomerByPhone,
   getCustomersByBusiness,
   deleteCustomer,
   restoreCustomer,

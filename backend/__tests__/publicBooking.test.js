@@ -242,6 +242,78 @@ describe("Public self-service booking", () => {
     });
 
 
+    // Regression test for a real, user-confirmed fix (2026-09-05): this
+    // used to create a brand-new customer on every single booking, even
+    // for the exact same real person booking a second time - their
+    // history ended up split across disconnected records unless the
+    // owner noticed and manually merged them.
+    test("a returning customer (matched by email) reuses their existing record instead of creating a new one", async () => {
+
+      const { authHeader, slug } = await bookableBusiness("BookReturning");
+
+      // Independent rate-limit bucket (see rateLimiter.js) so this test's
+      // own two bookings don't eat into the shared-IP bucket every other
+      // test in this file draws from.
+      const first = await request(app)
+        .post(`/api/public/${slug}/book`)
+        .set("X-Test-Client-Id", "book-returning-email")
+        .send({ name: "Jane Doe", email: "jane@test.com", start_time: "2026-09-14T10:00:00.000Z" });
+
+      expect(first.status).toBe(201);
+
+      const second = await request(app)
+        .post(`/api/public/${slug}/book`)
+        .set("X-Test-Client-Id", "book-returning-email")
+        .send({ name: "Jane Doe", email: "jane@test.com", start_time: "2026-09-14T13:00:00.000Z" });
+
+      expect(second.status).toBe(201);
+
+      const appts = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const firstAppt = appts.body.find((a) => a.id === first.body.id);
+      const secondAppt = appts.body.find((a) => a.id === second.body.id);
+
+      expect(secondAppt.customer_id).toBe(firstAppt.customer_id);
+
+      const customers = await request(app)
+        .get("/api/customers")
+        .set("Authorization", authHeader);
+
+      expect(customers.body.filter((c) => c.email === "jane@test.com")).toHaveLength(1);
+
+    });
+
+
+    // Phone matching has to survive real-world formatting differences -
+    // a customer rarely types their number the exact same way twice.
+    test("a returning customer matched by phone works even when the formatting differs between visits", async () => {
+
+      const { authHeader, slug } = await bookableBusiness("BookReturningPhone");
+
+      const first = await request(app)
+        .post(`/api/public/${slug}/book`)
+        .set("X-Test-Client-Id", "book-returning-phone")
+        .send({ name: "John Smith", phone: "(555) 123-4567", start_time: "2026-09-14T10:00:00.000Z" });
+
+      const second = await request(app)
+        .post(`/api/public/${slug}/book`)
+        .set("X-Test-Client-Id", "book-returning-phone")
+        .send({ name: "John Smith", phone: "555-123-4567", start_time: "2026-09-14T13:00:00.000Z" });
+
+      const appts = await request(app)
+        .get("/api/appointments")
+        .set("Authorization", authHeader);
+
+      const firstAppt = appts.body.find((a) => a.id === first.body.id);
+      const secondAppt = appts.body.find((a) => a.id === second.body.id);
+
+      expect(secondAppt.customer_id).toBe(firstAppt.customer_id);
+
+    });
+
+
     test("a blank title falls back to a sensible default", async () => {
 
       const { authHeader, slug } = await bookableBusiness("BookNoTitle");
