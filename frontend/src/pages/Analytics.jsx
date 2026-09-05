@@ -18,8 +18,6 @@ import { getAnalytics, getArAging } from "../api/atlasApi";
 import StatCard from "../components/dashboard/StatCard";
 import { useTheme } from "../context/ThemeContext";
 
-const COLORS = ["#f97316", "#2a3040"];
-
 const PIPELINE_STAGES = [
   { key: "new", label: "New" },
   { key: "contacted", label: "Contacted" },
@@ -85,6 +83,36 @@ function Analytics() {
 
   const { theme } = useTheme();
   const chartColors = CHART_COLORS[theme] || CHART_COLORS.dark;
+
+  // Same reasoning as CHART_COLORS above - Recharts' `fill` is an inline
+  // SVG prop, not a Tailwind class, so a review correctly caught that
+  // these bar/pie charts kept the old hardcoded orange forever even
+  // after a business picked Blue/Violet/Teal in Settings, while every
+  // real Tailwind-driven button/badge on the page correctly followed
+  // it. Read directly off the CSS custom property Sidebar.jsx sets on
+  // <html> (frontend/src/index.css's --color-brand-500), the same
+  // pattern this file already uses for theme-aware axis/tooltip colors,
+  // rather than re-deriving a second copy of "which accent is active."
+  // Read once on mount, not on every render - if this page happens to
+  // be the very first one loaded after a full reload, before Sidebar's
+  // own business fetch resolves, the CSS variable simply hasn't been
+  // overridden from its own default (plain orange) yet, so this reads
+  // that same correct default rather than something wrong - the exact
+  // same brief-flash tradeoff Sidebar.jsx already accepts for the rest
+  // of the app.
+  const [accentColor, setAccentColor] = useState("#f97316");
+
+  useEffect(() => {
+
+    const value = getComputedStyle(document.documentElement).getPropertyValue("--color-brand-500").trim();
+
+    if (value) {
+      setAccentColor(value);
+    }
+
+  }, []);
+
+  const pieColors = [accentColor, "#2a3040"];
 
   const [stats, setStats] = useState({
     customers: 0,
@@ -270,7 +298,7 @@ function Analytics() {
                   borderRadius: 8
                 }}
               />
-              <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="value" fill={accentColor} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
 
@@ -305,7 +333,7 @@ function Analytics() {
                     borderRadius: 8
                   }}
                 />
-                <Bar dataKey="value" fill="#f97316" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="value" fill={accentColor} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
 
@@ -340,7 +368,7 @@ function Analytics() {
                     paddingAngle={4}
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={entry.name} fill={pieColors[index % pieColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -390,7 +418,7 @@ function Analytics() {
                     borderRadius: 8
                   }}
                 />
-                <Bar dataKey="value" fill="#f97316" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="value" fill={accentColor} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
 
