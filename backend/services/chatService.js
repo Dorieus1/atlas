@@ -1,7 +1,7 @@
 const { generateAIResponse, detectKnowledgeGap, classifyLead } = require("./aiService");
 const { buildChatTools } = require("./chatTools");
 const { getCustomerMemories } = require("./memoryService");
-const { saveConversation } = require("./conversationService");
+const { saveConversation, getConversationHistory } = require("./conversationService");
 const { getBusinessKnowledge } = require("./knowledgeService");
 const { createMemory } = require("./memoryCreationService");
 const { createActivity } = require("./activityService");
@@ -69,6 +69,20 @@ const processChatMessage = async (customer, business, message, { preview = false
 
   const knowledge = await getBusinessKnowledge(business_id);
 
+  // A known, previously-unsolved limitation, now fixed: this used to
+  // only ever pass the current message plus extracted "memories" (facts
+  // pulled out of past messages, not the messages themselves), so a
+  // multi-message conversation could make the AI re-ask something a
+  // human would obviously remember from two messages ago. Read here
+  // (not detached, not a side effect) whether this is a preview or not
+  // - a preview must see the SAME real history the real widget would,
+  // since ChatWindow.jsx already shows the owner this exact history as
+  // "their actual conversation history with Atlas, for reference" and
+  // the whole point of a preview is showing how Atlas would really
+  // respond. See generateAIResponse's own MAX_HISTORY_TURNS for why this
+  // isn't the customer's entire history, unbounded.
+  const history = await getConversationHistory(customer_id);
+
   // Gives the AI a real check_availability/book_appointment ability when
   // (and only when) the business has real hours configured - see
   // chatTools.js and generateAIResponse's own comments for the full
@@ -86,7 +100,9 @@ const processChatMessage = async (customer, business, message, { preview = false
 
     business,
 
-    tools
+    tools,
+
+    history
 
   );
 
