@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Rocket } from "lucide-react";
 import { createBusiness, register, deleteIncompleteBusiness, login } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
+import Input from "../components/Input";
 
 
 function Onboarding() {
@@ -238,7 +239,7 @@ function Onboarding() {
             {label}
           </label>
 
-          <input
+          <Input
 
             id={`onboarding-${name}`}
 
@@ -249,19 +250,6 @@ function Onboarding() {
             value={form[name]}
 
             onChange={update}
-
-            className="
-              w-full
-              bg-surface-muted
-              border
-              border-border
-              rounded-lg
-              p-3
-              text-fg
-              placeholder:text-fg-faint
-              focus:outline-none
-              focus:border-border-strong
-            "
 
           />
 
@@ -289,7 +277,7 @@ function Onboarding() {
             {label}
           </label>
 
-          <input
+          <Input
 
             id={`onboarding-${name}`}
 
@@ -301,19 +289,6 @@ function Onboarding() {
 
             onChange={update}
 
-            className="
-              w-full
-              bg-surface-muted
-              border
-              border-border
-              rounded-lg
-              p-3
-              text-fg
-              placeholder:text-fg-faint
-              focus:outline-none
-              focus:border-border-strong
-            "
-
           />
 
         </div>
@@ -324,7 +299,7 @@ function Onboarding() {
         Password
       </label>
 
-      <input
+      <Input
 
         id="onboarding-password"
 
@@ -338,19 +313,7 @@ function Onboarding() {
 
         onChange={update}
 
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
+        className="mb-4"
 
       />
 

@@ -5,6 +5,7 @@ import { CalendarDays, Clock, Check, MessageSquare } from "lucide-react";
 import { getPublicAvailability, createPublicBooking } from "../api/atlasApi";
 
 import Logo from "../components/Logo";
+import Input from "../components/Input";
 
 
 function formatDayLabel(dateKey) {
@@ -355,12 +356,12 @@ function PublicBooking() {
                     Your Name
                   </label>
 
-                  <input
+                  <Input
                     id="booking-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Homeowner"
-                    className="mb-3 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                    className="mb-3"
                   />
 
                   <div className="mb-3 grid gap-3 sm:grid-cols-2">
@@ -369,13 +370,12 @@ function PublicBooking() {
                       <label htmlFor="booking-email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                         Email
                       </label>
-                      <input
+                      <Input
                         id="booking-email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"
-                        className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                       />
                     </div>
 
@@ -383,12 +383,11 @@ function PublicBooking() {
                       <label htmlFor="booking-phone" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                         Phone
                       </label>
-                      <input
+                      <Input
                         id="booking-phone"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(555) 555-5555"
-                        className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
                       />
                     </div>
 

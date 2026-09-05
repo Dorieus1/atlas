@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { forgotPassword } from "../api/atlasApi";
 import AuthLayout from "../components/AuthLayout";
+import Input from "../components/Input";
 
 
 function ForgotPassword() {
@@ -116,7 +117,7 @@ function ForgotPassword() {
             Email
           </label>
 
-          <input
+          <Input
 
             id="forgot-password-email"
 
@@ -126,19 +127,7 @@ function ForgotPassword() {
 
             onChange={(e)=>setEmail(e.target.value)}
 
-            className="
-              w-full
-              mb-4
-              bg-surface-muted
-              border
-              border-border
-              rounded-lg
-              p-3
-              text-fg
-              placeholder:text-fg-faint
-              focus:outline-none
-              focus:border-border-strong
-            "
+            className="mb-4"
 
           />
 

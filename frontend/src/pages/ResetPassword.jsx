@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { resetPassword } from "../api/atlasApi";
 import AuthLayout from "../components/AuthLayout";
+import Input from "../components/Input";
 
 
 function ResetPassword() {
@@ -124,7 +125,7 @@ function ResetPassword() {
         New Password
       </label>
 
-      <input
+      <Input
 
         id="reset-password"
 
@@ -136,19 +137,7 @@ function ResetPassword() {
 
         onChange={(e)=>setPassword(e.target.value)}
 
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
+        className="mb-4"
 
       />
 
@@ -156,7 +145,7 @@ function ResetPassword() {
         Confirm New Password
       </label>
 
-      <input
+      <Input
 
         id="reset-confirm-password"
 
@@ -168,19 +157,7 @@ function ResetPassword() {
 
         onChange={(e)=>setConfirmPassword(e.target.value)}
 
-        className="
-          w-full
-          mb-4
-          bg-surface-muted
-          border
-          border-border
-          rounded-lg
-          p-3
-          text-fg
-          placeholder:text-fg-faint
-          focus:outline-none
-          focus:border-border-strong
-        "
+        className="mb-4"
 
       />
 

@@ -11,6 +11,7 @@ import {
 
 import Logo from "../components/Logo";
 import MessageBubble from "../components/MessageBubble";
+import Input from "../components/Input";
 
 
 function PublicChat() {
@@ -271,24 +272,24 @@ function PublicChat() {
                 Your Name
               </label>
 
-              <input
+              <Input
                 id="public-chat-name"
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mb-3 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                className="mb-3"
               />
 
               <label htmlFor="public-chat-contact" className="mb-1 block text-xs font-medium uppercase tracking-wide text-fg-faint">
                 Phone or Email (optional)
               </label>
 
-              <input
+              <Input
                 id="public-chat-contact"
                 placeholder="Phone or email (optional)"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                className="mb-4 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                className="mb-4"
               />
 
               <button
@@ -333,7 +334,7 @@ function PublicChat() {
 
               <div className="mt-4 flex gap-3">
 
-                <input
+                <Input
                   aria-label="Type a message"
                   placeholder="Type a message..."
                   value={message}
@@ -343,7 +344,7 @@ function PublicChat() {
                       handleSend();
                     }
                   }}
-                  className="flex-1 rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
+                  className="flex-1"
                 />
 
                 <button

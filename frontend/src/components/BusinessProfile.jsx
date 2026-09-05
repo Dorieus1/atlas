@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { updateBusiness as updateBusinessRequest } from "../api/atlasApi";
+import Input from "./Input";
 
 const DAYS = [
   { key: "mon", label: "Monday" },
@@ -264,9 +265,6 @@ function BusinessProfile({ business }) {
 
 
 
-  const inputClass =
-    "w-full bg-surface-muted text-fg placeholder:text-fg-faint border border-border rounded-lg p-3 mb-3";
-
   return (
 
     <div className="bg-surface/60 border border-border rounded-2xl p-6 mt-6">
@@ -291,7 +289,7 @@ function BusinessProfile({ business }) {
         Business Name
       </label>
 
-      <input
+      <Input
 
         id="business-name"
 
@@ -299,7 +297,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Business name"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -315,7 +313,7 @@ function BusinessProfile({ business }) {
         Phone
       </label>
 
-      <input
+      <Input
 
         id="business-phone"
 
@@ -323,7 +321,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Phone"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -339,7 +337,7 @@ function BusinessProfile({ business }) {
         Email
       </label>
 
-      <input
+      <Input
 
         id="business-email"
 
@@ -347,7 +345,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Email"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -363,7 +361,7 @@ function BusinessProfile({ business }) {
         Address
       </label>
 
-      <input
+      <Input
 
         id="business-address"
 
@@ -371,7 +369,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Address"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -387,7 +385,7 @@ function BusinessProfile({ business }) {
         Industry
       </label>
 
-      <input
+      <Input
 
         id="business-industry"
 
@@ -395,7 +393,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Industry"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -419,7 +417,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Services"
 
-        className={`${inputClass} h-24`}
+        className="mb-3 h-24 w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
 
         onChange={(e) =>
           setForm({
@@ -435,7 +433,7 @@ function BusinessProfile({ business }) {
         Review Link
       </label>
 
-      <input
+      <Input
 
         id="business-review-link"
 
@@ -443,7 +441,7 @@ function BusinessProfile({ business }) {
 
         placeholder="Review link (e.g. your Google Business review URL)"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -462,7 +460,7 @@ function BusinessProfile({ business }) {
         Default Tax Rate
       </label>
 
-      <input
+      <Input
 
         id="business-tax-rate"
 
@@ -475,7 +473,7 @@ function BusinessProfile({ business }) {
 
         placeholder="e.g. 8.5 for 8.5%"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
@@ -494,7 +492,7 @@ function BusinessProfile({ business }) {
         Average Hourly Labor Cost
       </label>
 
-      <input
+      <Input
 
         id="business-labor-cost"
 
@@ -506,7 +504,7 @@ function BusinessProfile({ business }) {
 
         placeholder="e.g. 25 for $25/hour"
 
-        className={inputClass}
+        className="mb-3"
 
         onChange={(e) =>
           setForm({
