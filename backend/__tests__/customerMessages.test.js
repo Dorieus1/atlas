@@ -122,6 +122,35 @@ describe("Sending a real message to a customer", () => {
   });
 
 
+  // Regression test for a real gap a review caught: trashing a customer
+  // never cascades to their open leads (a lead pointing at a since-
+  // trashed customer - spam, wrong number, "please stop contacting me" -
+  // is completely normal), and LeadPipeline.jsx's own "Send Email"
+  // button on a generated follow-up goes through this exact same
+  // endpoint. Without this, an owner who trashed a customer could still
+  // have Atlas send them a real email.
+  test("a trashed customer can't be messaged this way, even though their email is still on file", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "MessageTrashed");
+    const customerId = await createCustomer(authHeader, "Trashed Customer", "trashed@test.com");
+
+    const trashRes = await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(trashRes.status).toBe(200);
+
+    const res = await request(app)
+      .post(`/api/customers/${customerId}/messages`)
+      .set("Authorization", authHeader)
+      .send({ subject: "Hi", body: "Hello there" });
+
+    expect(res.status).toBe(404);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+  });
+
+
   test("a business can't message another business's customer", async () => {
 
     const businessA = await createBusinessAndUser(app, "MessageScopeA");

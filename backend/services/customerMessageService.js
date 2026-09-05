@@ -1,7 +1,7 @@
 const db = require("../../database/db");
 const { v4: uuidv4 } = require("uuid");
 const { sendEmail, escapeHtml } = require("./emailService");
-const { getCustomerById } = require("./customerService");
+const { getActiveCustomerById } = require("./customerService");
 const { getBusinessById } = require("./businessService");
 
 
@@ -30,7 +30,19 @@ const allAsync = (sql, params = []) => {
 // fire-and-forget action with no trace it ever happened.
 const sendMessageToCustomer = async (customer_id, business_id, sent_by_user_id, subject, body) => {
 
-  const customer = await getCustomerById(customer_id, business_id);
+  // getActiveCustomerById, not the unfiltered getCustomerById - a review
+  // caught a real gap: trashing a customer never cascades to their open
+  // leads, so a lead pointing at a since-trashed customer (spam, wrong
+  // number, "please stop contacting me") is completely normal, and this
+  // is reachable from LeadPipeline.jsx's own "Send Email" button, not
+  // just the customer profile. getCustomerById is deliberately
+  // unfiltered for the many staff-facing callers that need to still
+  // reach a trashed customer's existing record (viewing their history,
+  // say) - actually sending them a new, real email isn't one of those;
+  // it belongs with the small set of callers customerService.js already
+  // documents as needing a trashed customer treated as if they don't
+  // exist.
+  const customer = await getActiveCustomerById(customer_id, business_id);
 
   if (!customer) {
     return { error: "not_found" };
