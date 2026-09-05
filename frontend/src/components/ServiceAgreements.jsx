@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Repeat, Plus, Pause, Play, X, RotateCw, AlertTriangle, Pencil } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Repeat, Plus, Pause, Play, X, RotateCw, AlertTriangle, Pencil, ExternalLink } from "lucide-react";
 
 import {
   getCustomerServiceAgreements,
@@ -288,16 +289,33 @@ function ServiceAgreements({ customerId }) {
           Service Agreements
         </h2>
 
-        <button
-          onClick={() => {
-            setShowForm((v) => !v);
-            setFormError("");
-          }}
-          className="flex items-center gap-1 rounded-lg bg-border px-3 py-1.5 text-xs font-medium transition hover:bg-border-strong"
-        >
-          {showForm ? <X size={13} /> : <Plus size={13} />}
-          {showForm ? "Cancel" : "New Plan"}
-        </button>
+        <div className="flex items-center gap-2">
+
+          {/* A review flagged this as a real dead end: the business-wide
+              /plans page and this per-customer panel show the same data
+              two different ways, but there was no way to get from "one
+              customer's plan" to "everyone's plans" without knowing to
+              use the sidebar. */}
+          <Link
+            to="/plans"
+            className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:border-border-strong hover:text-fg"
+          >
+            <ExternalLink size={13} />
+            View All Plans
+          </Link>
+
+          <button
+            onClick={() => {
+              setShowForm((v) => !v);
+              setFormError("");
+            }}
+            className="flex items-center gap-1 rounded-lg bg-border px-3 py-1.5 text-xs font-medium transition hover:bg-border-strong"
+          >
+            {showForm ? <X size={13} /> : <Plus size={13} />}
+            {showForm ? "Cancel" : "New Plan"}
+          </button>
+
+        </div>
 
       </div>
 
