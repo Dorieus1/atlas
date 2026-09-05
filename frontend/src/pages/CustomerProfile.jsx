@@ -71,6 +71,18 @@ function CustomerProfile() {
   const [deleteError, setDeleteError] = useState("");
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [messageSentNote, setMessageSentNote] = useState("");
+
+  // Bumped every time a message is sent, and handed to CustomerTimeline
+  // as its `key` below - CustomerTimeline only ever fetches once, on
+  // mount (see its own useEffect on [customerId]), so if the owner
+  // sends a message while ALREADY sitting on the Timeline tab, the
+  // already-mounted component has no other reason to notice the new
+  // owner_message event exists. Changing `key` forces React to throw
+  // the old instance away and mount a fresh one, which re-fetches -
+  // simpler than threading a second callback prop through for a
+  // component that (unlike the always-mounted note form) isn't even
+  // guaranteed to be mounted when a message goes out.
+  const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [editCustomerName, setEditCustomerName] = useState("");
   const [editCustomerEmail, setEditCustomerEmail] = useState("");
@@ -1324,7 +1336,7 @@ function CustomerProfile() {
 
       <div className="flex flex-col gap-6">
 
-      <CustomerTimeline customerId={id} onNoteChange={loadSummary} />
+      <CustomerTimeline key={timelineRefreshKey} customerId={id} onNoteChange={loadSummary} />
 
       </div>
 
@@ -1419,6 +1431,7 @@ function CustomerProfile() {
           onSent={() => {
             setMessagingOpen(false);
             setMessageSentNote(`Email sent to ${customer.email}.`);
+            setTimelineRefreshKey((k) => k + 1);
           }}
         />
 
