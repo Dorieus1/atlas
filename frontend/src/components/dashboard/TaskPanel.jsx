@@ -25,6 +25,7 @@ function TaskPanel() {
   // for the owner to just jot down "call Dana back Thursday" themselves,
   // which is a strange gap for a panel literally called Follow-Up Tasks.
   const [customers, setCustomers] = useState([]);
+  const [customersLoadError, setCustomersLoadError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formCustomerId, setFormCustomerId] = useState("");
   const [formTitle, setFormTitle] = useState("");
@@ -64,9 +65,19 @@ function TaskPanel() {
 
     loadTasks();
 
+    // A real error state, not just a console.error - a failed fetch
+    // here used to render exactly like "you have no customers yet" (an
+    // empty picker in the Add Task form), indistinguishable from a
+    // genuine empty state.
     getCustomers()
-      .then(setCustomers)
-      .catch((err) => console.error("CUSTOMERS LOAD ERROR:", err));
+      .then((data) => {
+        setCustomers(data);
+        setCustomersLoadError("");
+      })
+      .catch((err) => {
+        console.error("CUSTOMERS LOAD ERROR:", err);
+        setCustomersLoadError("Couldn't load your customers. Please refresh to try again.");
+      });
 
   },[]);
 
@@ -390,6 +401,12 @@ function TaskPanel() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              {customersLoadError && (
+                <p className="-mt-2 text-xs text-danger">
+                  {customersLoadError}
+                </p>
+              )}
 
               <input
                 placeholder="Title (e.g. Call back about the estimate)"

@@ -41,6 +41,7 @@ function Quotes() {
   const [businessDefaultTaxRate, setBusinessDefaultTaxRate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [customersLoadError, setCustomersLoadError] = useState("");
 
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -80,9 +81,22 @@ function Quotes() {
 
     loadQuotes();
 
+    // A real error state, not just a console.error - without this, a
+    // failed fetch here rendered exactly like "you have no customers
+    // yet" (an empty picker), which a review caught: someone hitting
+    // this on a flaky connection could reasonably create a duplicate
+    // customer rather than realizing it was a loading glitch, in an app
+    // that already has an entire duplicate-customer-merge feature for
+    // exactly that mistake.
     getCustomers()
-      .then(setCustomers)
-      .catch((error) => console.error("CUSTOMERS LOAD ERROR:", error));
+      .then((data) => {
+        setCustomers(data);
+        setCustomersLoadError("");
+      })
+      .catch((error) => {
+        console.error("CUSTOMERS LOAD ERROR:", error);
+        setCustomersLoadError("Couldn't load your customers. Please refresh to try again.");
+      });
 
     getSavedLineItems()
       .then(setSavedItems)
@@ -305,6 +319,7 @@ function Quotes() {
           draftCustomerId={formModal.draftCustomerId}
           draftSummary={formModal.draftSummary}
           customers={customers}
+          customersLoadError={customersLoadError}
           savedItems={savedItems}
           businessDefaultTaxRate={businessDefaultTaxRate}
           onClose={() => setFormModal(null)}

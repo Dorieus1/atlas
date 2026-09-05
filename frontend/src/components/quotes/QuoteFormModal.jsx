@@ -23,6 +23,7 @@ import {
 function QuoteFormModal({
   quote,
   customers,
+  customersLoadError,
   savedItems,
   businessDefaultTaxRate,
   draftItems,
@@ -486,6 +487,14 @@ function QuoteFormModal({
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+
+          {customersLoadError && (
+
+            <p className="-mt-2 text-xs text-danger">
+              {customersLoadError}
+            </p>
+
+          )}
 
           {savedItems.length > 0 && (
 

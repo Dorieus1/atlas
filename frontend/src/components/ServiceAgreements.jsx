@@ -42,6 +42,7 @@ function ServiceAgreements({ customerId }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [teammates, setTeammates] = useState([]);
+  const [teammatesLoadError, setTeammatesLoadError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -104,9 +105,19 @@ function ServiceAgreements({ customerId }) {
 
   useEffect(() => {
 
+    // A real error state, not just a console.error - a failed fetch
+    // here used to render exactly like "you have no team members" (an
+    // empty crew-assignment dropdown), indistinguishable from a genuine
+    // empty state.
     getTeammates()
-      .then(setTeammates)
-      .catch((err) => console.error("TEAMMATES LOAD ERROR:", err));
+      .then((data) => {
+        setTeammates(data);
+        setTeammatesLoadError("");
+      })
+      .catch((err) => {
+        console.error("TEAMMATES LOAD ERROR:", err);
+        setTeammatesLoadError("Couldn't load your team. Please refresh to try again.");
+      });
 
   }, []);
 
@@ -322,6 +333,12 @@ function ServiceAgreements({ customerId }) {
       {loadError && (
         <p className="mt-3 text-sm text-danger">
           {loadError}
+        </p>
+      )}
+
+      {teammatesLoadError && (
+        <p className="mt-3 text-sm text-danger">
+          {teammatesLoadError}
         </p>
       )}
 

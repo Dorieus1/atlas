@@ -253,6 +253,13 @@ function Schedule() {
   const [teammates, setTeammates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  // Two independent flags, not one shared error string set by both -
+  // getCustomers() and getTeammates() run in parallel with nothing
+  // guaranteeing which settles last, so a shared string risked a late
+  // SUCCESS on one silently clearing an earlier FAILURE reported by the
+  // other.
+  const [customersLoadFailed, setCustomersLoadFailed] = useState(false);
+  const [teammatesLoadFailed, setTeammatesLoadFailed] = useState(false);
   const [clockingId, setClockingId] = useState(null);
   const [timeTrackingEnabled, setTimeTrackingEnabled] = useState(true);
 
@@ -357,13 +364,30 @@ function Schedule() {
 
     loadAppointments();
 
+    // A real error state, not just a console.error - a failed fetch
+    // here used to render exactly like "you have no customers/teammates
+    // yet" (an empty picker in the New Appointment form and the
+    // assignee dropdowns), indistinguishable from a genuine empty
+    // state.
     getCustomers()
-      .then(setCustomers)
-      .catch((error) => console.error("CUSTOMERS LOAD ERROR:", error));
+      .then((data) => {
+        setCustomers(data);
+        setCustomersLoadFailed(false);
+      })
+      .catch((error) => {
+        console.error("CUSTOMERS LOAD ERROR:", error);
+        setCustomersLoadFailed(true);
+      });
 
     getTeammates()
-      .then(setTeammates)
-      .catch((error) => console.error("TEAMMATES LOAD ERROR:", error));
+      .then((data) => {
+        setTeammates(data);
+        setTeammatesLoadFailed(false);
+      })
+      .catch((error) => {
+        console.error("TEAMMATES LOAD ERROR:", error);
+        setTeammatesLoadFailed(true);
+      });
 
     getBusinesses()
       .then((businesses) => setTimeTrackingEnabled(businesses?.[0]?.time_tracking_enabled !== 0))
@@ -745,6 +769,12 @@ function Schedule() {
       {loadError && (
         <p className="mt-4 text-danger">
           {loadError}
+        </p>
+      )}
+
+      {(customersLoadFailed || teammatesLoadFailed) && (
+        <p className="mt-4 text-danger">
+          Couldn't load your {customersLoadFailed && teammatesLoadFailed ? "customers or team" : customersLoadFailed ? "customers" : "team"} - the picker below may be incomplete. Please refresh to try again.
         </p>
       )}
 
