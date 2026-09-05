@@ -105,6 +105,7 @@ const sendQuoteReminders = async () => {
     AND quotes.sent_at <= ?
     AND (quotes.last_reminder_sent_at IS NULL OR quotes.last_reminder_sent_at <= ?)
     AND quotes.reminder_count < 3
+    AND customers.deleted_at IS NULL
     AND customers.email IS NOT NULL
     AND customers.email != ''
     GROUP BY quotes.id

@@ -286,6 +286,30 @@ describe("Invoice payment reminder emails", () => {
   });
 
 
+  test("a trashed customer's sent invoice is never reminded", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "InvoiceReminderTrashed");
+    const customerId = await createCustomer(authHeader, "Trashed Customer", "invoicetrashed@test.com");
+    const invoiceId = await createInvoice(authHeader, customerId);
+
+    await setStatus(authHeader, invoiceId, "sent");
+    await backdateInvoice(invoiceId, { sentDaysAgo: 4 });
+
+    await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    const sentCount = await sendInvoiceReminders();
+
+    expect(sentCount).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    const row = await getQuoteRow(invoiceId);
+    expect(row.reminder_count).toBe(0);
+
+  });
+
+
   test("reminding again respects the 5-day cooldown", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ReminderCooldown");

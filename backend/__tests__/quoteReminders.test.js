@@ -258,6 +258,30 @@ describe("Quote follow-up reminder emails", () => {
   });
 
 
+  test("a trashed customer's sent quote is never reminded", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "QuoteReminderTrashed");
+    const customerId = await createCustomer(authHeader, "Trashed Customer", "quotetrashed@test.com");
+    const quoteId = await createQuote(authHeader, customerId);
+
+    await setStatus(authHeader, quoteId, "sent");
+    await backdateQuote(quoteId, { sentDaysAgo: 3 });
+
+    await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    const sentCount = await sendQuoteReminders();
+
+    expect(sentCount).toBe(0);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    const row = await getQuoteRow(quoteId);
+    expect(row.reminder_count).toBe(0);
+
+  });
+
+
   test("an invoice (not a quote) is never picked up by the quote reminder job", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "QuoteReminderInvoiceSkip");

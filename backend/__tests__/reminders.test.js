@@ -147,6 +147,26 @@ describe("Appointment reminder emails", () => {
   });
 
 
+  test("a trashed customer's upcoming appointment is never reminded", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "ReminderTrashed");
+    const customerId = await createCustomer(authHeader, "Trashed Customer", "trashed@test.com");
+    const apptId = await createAppointment(authHeader, customerId, "Roof inspection", 24);
+
+    await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    await sendAppointmentReminders();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    const reminderSentAt = await getReminderSentAt(apptId);
+    expect(reminderSentAt).toBeFalsy();
+
+  });
+
+
   test("the email content names the right business and includes the appointment title", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "ReminderContent");

@@ -43,6 +43,11 @@ const runAsync = (sql, params = []) => {
 // intervals, but reminder_sent_at (not the window) is what actually
 // guarantees each appointment only ever gets one reminder, however many
 // times this runs while the appointment sits inside that window.
+//
+// customers.deleted_at IS NULL matters here even though the appointment
+// itself is untouched by trashing a customer (see deleteCustomer's own
+// comment in customerService.js) - a business that trashed a customer
+// has no reason to expect Atlas to keep emailing that person on its own.
 const sendAppointmentReminders = async () => {
 
   const windowStart = new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
@@ -64,6 +69,7 @@ const sendAppointmentReminders = async () => {
     WHERE appointments.status = 'scheduled'
     AND appointments.reminder_sent_at IS NULL
     AND appointments.start_time BETWEEN ? AND ?
+    AND customers.deleted_at IS NULL
     AND customers.email IS NOT NULL
     AND customers.email != ''
     `,

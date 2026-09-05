@@ -218,6 +218,51 @@ describe("Public chat page", () => {
 
   });
 
+  test("a customer trashed mid-conversation can no longer chat or read their own history", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "TrashedChatVisitor");
+
+    const slugRes = await request(app)
+      .get("/api/business")
+      .set("Authorization", authHeader);
+
+    const slug = slugRes.body[0].slug;
+
+    const started = await request(app)
+      .post(`/api/public/${slug}/start`)
+      .send({ name: "Soon Trashed Visitor" });
+
+    const customerId = started.body.customer_id;
+
+    const firstChat = await request(app)
+      .post(`/api/public/${slug}/chat`)
+      .send({ customer_id: customerId, message: "Can I book something?" });
+
+    expect(firstChat.status).toBe(200);
+
+    // The owner trashes this customer from the CRM (e.g. spam/abuse)
+    // while the visitor's chat tab is still open with its old customer_id
+    // still sitting in sessionStorage - it must not go on working as if
+    // nothing happened.
+    const trashRes = await request(app)
+      .delete(`/api/customers/${customerId}`)
+      .set("Authorization", authHeader);
+
+    expect(trashRes.status).toBe(200);
+
+    const chatAfterTrash = await request(app)
+      .post(`/api/public/${slug}/chat`)
+      .send({ customer_id: customerId, message: "Still there?" });
+
+    expect(chatAfterTrash.status).toBe(404);
+
+    const historyAfterTrash = await request(app).get(`/api/public/${slug}/conversations/${customerId}`);
+
+    expect(historyAfterTrash.status).toBe(404);
+
+  });
+
+
   test("the existing logged-in chat endpoint still works after the shared refactor", async () => {
 
     const { authHeader } = await createBusinessAndUser(app, "StaffChatStillWorks");

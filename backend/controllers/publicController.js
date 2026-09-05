@@ -1,5 +1,5 @@
 const { getBusinessBySlug } = require("../services/businessService");
-const { createCustomer, getCustomerById, getActiveCustomerByEmail, getActiveCustomerByPhone } = require("../services/customerService");
+const { createCustomer, getActiveCustomerById, getActiveCustomerByEmail, getActiveCustomerByPhone } = require("../services/customerService");
 const { getConversationHistory } = require("../services/conversationService");
 const { processChatMessage } = require("../services/chatService");
 const { createNotification } = require("../services/notificationService");
@@ -208,7 +208,12 @@ const sendPublicMessage = async (req, res) => {
 
     }
 
-    const customer = await getCustomerById(customer_id, business.id);
+    // getActiveCustomerById, not getCustomerById - a customer_id sitting
+    // in the visitor's own sessionStorage from before they were trashed
+    // must not still be able to keep chatting (or, via the AI's own
+    // book_appointment tool, book a real appointment) just because their
+    // browser hasn't refreshed since.
+    const customer = await getActiveCustomerById(customer_id, business.id);
 
     if (!customer) {
 
@@ -252,7 +257,7 @@ const getPublicHistory = async (req, res) => {
 
     }
 
-    const customer = await getCustomerById(customer_id, business.id);
+    const customer = await getActiveCustomerById(customer_id, business.id);
 
     if (!customer) {
 
