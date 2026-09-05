@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Users, TrendingUp, Flame, Target } from "lucide-react";
-import { API_BASE, handleSessionExpired } from "../api/atlasApi";
+import { getAnalytics } from "../api/atlasApi";
 
 import StatCard from "./dashboard/StatCard";
 
@@ -25,37 +25,12 @@ function Dashboard(){
 
   useEffect(()=>{
 
-
-    const token = localStorage.getItem("token");
-
-    fetch(
-      `${API_BASE}/api/analytics`,
-      {
-        headers: {
-          ...(token
-            ? { Authorization: `Bearer ${token}` }
-            : {})
-        }
-      }
-    )
-
-    .then(res=>{
-
-      if (!res.ok) {
-
-        if (handleSessionExpired(res)) {
-
-          throw new Error("Session expired");
-
-        }
-
-        throw new Error("Failed to load stats");
-
-      }
-
-      return res.json();
-
-    })
+    // request() (see atlasApi.js) already handles the auth header and a
+    // 401 session-expiry redirect itself - this used to hand-roll both
+    // with its own separate fetch(), one of a handful of components
+    // across the app doing the same thing slightly differently (a
+    // review finding).
+    getAnalytics()
 
     .then(data=>{
 

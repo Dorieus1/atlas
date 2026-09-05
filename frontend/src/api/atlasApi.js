@@ -309,6 +309,47 @@ export const getBusinesses = () =>
 
   request("/business");
 
+// Onboarding.jsx's very first step, before any account (and so any
+// auth token) exists yet - request() already only attaches an
+// Authorization header when localStorage actually has a token, so this
+// works unauthenticated the same as the raw fetch() it replaces.
+export const createBusiness = (payload) =>
+
+  request("/business", {
+
+    method: "POST",
+
+    body: JSON.stringify(payload)
+
+  });
+
+// Best-effort cleanup for the "business created, account creation then
+// failed" case in Onboarding.jsx - the caller there already swallows
+// this call's own errors, so nothing here needs to.
+export const deleteIncompleteBusiness = (businessId) =>
+
+  request(`/business/${businessId}/incomplete`, {
+
+    method: "DELETE"
+
+  });
+
+// BusinessProfile.jsx sends its whole form at once (name, phone, email,
+// address, industry, services, review_link, timezone, business_hours,
+// default_tax_rate, default_hourly_labor_cost, time_tracking_enabled,
+// plus the business id) - kept as one opaque payload object here rather
+// than spelled out param-by-param, since this endpoint's real contract
+// is "the full business record", not a fixed short list of fields.
+export const updateBusiness = (payload) =>
+
+  request("/business", {
+
+    method: "PUT",
+
+    body: JSON.stringify(payload)
+
+  });
+
 export const getEmailStatus = () =>
 
   request("/business/email-status");

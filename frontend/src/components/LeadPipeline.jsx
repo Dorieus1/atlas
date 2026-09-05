@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Flame, Download, Sparkles, UserSquare2, ArrowRight } from "lucide-react";
-import { API_BASE, handleSessionExpired, generateFollowUpMessage, updateLeadSource } from "../api/atlasApi";
+import { getLeads, updateLeadStatus, generateFollowUpMessage, updateLeadSource } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
 
@@ -75,8 +75,6 @@ function LeadPipeline({ compact = false }) {
   const [followUpLoadingId, setFollowUpLoadingId] = useState(null);
   const [followUpErrors, setFollowUpErrors] = useState({});
 
-  const token = localStorage.getItem("token");
-
   const formatDate = (dateStr) =>
     new Date(dateStr).toLocaleDateString(undefined, {
       month: "short",
@@ -117,32 +115,7 @@ function LeadPipeline({ compact = false }) {
 
     try {
 
-      const res = await fetch(
-        `${API_BASE}/api/leads`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      if (!res.ok) {
-
-        if (handleSessionExpired(res)) {
-
-          return;
-
-        }
-
-        console.error("Failed to load leads");
-
-        setError("Couldn't load your leads. Please refresh to try again.");
-
-        return;
-
-      }
-
-      const data = await res.json();
+      const data = await getLeads();
 
       if (Array.isArray(data)) {
 
@@ -158,9 +131,15 @@ function LeadPipeline({ compact = false }) {
 
     } catch (err) {
 
-      console.error(err);
+      // A 401 already triggers request()'s own redirect to login (see
+      // atlasApi.js) - no separate handling needed here for that case.
+      if (err.status !== 401) {
 
-      setError("Couldn't load your leads. Please refresh to try again.");
+        console.error(err);
+
+        setError("Couldn't load your leads. Please refresh to try again.");
+
+      }
 
     }
 
@@ -186,35 +165,7 @@ function LeadPipeline({ compact = false }) {
 
     try {
 
-      const res = await fetch(
-        `${API_BASE}/api/leads/${id}`,
-        {
-          method: "PATCH",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-
-          body: JSON.stringify({
-            status
-          })
-        }
-      );
-
-      if (!res.ok) {
-
-        if (handleSessionExpired(res)) {
-
-          return;
-
-        }
-
-        const data = await res.json().catch(() => ({}));
-
-        throw new Error(data.error || "Failed to update lead status");
-
-      }
+      await updateLeadStatus(id, status);
 
       setError("");
 
@@ -222,7 +173,11 @@ function LeadPipeline({ compact = false }) {
 
     } catch (err) {
 
-      setError(err.message);
+      if (err.status !== 401) {
+
+        setError(err.message || "Failed to update lead status");
+
+      }
 
     } finally {
 

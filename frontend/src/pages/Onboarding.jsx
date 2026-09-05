@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Rocket } from "lucide-react";
-import { API_BASE } from "../api/atlasApi";
+import { createBusiness, register, deleteIncompleteBusiness, login } from "../api/atlasApi";
 import AuthHeader from "../components/AuthHeader";
 
 
@@ -86,123 +86,62 @@ function Onboarding() {
 
     try {
 
-      const businessRes =
-        await fetch(
+      let business;
 
-          `${API_BASE}/api/business`,
+      try {
 
-          {
+        business = await createBusiness({
 
-            method:"POST",
+          name: form.name.trim(),
+          industry: form.industry.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          address: form.address.trim(),
+          services: form.services.trim()
 
-            headers:{
+        });
 
-              "Content-Type":
-              "application/json"
+      } catch (err) {
 
-            },
-
-            body:
-            JSON.stringify({
-
-              name: form.name.trim(),
-              industry: form.industry.trim(),
-              phone: form.phone.trim(),
-              email: form.email.trim(),
-              address: form.address.trim(),
-              services: form.services.trim()
-
-            })
-
-          }
-
-        );
-
-      const business = await businessRes.json();
-
-      if (!businessRes.ok) {
-
-        throw new Error(business.error || "Failed to create business");
+        throw new Error(err.message || "Failed to create business");
 
       }
 
-      const registerRes =
-        await fetch(
+      try {
 
-          `${API_BASE}/api/auth/register`,
+        await register(
 
-          {
-
-            method:"POST",
-
-            headers:{
-
-              "Content-Type":
-              "application/json"
-
-            },
-
-            body: JSON.stringify({
-
-              business_id: business.id,
-              name: form.ownerName.trim(),
-              email: form.ownerEmail.trim(),
-              password: form.password
-
-            })
-
-          }
+          form.ownerName.trim(),
+          form.ownerEmail.trim(),
+          form.password,
+          business.id
 
         );
 
-      const registerData = await registerRes.json();
-
-      if (!registerRes.ok) {
+      } catch (err) {
 
         // The business row was already created above. Since no account
         // exists to use it, clean it up rather than leaving it behind
         // permanently - if this fails too, that's fine, the original
         // error below is still what the user needs to see.
-        fetch(`${API_BASE}/api/business/${business.id}/incomplete`, {
-          method: "DELETE"
-        }).catch(() => {});
+        deleteIncompleteBusiness(business.id).catch(() => {});
 
-        throw new Error(registerData.error || "Failed to create your account");
+        throw new Error(err.message || "Failed to create your account");
 
       }
 
-      const loginRes =
-        await fetch(
+      // register() only ever returns {id, message} (see
+      // authController.js) - it never issues a token itself, so this
+      // still needs its own real login right after, same as before.
+      let loginData;
 
-          `${API_BASE}/api/auth/login`,
+      try {
 
-          {
+        loginData = await login(form.ownerEmail, form.password);
 
-            method:"POST",
+      } catch (err) {
 
-            headers:{
-
-              "Content-Type":
-              "application/json"
-
-            },
-
-            body: JSON.stringify({
-
-              email: form.ownerEmail,
-              password: form.password
-
-            })
-
-          }
-
-        );
-
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-
-        throw new Error(loginData.error || "Account created, but login failed. Please log in.");
+        throw new Error(err.message || "Account created, but login failed. Please log in.");
 
       }
 

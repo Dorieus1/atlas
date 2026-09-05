@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { API_BASE, handleSessionExpired } from "../api/atlasApi";
+import { updateBusiness as updateBusinessRequest } from "../api/atlasApi";
 
 const DAYS = [
   { key: "mon", label: "Monday" },
@@ -218,55 +218,31 @@ function BusinessProfile({ business }) {
 
     try {
 
-      const token = localStorage.getItem("token");
+      await updateBusinessRequest({
 
-      const res = await fetch(
-        `${API_BASE}/api/business`,
-        {
+        id: business.id,
 
-          method: "PUT",
+        ...form,
 
-          headers: {
-            "Content-Type": "application/json",
-            ...(token
-              ? { Authorization: `Bearer ${token}` }
-              : {})
-          },
+        name: form.name.trim(),
 
-          body: JSON.stringify({
+        business_hours: hoursEnabled ? hours : null
 
-            id: business.id,
-
-            ...form,
-
-            name: form.name.trim(),
-
-            business_hours: hoursEnabled ? hours : null
-
-          }),
-
-        }
-      );
-
-      if (!res.ok) {
-
-        if (handleSessionExpired(res)) {
-
-          return;
-
-        }
-
-        const data = await res.json().catch(() => ({}));
-
-        throw new Error(data.error || "Failed to update business");
-
-      }
+      });
 
       setSuccess("Business updated");
 
     } catch (err) {
 
-      setError(err.message);
+      // A 401 already triggers request()'s own redirect to login (see
+      // atlasApi.js) - showing "Failed to update business" for the
+      // instant before that redirect lands would just be a flash of a
+      // misleading error over a save that never really failed.
+      if (err.status !== 401) {
+
+        setError(err.message || "Failed to update business");
+
+      }
 
     } finally {
 

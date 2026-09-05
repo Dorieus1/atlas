@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { API_BASE } from "../api/atlasApi";
+import { login as loginRequest } from "../api/atlasApi";
 import AuthLayout from "../components/AuthLayout";
 
 
@@ -48,49 +48,7 @@ function Login() {
     try {
 
 
-      const res = await fetch(
-
-        `${API_BASE}/api/auth/login`,
-
-        {
-
-          method:"POST",
-
-          headers:{
-
-            "Content-Type":
-            "application/json"
-
-          },
-
-          body:JSON.stringify({
-
-            email: email.trim(),
-
-            password
-
-          })
-
-        }
-
-      );
-
-
-
-
-      const data =
-        await res.json();
-
-
-
-
-      if(!res.ok){
-
-        setError(data.error || "Login failed. Please try again.");
-
-        return;
-
-      }
+      const data = await loginRequest(email.trim(), password);
 
 
 
@@ -131,7 +89,7 @@ function Login() {
     } catch(error){
 
 
-      setError(error.message);
+      setError(error.message || "Login failed. Please try again.");
 
 
     } finally {
