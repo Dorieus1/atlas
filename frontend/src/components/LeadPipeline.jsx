@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Download, Sparkles, UserSquare2, ArrowRight } from "lucide-react";
+import { Flame, Download, Sparkles, UserSquare2, ArrowRight, Mail } from "lucide-react";
 import { getLeads, updateLeadStatus, generateFollowUpMessage, updateLeadSource } from "../api/atlasApi";
 import { downloadCSV } from "../utils/csv";
 import EmptyState from "./EmptyState";
+import SendMessageModal from "./SendMessageModal";
 
 // Matches Analytics.jsx's own PIPELINE_STAGES - same four stages, same
 // order, so the board reads consistently with the funnel chart there.
@@ -74,6 +75,13 @@ function LeadPipeline({ compact = false }) {
   const [followUpMessages, setFollowUpMessages] = useState({});
   const [followUpLoadingId, setFollowUpLoadingId] = useState(null);
   const [followUpErrors, setFollowUpErrors] = useState({});
+
+  // The lead currently being messaged (opens SendMessageModal pre-filled
+  // with its AI-drafted follow-up), or null when closed. Not keyed by
+  // lead.id like the maps above - only one compose modal is ever open
+  // at a time.
+  const [messagingLead, setMessagingLead] = useState(null);
+  const [messageSentNotes, setMessageSentNotes] = useState({});
 
   const formatDate = (dateStr) =>
     new Date(dateStr).toLocaleDateString(undefined, {
@@ -385,9 +393,43 @@ function LeadPipeline({ compact = false }) {
 
         {followUpMessages[lead.id] && (
 
-          <div className="mt-3 whitespace-pre-wrap rounded-lg bg-surface p-4 text-sm">
-            {followUpMessages[lead.id]}
-          </div>
+          <>
+
+            <div className="mt-3 whitespace-pre-wrap rounded-lg bg-surface p-4 text-sm">
+              {followUpMessages[lead.id]}
+            </div>
+
+            {/*
+              The draft used to just sit here as read-only text - "ready
+              to copy into a text or email" per the landing page's own
+              wording, meaning the only way to actually use it was
+              select-all, switch apps, paste. Every lead has a real
+              customer_id (leads.customer_id is NOT NULL - only ever
+              created from a real chat), so the same real send-email
+              feature built for Customer Profile applies here too. Opens
+              pre-filled, not auto-sent - a human still reviews (and can
+              edit) before anything goes out.
+            */}
+            <button
+              onClick={() => {
+                setMessageSentNotes((prev) => ({ ...prev, [lead.id]: "" }));
+                setMessagingLead(lead);
+              }}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-border px-3 py-1.5 text-xs font-medium transition hover:bg-border-strong"
+            >
+              <Mail size={13} />
+              Send Email
+            </button>
+
+            {messageSentNotes[lead.id] && (
+
+              <p className="mt-2 text-xs text-success">
+                {messageSentNotes[lead.id]}
+              </p>
+
+            )}
+
+          </>
 
         )}
 
@@ -593,6 +635,23 @@ function LeadPipeline({ compact = false }) {
           })}
 
         </div>
+
+      )}
+
+      {messagingLead && (
+
+        <SendMessageModal
+          customerId={messagingLead.customer_id}
+          customerName={messagingLead.name}
+          customerEmail={messagingLead.email}
+          initialSubject={`Following up${messagingLead.interest ? ` on: ${messagingLead.interest.slice(0, 60)}` : ""}`}
+          initialBody={followUpMessages[messagingLead.id] || ""}
+          onClose={() => setMessagingLead(null)}
+          onSent={() => {
+            setMessageSentNotes((prev) => ({ ...prev, [messagingLead.id]: `Email sent to ${messagingLead.email}.` }));
+            setMessagingLead(null);
+          }}
+        />
 
       )}
 

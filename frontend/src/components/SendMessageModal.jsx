@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Mail } from "lucide-react";
 
 import { sendCustomerMessage } from "../api/atlasApi";
+import Input from "./Input";
 
 
 // The real "message this customer" feature a design review flagged as
@@ -12,10 +13,16 @@ import { sendCustomerMessage } from "../api/atlasApi";
 // in customer_messages (see customerMessageService.js), so it shows up
 // afterward in CustomerTimeline right alongside notes and appointments -
 // not a fire-and-forget action with no trace it ever happened.
-function SendMessageModal({ customerId, customerName, customerEmail, onClose, onSent }) {
+//
+// initialSubject/initialBody let a caller open this pre-filled instead
+// of blank - LeadPipeline.jsx's own AI-drafted follow-up message opens
+// straight into this, so sending it is one click instead of a
+// copy-paste round trip, without skipping the human review step (the
+// owner still sees it in an editable box before anything goes out).
+function SendMessageModal({ customerId, customerName, customerEmail, initialSubject = "", initialBody = "", onClose, onSent }) {
 
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
+  const [subject, setSubject] = useState(initialSubject);
+  const [body, setBody] = useState(initialBody);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -89,12 +96,11 @@ function SendMessageModal({ customerId, customerName, customerEmail, onClose, on
 
         <div className="mt-4 flex flex-col gap-3">
 
-          <input
+          <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Subject"
             maxLength={200}
-            className="w-full rounded-lg border border-border bg-surface-muted p-3 text-fg placeholder:text-fg-faint focus:border-border-strong focus:outline-none"
           />
 
           <textarea
