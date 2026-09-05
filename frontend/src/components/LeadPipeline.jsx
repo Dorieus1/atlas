@@ -60,6 +60,29 @@ const SOURCE_OPTIONS = [
 const PRIORITY_RANK = { hot: 0, warm: 1, cold: 2 };
 const COMPACT_LEAD_LIMIT = 5;
 
+// Used to build a one-line email subject out of a lead's raw interest
+// text (the customer's own unsanitized chat message) - a review caught
+// two real, if minor, issues with the plain `.slice(0, 60)` this used
+// to be: a newline in the customer's message would carry straight
+// through into a literal line break in the subject line, and `.slice`
+// counts UTF-16 code units, not characters, so a message with an emoji
+// or other 4-byte character straddling position 60 could cut a
+// surrogate pair in half and mangle it. Collapsing whitespace first and
+// slicing an array of real characters (via the spread operator, which
+// iterates by code point) fixes both - purely cosmetic (the owner sees
+// and can edit the subject before anything sends), but cheap to get
+// right.
+function truncateForSubject(text, maxLength) {
+
+  const singleLine = text.replace(/\s+/g, " ").trim();
+  const chars = [...singleLine];
+
+  return chars.length > maxLength
+    ? chars.slice(0, maxLength).join("") + "…"
+    : singleLine;
+
+}
+
 function LeadPipeline({ compact = false }) {
 
   const [leads, setLeads] = useState([]);
@@ -644,7 +667,7 @@ function LeadPipeline({ compact = false }) {
           customerId={messagingLead.customer_id}
           customerName={messagingLead.name}
           customerEmail={messagingLead.email}
-          initialSubject={`Following up${messagingLead.interest ? ` on: ${messagingLead.interest.slice(0, 60)}` : ""}`}
+          initialSubject={`Following up${messagingLead.interest ? ` on: ${truncateForSubject(messagingLead.interest, 60)}` : ""}`}
           initialBody={followUpMessages[messagingLead.id] || ""}
           onClose={() => setMessagingLead(null)}
           onSent={() => {
