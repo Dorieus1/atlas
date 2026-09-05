@@ -1,5 +1,5 @@
 const db = require("../../database/db");
-const { applyDiscount } = require("./quoteService");
+const { applyDiscount, EFFECTIVE_SUBTOTAL_SQL } = require("./quoteService");
 
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -113,6 +113,19 @@ const getAnalytics = async (business_id) => {
     // understating it for any discounted/taxed invoice even though
     // Stripe genuinely only charges (and this business only actually
     // collects) the final discounted-and-taxed total.
+    //
+    // EFFECTIVE_SUBTOTAL_SQL (not a plain SUM(quantity * unit_price)) -
+    // a real bug a review caught: a Good/Better/Best invoice stores
+    // every tier's line items in quote_items, not just the one the
+    // customer actually accepted, so a plain sum here counted ALL of
+    // them - a $100/$150/$200 tiered invoice the customer paid $150 for
+    // showed up as $450 in revenue. quoteService.js already built this
+    // exact fix for getQuotes/getQuotesForExport (its own comment calls
+    // it "the ONE number every list view, the CSV export, and analytics
+    // need") - this just hadn't been wired in here yet. A quote with no
+    // tiers has every item's tier_id NULL, so this is 100% identical to
+    // the old behavior for every non-tiered invoice, which is most of
+    // them.
     allAsync(
 
       `
@@ -122,7 +135,7 @@ const getAnalytics = async (business_id) => {
         quotes.discount_value,
         quotes.tax_rate,
         quotes.paid_at,
-        COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
+        ${EFFECTIVE_SUBTOTAL_SQL} as subtotal
       FROM quotes
       JOIN quote_items ON quote_items.quote_id = quotes.id
       WHERE quotes.business_id = ?
@@ -142,7 +155,7 @@ const getAnalytics = async (business_id) => {
         quotes.discount_type,
         quotes.discount_value,
         quotes.tax_rate,
-        COALESCE(SUM(quote_items.quantity * quote_items.unit_price), 0) as subtotal
+        ${EFFECTIVE_SUBTOTAL_SQL} as subtotal
       FROM quotes
       JOIN quote_items ON quote_items.quote_id = quotes.id
       WHERE quotes.business_id = ?

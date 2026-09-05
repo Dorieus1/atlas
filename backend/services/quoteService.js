@@ -1423,6 +1423,8 @@ module.exports = {
 
   addQuotePayment,
 
-  deleteQuotePayment
+  deleteQuotePayment,
+
+  EFFECTIVE_SUBTOTAL_SQL
 
 };

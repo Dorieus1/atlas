@@ -387,6 +387,74 @@ describe("Analytics", () => {
   });
 
 
+  // Regression test for a real bug a review caught: a Good/Better/Best
+  // invoice stores every tier's line items in quote_items (not just the
+  // one the customer accepted), and revenue used to be a plain
+  // SUM(quantity * unit_price) with no tier filter - so a paid tiered
+  // invoice counted ALL of its options' prices as revenue, not just the
+  // one actually sold.
+  test("a paid tiered (Good/Better/Best) invoice only counts the ACCEPTED tier as revenue, not every option", async () => {
+
+    const { authHeader } = await createBusinessAndUser(app, "AnalyticsTieredRevenue");
+
+    const customerRes = await request(app)
+      .post("/api/customers")
+      .set("Authorization", authHeader)
+      .send({ name: "Tiered Revenue Customer" });
+
+    const created = await request(app)
+      .post("/api/quotes")
+      .set("Authorization", authHeader)
+      .send({
+
+        customer_id: customerRes.body.id,
+        type: "invoice",
+        items: [{ description: "Site visit fee", quantity: 1, unit_price: 25 }],
+
+        tiers: [
+          { name: "Good", items: [{ description: "Basic repair", quantity: 1, unit_price: 200 }] },
+          { name: "Better", is_recommended: true, items: [{ description: "Full repair", quantity: 1, unit_price: 400 }] },
+          { name: "Best", items: [{ description: "Full replacement", quantity: 1, unit_price: 900 }] }
+        ]
+
+      });
+
+    expect(created.status).toBe(201);
+
+    const fetched = await request(app)
+      .get(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader);
+
+    // 25 shared + 200 Good = 225 - the CHEAPEST option, deliberately not
+    // the recommended ("Better", 425) or the most expensive ("Best",
+    // 925), so a bug that summed every tier or defaulted to the
+    // recommended one would both be caught.
+    const goodTierId = fetched.body.tiers.find((t) => t.name === "Good").id;
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "sent" });
+
+    await request(app)
+      .post(`/api/quotes/${created.body.id}/sign`)
+      .set("Authorization", authHeader)
+      .send({ name: "Real Signer", signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", tier_id: goodTierId });
+
+    await request(app)
+      .patch(`/api/quotes/${created.body.id}`)
+      .set("Authorization", authHeader)
+      .send({ status: "paid" });
+
+    const res = await request(app)
+      .get("/api/analytics")
+      .set("Authorization", authHeader);
+
+    expect(res.body.revenuePaid).toBe(225);
+
+  });
+
+
   describe("lastSixMonthKeys", () => {
 
     afterEach(() => {
